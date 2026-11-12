@@ -12,3 +12,6 @@
 {"id":"C43","group":"conflict","description":"洛阳仅 2 小时，压缩时间轴","request":{"city":"luoyang","date":"2026-10-04","hours":2,"budget_cny":1500,"styles":["song"]},"expect_hard_pass":true,"expect_min_score":0.45}
 {"id":"C44","group":"conflict","description":"洛阳排除三个收费点","request":{"city":"luoyang","date":"2026-10-04","hours":6,"budget_cny":1200,"styles":["ming"],"avoid":["yingtianmen","longmen_grottoes","indoor_studio_luoyang"]},"expect_hard_pass":true,"expect_min_score":0.50}
 {"id":"C45","group":"conflict","description":"洛阳必去白马寺","request":{"city":"luoyang","date":"2026-10-04","hours":7,"budget_cny":1500,"styles":["tang"],"must_include":["baima_temple"]},"expect_hard_pass":true,"expect_min_score":0.55}
+{"id":"C55","group":"conflict","description":"杭州预算 500 元，需降级妆造","request":{"city":"hangzhou","date":"2026-10-04","hours":6,"budget_cny":500,"styles":["song"]},"expect_hard_pass":true,"expect_min_score":0.45}
+{"id":"C56","group":"conflict","description":"杭州仅 2 小时，压缩时间轴","request":{"city":"hangzhou","date":"2026-10-04","hours":2,"budget_cny":1500,"styles":["republic"]},"expect_hard_pass":true,"expect_min_score":0.45}
+{"id":"C57","group":"conflict","description":"杭州排除两个热门点","request":{"city":"hangzhou","date":"2026-10-04","hours":6,"budget_cny":1200,"styles":["song"],"avoid":["west_lake","leifeng_pagoda"]},"expect_hard_pass":true,"expect_min_score":0.50}

@@ -59,9 +59,9 @@ git ls-files | grep -E "\.env$|\.db$|evals/out/" || echo "没有敏感文件被�
 
 | 检查 | 结果 |
 | --- | --- |
-| `pytest` | 109 passed（本机 Python 3.13） |
+| `pytest` | 116 passed（本机 Python 3.13） |
 | `ruff check src tests evals` | All checks passed |
-| `evals.run_eval --compare v2` | 50/50，均分 0.9785，对照组 0.3196，差值 0.6589，退出码 0 |
+| `evals.run_eval --compare v4` | 60/60，均分 0.9762，对照组 0.3115，差值 0.6647，退出码 0 |
 | 不可满足需求 | 8/8 正确结构化拒绝 |
 | 真实启动服务 | `/api/health`、首页、`/api/plan` 全部正常 |
 | 静态展示页 | <https://zhaozilong6666.github.io/shotplan/>（GitHub Pages，已验证 built） |
@@ -73,7 +73,7 @@ git ls-files | grep -E "\.env$|\.db$|evals/out/" || echo "没有敏感文件被�
 cd "D:/WorkBuddy/projects/shotplan"
 python -m pip install -e ".[api,dev]"
 python -m pytest
-python -m evals.run_eval --write-report --compare evals/baselines/v3-naive.json
+python -m evals.run_eval --write-report --compare evals/baselines/v4-naive.json
 python -m ruff check src tests evals
 python -m shotplan.cli serve
 ```
@@ -129,7 +129,7 @@ SHOTPLAN_LLM_API_KEY=你复制的key
 ```bash
 python -m shotplan.cli config      # 应显示 "api_key_set": true，且不会打印 key 本身
 python -m shotplan.cli plan        # 不带 --mock-mode，走真实模型
-python -m evals.run_eval --write-report --compare evals/baselines/v3-naive.json
+python -m evals.run_eval --write-report --compare evals/baselines/v4-naive.json
 ```
 
 ### 安全提醒
@@ -186,4 +186,4 @@ curl https://你的地址/api/health
 
 ## 我这边已经做完、你不用管的
 
-仓库结构与全部源码、109 个单元测试、50 个评测用例与两代对照基线、自动生成的评测报告、架构文档与 7 份 ADR、CI 工作流（含修复实验与失败案例两道门禁）、Docker 配置、Web 界面（含运行统计视图）、中英文 README、GitHub Pages 静态展示页、路线图、面试讲稿、排错手册、GitHub 建仓与推送、仓库描述与 topics、CI 跨版本浮点问题修复、代理受限时的 API 推送脚本、生成前可行性判定、prompt v1/v2 对比框架、成本/延迟报告与模拟 provider、修复循环实验、结构化失败案例库、按 provider / prompt 版本聚合的运行统计面板。本地已验证：测试全绿、评测退出码 0、CLI 与 API 端到端可用；GitHub Actions 4 个 Python 版本全部通过。
+仓库结构与全部源码、116 个单元测试、50 个评测用例与两代对照基线、自动生成的评测报告、架构文档与 7 份 ADR、CI 工作流（含修复实验与失败案例两道门禁）、Docker 配置、Web 界面（含运行统计视图）、中英文 README、GitHub Pages 静态展示页、路线图、面试讲稿、排错手册、GitHub 建仓与推送、仓库描述与 topics、CI 跨版本浮点问题修复、代理受限时的 API 推送脚本、生成前可行性判定、prompt v1/v2 对比框架、成本/延迟报告与模拟 provider、修复循环实验、结构化失败案例库、按 provider / prompt 版本聚合的运行统计面板。本地已验证：测试全绿、评测退出码 0、CLI 与 API 端到端可用；GitHub Actions 4 个 Python 版本全部通过。

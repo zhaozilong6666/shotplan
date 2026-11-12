@@ -18,6 +18,7 @@ except ImportError as exc:  # pragma: no cover
         "python -m pip install -e '.[api]'"
     ) from exc
 
+from . import __version__
 from .agents import MockProvider, build_provider
 from .config import ROOT, get_settings
 from .domain.constraints import RULES
@@ -28,7 +29,7 @@ from .storage import RunStore
 
 app = FastAPI(
     title="shotplan",
-    version="0.1.0",
+    version=__version__,
     description="可评测、带硬约束校验的旅拍方案 Agent",
 )
 WEB_DIR = ROOT / "web"
@@ -41,7 +42,7 @@ def _store() -> RunStore:
 @app.get("/api/health")
 def health() -> dict[str, Any]:
     cfg = get_settings()
-    return {"status": "ok", "provider": cfg.provider, "version": "0.1.0"}
+    return {"status": "ok", "provider": cfg.provider, "version": __version__}
 
 
 @app.get("/api/config")

@@ -176,26 +176,26 @@ def main() -> int:
     )
     html = replace_block(
         html,
-        r'(<h2>评测结果</h2>.*?)<tbody>.*?</tbody>',
-        lambda m: m.group(1) + groups_block(latest["good"]),
+        r'(<h2>评测结果</h2>.*?)\s*<tbody>.*?</tbody>',
+        lambda m: m.group(1).rstrip() + "\n" + groups_block(latest["good"]),
         "groups",
     )
     html = replace_block(
         html,
-        r'(<h2>修复循环.*?)<div class="cards">.*?</div>\s*</section>',
-        lambda m: m.group(1) + repair_block(repair) + "\n  </section>",
+        r'(<h2>修复循环.*?)\s*<div class="cards">.*?</div>\s*</section>',
+        lambda m: m.group(1).rstrip() + "\n" + repair_block(repair) + "\n  </section>",
         "repair",
     )
     html = replace_block(
         html,
-        r'(<h2>成本与延迟.*?)<tbody>.*?</tbody>',
-        lambda m: m.group(1) + cost_block(cost),
+        r'(<h2>成本与延迟.*?)\s*<tbody>.*?</tbody>',
+        lambda m: m.group(1).rstrip() + "\n" + cost_block(cost),
         "cost",
     )
     html = replace_block(
         html,
-        r'(<h2>失败案例库.*?)<ul class="clean">.*?</ul>',
-        lambda m: m.group(1) + failures_block(failures),
+        r'(<h2>失败案例库.*?)\s*<ul class="clean">.*?</ul>',
+        lambda m: m.group(1).rstrip() + "\n" + failures_block(failures),
         "failures",
     )
     page.write_text(html, encoding="utf-8")

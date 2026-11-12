@@ -20,7 +20,7 @@
 - [x] SQLite 运行历史与聚合摘要
 - [x] 可选 FastAPI 层与原生单页界面（四种视图）
 - [x] 版本化 prompt、真实模型 provider（urllib + 重试 + 降级）
-- [x] 109 个单元测试，逐条覆盖规则、可行性与边界
+- [x] 116 个单元测试，逐条覆盖规则、可行性与边界
 
 验收：`python -m pytest` 全绿；`python -m shotplan.cli serve` 后界面能切换 good/naive 并看到问题清单。
 
@@ -32,7 +32,7 @@
 - [x] 回归阈值与「测量失效」检查
 - [x] GitHub Actions：测试 + lint + 评测门禁（Python 3.10–3.13 四版本矩阵）
 
-验收：`python -m evals.run_eval --write-report` 退出码 0；实测 50/50 通过、均分 0.9785、对照组 0.325。
+验收：`python -m evals.run_eval --write-report` 退出码 0；实测 60/60 通过、均分 0.9762、对照组 0.3115。
 
 ## 阶段 4 · 接真实模型，让评测真正承压 ⏳
 
@@ -44,8 +44,8 @@
 - [x] 成本/延迟报告：P50/P95、token 汇总、估算成本、修复轮次（离线成本恒 0，格式已验证）
 - [ ] 用真实 OpenAI 兼容端点跑通 `SHOTPLAN_PROVIDER=openai_compatible`
 - [ ] 记录 v1 / v2 prompt 在真实模型上的硬约束通过率差异，写进 `PROMPT_CHANGELOG`
-- [x] 修复循环实验（离线）：一次修复成功率 100%（42/42）、42 次更差修复全被拦截，见 [repair-experiment.md](repair-experiment.md)
-- [x] 失败案例库框架 + 离线对照组 277 条记录；真实模型典型错误待补，见 [failure-gallery.md](failure-gallery.md)
+- [x] 修复循环实验（离线）：一次修复成功率 100%（51/51）、51 次更差修复全被拦截，见 [repair-experiment.md](repair-experiment.md)
+- [x] 失败案例库框架 + 离线对照组 357 条记录；真实模型典型错误待补，见 [failure-gallery.md](failure-gallery.md)
 - [ ] 用真实模型数据填满成本/延迟对比表
 
 验收：报告里出现真实模型的一行数据，且能与基线做 `--compare`；`docs/eval-report.md` 记录至少一次「改动导致分数下降并回滚」的实例。

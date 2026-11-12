@@ -2,6 +2,55 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循语义化版本。
 
+## [Unreleased]
+
+阶段 5 剩余项：可交互的在线 Demo、可观测面板的更多维度、简历与面试材料定稿。详见 `docs/ROADMAP.md`。
+
+## [0.2.0] - 2026-11-12
+
+从「单城市 12 用例」扩展到「三城市 60 用例」，并补齐生成前判定、修复实验、失败案例库与运行统计。核心主张不变：**质量必须可测量**。
+
+### Added
+
+- 生成前的**可行性判定**（`domain/feasibility.py`）：预算低于最低可执行成本、时长过短、未知城市、约束互相矛盾时，返回 `status=infeasible` + 原因/缺口/建议/理论下限，不调用 provider、不生成硬凑方案。CLI 退出码 3，API 与 Web 同步展示，见 ADR 0007。
+- 评测集扩展到 **60 个用例**，覆盖西安 / 洛阳 / 杭州三座城市：`normal` 22、`conflict` 17、`edge` 12、`infeasible` 9；新增 `v4-naive.json` 基线（`v1`–`v3` 保留为历史快照）。
+- **修复循环实验**（`evals/repair_lab.py` + [docs/repair-experiment.md](docs/repair-experiment.md)）：三种刻意构造的 provider 在 51 个可满足 brief 上对照；trace 新增 `accepted` 字段，让「单调保护拦截了几次」成为可测量数据。实测一次修复成功率 51/51，51 次更差修复全部被拒绝。
+- **结构化失败案例库**（`evals/collect_failures.py` + `evals/failures/cases.jsonl` + [docs/failure-gallery.md](docs/failure-gallery.md)）：357 条记录、4 类硬约束违规，每条含输入 brief、输出片段、期望规则与修复建议。
+- **可观测聚合面板**（`src/shotplan/observability.py` + [docs/observability.md](docs/observability.md)）：按 provider / prompt 版本聚合通过率、均分、P50/P95 延迟、成本、修复轮次与不可行数量；接入 `cli stats`、`/api/stats` 与 Web「运行统计」标签页。
+- **成本/延迟模拟**（`evals/simulated_provider.py` + `evals/cost_latency.py` + [docs/cost-latency-simulation.md](docs/cost-latency-simulation.md)）：用可配置价格卡验证 token → trace → 报告 → 预算换算链路，并明确标注为模拟值。
+- **CI 门禁**：修复实验（一次修复成功率、更差修复不得被接受）、失败案例库（数量、类别、字段完整性）、**覆盖率 ≥ 85%**、**展示页与评测产物一致**。
+- **GitHub Pages 展示页**（`docs/index.html`）：指标、分组结果、修复实验、失败案例与 ADR 入口一页呈现；数据块由 `scripts/build_showcase.py` 从评测产物生成，杜绝手写数字漂移。
+- prompt v1/v2 版本表、`get_system_prompt()`、真实模型 provider 的版本参数与 `--prompt-version` 评测参数，为接真实模型后的对比实验备好框架。
+- 英文 [README.en.md](README.en.md) 与中文版互链；新增 `SECURITY.md` 与 Dependabot 配置。
+- CLI 契约测试（`tests/test_cli.py`）覆盖退出码、JSON 输出、持久化、统计与命令转发。
+
+### Fixed
+
+- 紧预算用例 C24 暴露的实现缺陷：规则 planner 会挑收费景点导致 `BUDGET_EXCEEDED`。现在按剩余预算裁剪地点组合，并让 `best_style_for()` 先为转场预留 50 元、必要时自动降级妆造档位。修的是实现，不是调低用例期望。
+- 多城市用例暴露的两处硬编码：妆造地点写死为西安 `indoor_studio`、客流备选写死为 `qinglong_temple`。已改为按当前城市的 `indoor_fallback` 与低客流地点动态选择。
+- 评分聚合改用 `math.fsum` 并统一规整到 6 位小数：修复 Python 3.10/3.11 下满分方案得到 `1.0000000000000002`、导致 CI 两个矩阵失败的问题（3.12 起 `sum()` 使用补偿求和）。新增固定精度契约测试与 ADR 0006。
+- trace 现在采用 provider 上报的 `duration_ms`，真实网络耗时与模拟延迟都能进入 P50/P95 统计。
+
+### Changed
+
+- `docs/USER_TASKS.md` 改为按当前状态记录已完成/待办事项；GitHub 建仓、推送、描述与 topics 已由本机凭证完成。
+- 新增 `scripts/push_via_api.py`：代理只放行 `api.github.com` 时，通过 Git Data API 完成等价推送（逐对象校验 SHA、密钥不落盘），并在排错手册记录故障处置。
+- GitHub Pages 源设为 `main` 的 `/docs` 目录，附 `.nojekyll`。
+
+### Measured
+
+- 单元测试：116 passed，覆盖率 88%（`pytest --cov=src/shotplan`）。
+- 评测：规则 Agent 硬约束通过率 100%、均分 0.9762、60/60 用例通过；对照基线 15.0% / 0.3115；差值 0.6647。
+- 修复实验：51/51 一次修复成功；51 次更差修复全部拦截。
+- CI：Python 3.10 / 3.11 / 3.12 / 3.13 四版本矩阵全绿。
+
+### Known limitations
+
+- 知识库为静态小样本（三城 24 个地点），无实时客流与票价。
+- 离线 `good` provider 是当前规则下的上限参考，不是真实模型效果；评测体系的压力测试待接入真实模型。
+- 成本/延迟报告是模拟值，不是厂商实测。
+- 无用户鉴权、无并发写入、无真实预约/支付。
+
 ## [0.1.0] - 2026-11-12
 
 阶段 1–3 完成：一个可评测、带硬约束校验的旅拍方案 Agent。
@@ -33,33 +82,3 @@
 - 离线 `good` provider 是当前规则下的上限参考，评测体系的压力测试待阶段 4 接入真实模型。
 - 未显式处理预算低于最低妆造成本的不可满足需求。
 - 无用户鉴权、无并发写入、无真实预约/支付。
-
-## [Unreleased]
-
-阶段 4（真实模型与 prompt 版本对比）与阶段 5（在线 Demo、可观测面板、简历材料定稿），详见 `docs/ROADMAP.md`。
-
-### Added
-
-- 评测集扩到 **50 个用例**：新增洛阳知识库（8 个地点），分组变为 normal 18 / conflict 14 / edge 10 / infeasible 8；新增 `evals/baselines/v3-naive.json`，CI 与文档统一指向 v3。同时修复 planner 把妆造地点与备选地点写死为西安 id 的多城市缺陷。
-- 展示页数据块改由 `scripts/build_showcase.py` 从评测产物生成，杜绝页面数字与报告漂移。
-- **修复循环实验**（`evals/repair_lab.py` + [docs/repair-experiment.md](docs/repair-experiment.md)）：三种刻意构造的 provider 在同一批 30 个可满足 brief 上对照，统计一次修复成功率、接受/拒绝次数；trace 新增 `accepted` 字段，让「单调保护拦截了几次」成为可测量数据。
-- **结构化失败案例库**（`evals/collect_failures.py` + `evals/failures/cases.jsonl` + [docs/failure-gallery.md](docs/failure-gallery.md)）：170 条记录、4 类硬约束违规，每条含输入 brief、输出片段、期望规则与修复建议。
-- **可观测聚合面板**（`src/shotplan/observability.py` + [docs/observability.md](docs/observability.md)）：按 provider / prompt 版本聚合通过率、均分、P50/P95 延迟、成本、修复轮次与不可行数量；接入 `cli stats`、`/api/stats` 与 Web「运行统计」标签页。
-- 英文 [README.en.md](README.en.md) 与中文版互链；GitHub Pages 静态展示页（`docs/index.html`，含指标、分组结果、修复实验、失败案例与 ADR 入口）。
-- 成本/延迟模拟（`evals/simulated_provider.py` + `evals/cost_latency.py` + [docs/cost-latency-simulation.md](docs/cost-latency-simulation.md)）：用可配置价格卡验证 token → trace → 报告 → 预算换算链路，并明确标注为模拟值。
-- CI 新增两道门禁：`evals.repair_lab --check`（一次修复成功率、更差修复不得被接受）与 `evals.collect_failures --check`（案例数量、覆盖类别、字段完整性）。
-- 生成前的**可行性判定**（`domain/feasibility.py`）：预算低于最低可执行成本、时长过短、未知城市、约束互相矛盾时，返回 `status=infeasible` + 原因/缺口/建议/理论下限，不调用 provider、不生成硬凑方案。CLI 退出码 3、API 与 Web 同步展示，见 ADR 0007。
-- 评测集扩到 **36 个用例**（normal 13 / conflict 10 / edge 7 / infeasible 6），新增 `evals/baselines/v2-naive.json` 基线；`v1-naive.json` 保留为 12 用例时代的历史快照。
-- 评测报告新增「不可满足需求识别」与「运行成本与延迟」（P50/P95、token 汇总、估算成本、修复轮次）两节。
-- prompt v1/v2 版本表、`get_system_prompt()`、真实模型 provider 的版本参数与 `--prompt-version` 评测参数，为接真实模型后的对比实验备好框架。
-- 9 个可行性单元测试（含「provider 绝不被调用」与边界值）、2 个打分器测试、1 个 API 测试；测试总数 77 → 90。
-
-### Fixed
-
-- 紧预算用例 C24 暴露的实现缺陷：规则 planner 会挑收费景点导致 `BUDGET_EXCEEDED`。现在按剩余预算裁剪地点组合，并让 `best_style_for()` 先为转场预留 50 元、必要时自动降级妆造档位。修的是实现，不是调低用例期望。
-- 评分聚合改用 `math.fsum` 并统一规整到 6 位小数：修复 Python 3.10/3.11 下满分方案得到 `1.0000000000000002`、导致 CI 两个矩阵失败的问题（3.12 起 `sum()` 使用补偿求和，掩盖了该差异）。评测聚合同步改为精确求和，新增固定精度契约测试与 ADR 0006（测试数 76 → 77，ADR 5 → 6 份）。
-
-### Changed
-
-- 首次推送 GitHub 并接入 CI 后补齐仓库描述、topics 与真实徽章链接；`docs/USER_TASKS.md` 改为按当前状态记录已完成/待办事项。
-- 新增 `scripts/push_via_api.py`：代理只放行 `api.github.com` 时，通过 Git Data API 完成等价推送（逐对象校验 SHA、密钥不落盘），并在排错手册记录故障处置。

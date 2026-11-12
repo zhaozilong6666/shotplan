@@ -4,7 +4,7 @@ The core package deliberately depends only on the Python standard library.
 Framework integrations (FastAPI, web UI) live in optional layers.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 from .pipeline import PlanResult, run_plan
 

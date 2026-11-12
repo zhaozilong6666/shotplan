@@ -3,7 +3,7 @@
 > 把一句模糊的「想去西安拍汉服」，变成一份**能执行、能核对、能追溯**的小时级方案。
 > 这是一个可评测的 Agent 系统，不是又一个聊天框。
 
-[English README](README.en.md) · [在线展示](https://zhaozilong6666.github.io/shotplan/) · ![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![CI](https://github.com/zhaozilong6666/shotplan/actions/workflows/ci.yml/badge.svg)
+[English README](README.en.md) · [在线展示](https://zhaozilong6666.github.io/shotplan/) · ![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![CI](https://github.com/zhaozilong6666/shotplan/actions/workflows/ci.yml/badge.svg) ![coverage](https://img.shields.io/badge/coverage-88%25-brightgreen)
 
 ---
 
@@ -102,21 +102,21 @@ CLI 退出码 `3`；API/JSON 返回 `status: "infeasible"` 与 `feasibility` 字
 
 ## 评测：一个带控制组的实验
 
-只对自己写的 planner 跑评测，很容易写出一套永远给满分的评分器。所以评测集会在**完全相同的 50 个用例**上跑两个 provider：
+只对自己写的 planner 跑评测，很容易写出一套永远给满分的评分器。所以评测集会在**完全相同的 60 个用例**上跑两个 provider：
 
 | 指标 | 规则 Agent (`good`) | 对照基线 (`naive`) |
 | --- | ---: | ---: |
-| 硬约束通过率 | **100%** | 16.0% |
-| 平均得分 | **0.9785** | 0.3196 |
-| 用例通过 | **50 / 50** | 8 / 50 |
+| 硬约束通过率 | **100%** | 15.0% |
+| 平均得分 | **0.9762** | 0.3115 |
+| 用例通过 | **60 / 60** | 9 / 60 |
 
-差值 **0.6589** 分说明校验器和打分器确实在测量真实差异。`naive` 会故意忽略时间、转场、预算、溯源并编造地点；如果它也能拿到高分，CI 会判定「测量失效」并直接失败——这条检查写在 `evals/run_eval.py` 里。
+差值 **0.6647** 分说明校验器和打分器确实在测量真实差异。`naive` 会故意忽略时间、转场、预算、溯源并编造地点；如果它也能拿到高分，CI 会判定「测量失效」并直接失败——这条检查写在 `evals/run_eval.py` 里。
 
-50 个用例分四组：`normal` 18、`conflict` 14、`edge` 10、`infeasible` 8。最后一组描述的是**数学上不可满足**的 brief，正确行为是结构化拒绝而非硬凑方案；因为可行性判定在生成之前且不确定于 provider，两组在这 8 个用例上同分，区分度由其余 42 个用例提供。
+60 个用例分四组：`normal` 22、`conflict` 17、`edge` 12、`infeasible` 9。最后一组描述的是**数学上不可满足**的 brief，正确行为是结构化拒绝而非硬凑方案；因为可行性判定在生成之前且不确定于 provider，两组在这 9 个用例上同分，区分度由其余 51 个用例提供。
 
 ```bash
 python -m evals.run_eval --write-report                            # 生成本次报告
-python -m evals.run_eval --compare evals/baselines/v3-naive.json  # 与当前基线对比
+python -m evals.run_eval --compare evals/baselines/v4-naive.json  # 与当前基线对比
 python -m evals.run_eval --prompt-version planner-v1              # 记录 prompt 版本
 python -m evals.run_eval --min-score 0.85                         # 提高回归门槛
 ```
@@ -127,8 +127,8 @@ python -m evals.run_eval --min-score 0.85                         # 提高回归
 
 光有评测分数还不够，这个仓库另外提供三块可核查的材料：
 
-1. **[修复循环实验](docs/repair-experiment.md)** —— 三种刻意构造的 provider 跑同一批 42 个可满足 brief：`repairable` 一次修复把硬约束通过率从 0% 拉到 100%（42/42）；忽略修复提示的 `naive` 有 42 次候选被拒绝；「越修越差」的 `regressing` 42 次全被单调保护拦下，均分不降。每次接受/拒绝都读 trace 里的 `accepted` 字段，不靠推断。
-2. **[失败案例库](docs/failure-gallery.md)** —— 277 条结构化记录、4 类硬约束违规，每条包含输入 brief、观察到的输出片段、期望规则与修复建议。新增规则之前先在这里找证据；接真实模型后按同样格式追加新错误。
+1. **[修复循环实验](docs/repair-experiment.md)** —— 三种刻意构造的 provider 跑同一批 51 个可满足 brief：`repairable` 一次修复把硬约束通过率从 0% 拉到 100%（51/51）；忽略修复提示的 `naive` 有 51 次候选被拒绝；「越修越差」的 `regressing` 51 次全被单调保护拦下，均分不降。每次接受/拒绝都读 trace 里的 `accepted` 字段，不靠推断。
+2. **[失败案例库](docs/failure-gallery.md)** —— 357 条结构化记录、4 类硬约束违规，每条包含输入 brief、观察到的输出片段、期望规则与修复建议。新增规则之前先在这里找证据；接真实模型后按同样格式追加新错误。
 3. **[运行统计面板](docs/observability.md)** —— `python -m shotplan.cli stats`、`GET /api/stats` 与 Web「运行统计」标签页，按 provider / prompt 版本聚合通过率、均分、P50/P95 延迟、成本、修复轮次与不可行数量。数据直接来自 SQLite 里每次运行的完整 payload，不维护第二份指标表。
 
 ## 架构与目录
@@ -146,8 +146,8 @@ shotplan/
 │   ├── api.py         # 可选 FastAPI 层
 │   └── cli.py         # 命令行入口
 ├── web/               # 无构建步骤的原生单页界面（5 个视图）
-├── evals/             # 50 个用例、打分器、报告、基线、修复实验、失败案例库
-├── tests/             # 109 个单元测试，逐条覆盖规则与边界
+├── evals/             # 60 个用例、打分器、报告、基线、修复实验、失败案例库
+├── tests/             # 116 个单元测试，逐条覆盖规则与边界
 └── docs/              # 架构、指标、7 份 ADR、运维、面试笔记
 ```
 
@@ -205,7 +205,7 @@ docker compose up --build          # http://127.0.0.1:8000
 
 ## 面试怎么讲
 
-> 「我做了一个旅拍方案 Agent。核心不是调模型，而是先把『一份能执行的方案』写成 12 条可测试的硬约束，再在生成之前判断需求到底可不可满足；生成之后用不经过模型的校验器打分，把报告反馈给模型做修复，并且拒绝接受更差的结果。为了让质量可比较，我建了 50 个用例的评测集和一个故意犯错的对照 provider——CI 里如果对照组分数追上正式方案，就说明评测失效，直接失败。」
+> 「我做了一个旅拍方案 Agent。核心不是调模型，而是先把『一份能执行的方案』写成 12 条可测试的硬约束，再在生成之前判断需求到底可不可满足；生成之后用不经过模型的校验器打分，把报告反馈给模型做修复，并且拒绝接受更差的结果。为了让质量可比较，我建了 60 个用例的评测集和一个故意犯错的对照 provider——CI 里如果对照组分数追上正式方案，就说明评测失效，直接失败。」
 
 深挖问答（为什么不把判定交给模型、怎么处理幻觉、怎么定义指标、修复循环如何避免回归）见 [docs/interview-notes.md](docs/interview-notes.md)。
 

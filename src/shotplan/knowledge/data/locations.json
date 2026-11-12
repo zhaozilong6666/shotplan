@@ -237,6 +237,124 @@
           "notes": "雨天兜底，光线完全可控"
         }
       ]
+    },
+    "hangzhou": {
+      "name": "杭州",
+      "center": "武林广场",
+      "locations": [
+        {
+          "id": "west_lake",
+          "name": "西湖断桥",
+          "district": "xihu",
+          "tags": ["song", "garden", "open", "outdoor"],
+          "best_light": ["morning", "golden"],
+          "indoor": false,
+          "min_minutes": 120,
+          "travel_min_from_center": 20,
+          "cost_cny": 0,
+          "crowd": "high",
+          "weather_risk": "high",
+          "notes": "清晨与傍晚光线最好，节假日人流极大，建议早到"
+        },
+        {
+          "id": "lingyin_temple",
+          "name": "灵隐寺",
+          "district": "xihu",
+          "tags": ["song", "architecture", "quiet", "outdoor"],
+          "best_light": ["morning", "golden"],
+          "indoor": false,
+          "min_minutes": 90,
+          "travel_min_from_center": 40,
+          "cost_cny": 60,
+          "crowd": "medium",
+          "weather_risk": "medium",
+          "notes": "黄墙与古木，适合清雅风格；注意拍摄许可"
+        },
+        {
+          "id": "hefang_street",
+          "name": "河坊街",
+          "district": "shangcheng",
+          "tags": ["song", "republic", "street", "human", "outdoor"],
+          "best_light": ["morning", "night"],
+          "indoor": false,
+          "min_minutes": 60,
+          "travel_min_from_center": 15,
+          "cost_cny": 0,
+          "crowd": "high",
+          "weather_risk": "medium",
+          "notes": "街巷纵深与老字号招牌，适合宋制与民国风"
+        },
+        {
+          "id": "xixi_wetland",
+          "name": "西溪湿地",
+          "district": "xihu",
+          "tags": ["song", "garden", "open", "quiet", "outdoor"],
+          "best_light": ["morning", "golden"],
+          "indoor": false,
+          "min_minutes": 120,
+          "travel_min_from_center": 45,
+          "cost_cny": 80,
+          "crowd": "low",
+          "weather_risk": "high",
+          "notes": "芦苇与水网，客流低，适合避开人群的外景"
+        },
+        {
+          "id": "leifeng_pagoda",
+          "name": "雷峰塔",
+          "district": "xihu",
+          "tags": ["song", "architecture", "night", "outdoor"],
+          "best_light": ["golden", "night"],
+          "indoor": false,
+          "min_minutes": 90,
+          "travel_min_from_center": 25,
+          "cost_cny": 40,
+          "crowd": "high",
+          "weather_risk": "medium",
+          "notes": "塔身与夕照同框，登塔需另购票"
+        },
+        {
+          "id": "huxueyan_residence",
+          "name": "胡雪岩故居",
+          "district": "shangcheng",
+          "tags": ["ming", "architecture", "garden", "outdoor"],
+          "best_light": ["morning", "golden"],
+          "indoor": false,
+          "min_minutes": 90,
+          "travel_min_from_center": 25,
+          "cost_cny": 20,
+          "crowd": "low",
+          "weather_risk": "low",
+          "notes": "晚清宅院，砖雕与天井层次丰富，适合明制"
+        },
+        {
+          "id": "hangzhou_museum",
+          "name": "杭州博物馆",
+          "district": "shangcheng",
+          "tags": ["ming", "indoor", "controlled", "human"],
+          "best_light": ["any"],
+          "indoor": true,
+          "min_minutes": 90,
+          "travel_min_from_center": 20,
+          "cost_cny": 0,
+          "crowd": "medium",
+          "weather_risk": "low",
+          "notes": "免费需预约，室内光线稳定"
+        },
+        {
+          "id": "indoor_studio_hangzhou",
+          "name": "杭州室内影棚",
+          "district": "gongshu",
+          "tags": ["indoor", "minimal", "controlled"],
+          "best_light": ["any"],
+          "indoor": true,
+          "min_minutes": 90,
+          "travel_min_from_center": 20,
+          "cost_cny": 400,
+          "crowd": "low",
+          "weather_risk": "low",
+          "notes": "雨天兜底，光线完全可控"
+        }
+      ]
     }
   }
 }

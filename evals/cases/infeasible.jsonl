@@ -6,3 +6,4 @@
 {"id":"C36","group":"infeasible","description":"预算与时长同时不足，应返回多条原因","request":{"city":"xian","date":"2026-10-04","hours":1,"budget_cny":200,"styles":["ming"]},"expect_hard_pass":false,"expect_min_score":0,"expect_infeasible":true}
 {"id":"C49","group":"infeasible","description":"洛阳预算 100 元低于最低成本","request":{"city":"luoyang","date":"2026-10-04","hours":6,"budget_cny":100,"styles":["tang"]},"expect_hard_pass":false,"expect_min_score":0,"expect_infeasible":true}
 {"id":"C50","group":"infeasible","description":"知识库不支持的城市","request":{"city":"chengdu","date":"2026-10-04","hours":6,"budget_cny":1500,"styles":["tang"]},"expect_hard_pass":false,"expect_min_score":0,"expect_infeasible":true}
+{"id":"C60","group":"infeasible","description":"杭州预算 100 元低于最低成本","request":{"city":"hangzhou","date":"2026-10-04","hours":6,"budget_cny":100,"styles":["song"]},"expect_hard_pass":false,"expect_min_score":0,"expect_infeasible":true}
