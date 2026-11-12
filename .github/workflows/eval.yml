@@ -1,0 +1,27 @@
+name: weekly-eval
+
+on:
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -e ".[dev]"
+      - name: Compare against saved baseline
+        run: python -m evals.run_eval --write-report --compare evals/baselines/v1-naive.json
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekly-eval-report
+          path: |
+            evals/out/latest.json
+            docs/eval-report.md

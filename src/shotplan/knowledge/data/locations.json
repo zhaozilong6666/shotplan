@@ -1,0 +1,124 @@
+{
+  "version": "1.0",
+  "note": "Small curated knowledge base. Exact facts matter more than coverage here; see docs/adr/0003.",
+  "cities": {
+    "xian": {
+      "name": "西安",
+      "center": "钟楼",
+      "locations": [
+        {
+          "id": "city_wall",
+          "name": "西安城墙",
+          "district": "beilin",
+          "tags": ["tang", "architecture", "outdoor"],
+          "best_light": ["morning", "golden"],
+          "indoor": false,
+          "min_minutes": 90,
+          "travel_min_from_center": 20,
+          "cost_cny": 120,
+          "crowd": "high",
+          "weather_risk": "high",
+          "notes": "永宁门段最出片，清晨人少；城墙上风大，注意发型固定"
+        },
+        {
+          "id": "big_wild_goose_pagoda",
+          "name": "大雁塔北广场",
+          "district": "yanta",
+          "tags": ["tang", "architecture", "night", "outdoor"],
+          "best_light": ["golden", "night"],
+          "indoor": false,
+          "min_minutes": 60,
+          "travel_min_from_center": 25,
+          "cost_cny": 0,
+          "crowd": "high",
+          "weather_risk": "medium",
+          "notes": "免费但人流密集，建议避开节假日正午"
+        },
+        {
+          "id": "datang_furong_garden",
+          "name": "大唐芙蓉园",
+          "district": "yanta",
+          "tags": ["tang", "garden", "night", "outdoor"],
+          "best_light": ["golden", "night"],
+          "indoor": false,
+          "min_minutes": 120,
+          "travel_min_from_center": 30,
+          "cost_cny": 120,
+          "crowd": "medium",
+          "weather_risk": "high",
+          "notes": "夜景灯光强，需与妆造风格匹配；遇雨可改室内棚"
+        },
+        {
+          "id": "qinglong_temple",
+          "name": "青龙寺",
+          "district": "yanta",
+          "tags": ["tang", "garden", "quiet", "outdoor"],
+          "best_light": ["morning", "golden"],
+          "indoor": false,
+          "min_minutes": 90,
+          "travel_min_from_center": 30,
+          "cost_cny": 0,
+          "crowd": "low",
+          "weather_risk": "high",
+          "notes": "客流低、树荫多，适合作为拥挤景点的备选"
+        },
+        {
+          "id": "daming_palace",
+          "name": "大明宫国家遗址公园",
+          "district": "weiyang",
+          "tags": ["tang", "architecture", "open", "outdoor"],
+          "best_light": ["morning", "golden"],
+          "indoor": false,
+          "min_minutes": 120,
+          "travel_min_from_center": 40,
+          "cost_cny": 60,
+          "crowd": "low",
+          "weather_risk": "high",
+          "notes": "场地开阔、遮阴少，夏季正午不建议"
+        },
+        {
+          "id": "shuyuanmen",
+          "name": "书院门古文化街",
+          "district": "beilin",
+          "tags": ["ming", "street", "human", "outdoor"],
+          "best_light": ["morning"],
+          "indoor": false,
+          "min_minutes": 60,
+          "travel_min_from_center": 15,
+          "cost_cny": 0,
+          "crowd": "medium",
+          "weather_risk": "medium",
+          "notes": "街巷纵深好，适合明制与民国风"
+        },
+        {
+          "id": "guangren_temple",
+          "name": "广仁寺",
+          "district": "lianhu",
+          "tags": ["tang", "architecture", "quiet", "outdoor"],
+          "best_light": ["morning", "golden"],
+          "indoor": false,
+          "min_minutes": 60,
+          "travel_min_from_center": 25,
+          "cost_cny": 0,
+          "crowd": "low",
+          "weather_risk": "medium",
+          "notes": "红墙与经幡辨识度高，注意拍摄许可"
+        },
+        {
+          "id": "indoor_studio",
+          "name": "室内古风影棚",
+          "district": "yanta",
+          "tags": ["indoor", "minimal", "controlled"],
+          "best_light": ["any"],
+          "indoor": true,
+          "min_minutes": 90,
+          "travel_min_from_center": 25,
+          "cost_cny": 400,
+          "crowd": "low",
+          "weather_risk": "low",
+          "notes": "雨天与强风天的兜底方案，光线完全可控"
+        }
+      ]
+    }
+  }
+}

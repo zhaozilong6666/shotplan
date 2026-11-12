@@ -1,0 +1,12 @@
+services:
+  shotplan:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      SHOTPLAN_PROVIDER: mock
+      SHOTPLAN_DB_PATH: /app/data/shotplan.db
+      SHOTPLAN_LOG_LEVEL: INFO
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped

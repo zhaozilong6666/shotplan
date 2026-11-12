@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shotplan · 可评测的旅拍方案 Agent</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="mark"></span>
+    <div>
+      <h1>shotplan</h1>
+      <p>把模糊的拍摄需求，变成可执行、可核对的方案</p>
+    </div>
+  </div>
+  <div class="badges">
+    <span class="badge" id="badge-provider">provider: —</span>
+    <span class="badge" id="badge-status">待运行</span>
+  </div>
+</header>
+
+<main class="layout">
+  <aside class="panel form-panel">
+    <h2>需求输入</h2>
+    <p class="hint">故意保留模糊输入：真实客户不会给你结构化表单。</p>
+    <label>城市
+      <select id="city"><option value="xian">西安</option></select>
+    </label>
+    <label>拍摄日期
+      <input id="date" type="date" value="2026-10-04">
+    </label>
+    <div class="row">
+      <label>可用时长（小时）
+        <input id="hours" type="number" min="1" max="12" step="0.5" value="6">
+      </label>
+      <label>预算（元）
+        <input id="budget" type="number" min="0" step="100" value="1500">
+      </label>
+    </div>
+    <label>妆造风格
+      <select id="style">
+        <option value="tang">唐制</option>
+        <option value="song">宋制</option>
+        <option value="ming">明制</option>
+        <option value="weijin">魏晋风</option>
+        <option value="republic">民国旗装</option>
+      </select>
+    </label>
+    <div class="row">
+      <label>随行人数
+        <input id="party" type="number" min="1" max="10" value="1">
+      </label>
+      <label>运行模式
+        <select id="mode">
+          <option value="good">规则 Agent（good）</option>
+          <option value="naive">对照基线（naive）</option>
+          <option value="server">使用服务端配置</option>
+        </select>
+      </label>
+    </div>
+    <label>偏好（逗号分隔）
+      <input id="preference" type="text" placeholder="人少、傍晚光线">
+    </label>
+    <label>排除地点 id（逗号分隔）
+      <input id="avoid" type="text" placeholder="datang_furong_garden">
+    </label>
+    <button id="run" class="primary">生成方案</button>
+
+    <h3>快捷场景</h3>
+    <div class="presets">
+      <button data-preset="standard">标准需求</button>
+      <button data-preset="tight-time">只有 3 小时</button>
+      <button data-preset="tight-budget">预算 800 元</button>
+      <button data-preset="avoid">排除热门景点</button>
+    </div>
+    <p class="hint small">切换「对照基线」可以直观看评测体系如何抓出不可执行的方案。</p>
+  </aside>
+
+  <section class="panel result-panel">
+    <div class="tabs">
+      <button class="tab active" data-tab="plan">方案时间轴</button>
+      <button class="tab" data-tab="validation">校验报告</button>
+      <button class="tab" data-tab="trace">运行追踪</button>
+      <button class="tab" data-tab="json">原始 JSON</button>
+    </div>
+    <div id="view" class="view">
+      <div class="empty">
+        <div class="empty-mark"></div>
+        <p>还没有运行记录</p>
+        <span>填写左侧需求，点击「生成方案」</span>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <span>核心引擎零依赖 · 硬约束校验不经过模型 · 每次运行完整留痕</span>
+  <a href="/api/rules" target="_blank">查看规则表</a>
+</footer>
+<script src="/app.js"></script>
+</body>
+</html>

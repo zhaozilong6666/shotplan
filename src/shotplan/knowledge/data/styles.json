@@ -1,0 +1,60 @@
+{
+  "version": "1.0",
+  "styles": [
+    {
+      "id": "tang",
+      "name": "唐制",
+      "era": "唐",
+      "makeup_minutes": 90,
+      "costume_minutes": 40,
+      "price_cny": [400, 900],
+      "suitable_tags": ["tang", "architecture", "garden", "night"],
+      "avoid_tags": ["minimal", "modern"],
+      "notes": "齐胸襦裙与大袖衫，配高髻与花钿；与唐风建筑最协调"
+    },
+    {
+      "id": "song",
+      "name": "宋制",
+      "era": "宋",
+      "makeup_minutes": 70,
+      "costume_minutes": 30,
+      "price_cny": [350, 750],
+      "suitable_tags": ["garden", "street", "human", "quiet"],
+      "avoid_tags": ["night"],
+      "notes": "清雅窄袖、淡妆，适合园林与街巷的人文感"
+    },
+    {
+      "id": "ming",
+      "name": "明制",
+      "era": "明",
+      "makeup_minutes": 80,
+      "costume_minutes": 35,
+      "price_cny": [400, 850],
+      "suitable_tags": ["architecture", "street", "human", "indoor"],
+      "avoid_tags": ["open"],
+      "notes": "端庄立领与马面裙，适合古建筑与室内棚拍"
+    },
+    {
+      "id": "weijin",
+      "name": "魏晋风",
+      "era": "魏晋",
+      "makeup_minutes": 75,
+      "costume_minutes": 30,
+      "price_cny": [380, 800],
+      "suitable_tags": ["open", "garden", "quiet"],
+      "avoid_tags": ["street", "night"],
+      "notes": "宽袍大袖强调飘逸感，需要开阔场地与风"
+    },
+    {
+      "id": "republic",
+      "name": "民国旗装",
+      "era": "民国",
+      "makeup_minutes": 60,
+      "costume_minutes": 25,
+      "price_cny": [300, 650],
+      "suitable_tags": ["street", "architecture", "indoor"],
+      "avoid_tags": ["tang", "garden"],
+      "notes": "妆造最快，预算紧张或时间紧时的稳妥选择"
+    }
+  ]
+}

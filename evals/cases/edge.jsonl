@@ -1,0 +1,3 @@
+{"id":"C10","group":"edge","description":"极短预约 1.5 小时，检验是否会排出不可执行的时间轴","request":{"city":"xian","date":"2026-10-04","hours":1.5,"budget_cny":1500,"styles":["song"]},"expect_hard_pass":true,"expect_min_score":0.55}
+{"id":"C11","group":"edge","description":"冬季光线窗口提前到 15:00-17:00","request":{"city":"xian","date":"2026-01-10","hours":6,"budget_cny":1500,"styles":["ming"]},"expect_hard_pass":true,"expect_min_score":0.70}
+{"id":"C12","group":"edge","description":"夏季 8 小时、黄金窗口 17:00-19:00","request":{"city":"xian","date":"2026-07-05","hours":8,"budget_cny":2000,"styles":["weijin"]},"expect_hard_pass":true,"expect_min_score":0.70}

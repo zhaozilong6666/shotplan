@@ -1,0 +1,5 @@
+{"id":"C01","group":"normal","description":"标准需求：6 小时、1500 元、唐制、秋季","request":{"city":"xian","date":"2026-10-04","hours":6,"budget_cny":1500,"styles":["tang"],"preferences":["傍晚光线"]},"expect_hard_pass":true,"expect_min_score":0.80}
+{"id":"C02","group":"normal","description":"长时段：10 小时、明制、春季黄金光线","request":{"city":"xian","date":"2026-04-12","hours":10,"budget_cny":2600,"styles":["ming"],"preferences":["人少"]},"expect_hard_pass":true,"expect_min_score":0.75}
+{"id":"C03","group":"normal","description":"夏季傍晚：5 小时、唐制、夜景偏好","request":{"city":"xian","date":"2026-06-20","hours":5,"budget_cny":1800,"styles":["tang"],"preferences":["夜景"]},"expect_hard_pass":true,"expect_min_score":0.75}
+{"id":"C04","group":"normal","description":"清雅风格：宋制、6 小时、中等预算","request":{"city":"xian","date":"2026-10-04","hours":6,"budget_cny":1200,"styles":["song"],"preferences":["街巷","人文"]},"expect_hard_pass":true,"expect_min_score":0.75}
+{"id":"C05","group":"normal","description":"多人同行：魏晋风、7 小时","request":{"city":"xian","date":"2026-09-15","hours":7,"budget_cny":2200,"party_size":3,"styles":["weijin"],"preferences":["开阔场地"]},"expect_hard_pass":true,"expect_min_score":0.75}

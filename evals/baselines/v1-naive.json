@@ -1,0 +1,49 @@
+{
+  "naive": {
+    "case_count": 12,
+    "hard_pass_rate": 0.0,
+    "cases_passed": 0,
+    "cases_failed": 12,
+    "avg_score": 0.19,
+    "min_score": 0.19,
+    "avg_duration_ms": 0.24,
+    "total_repairs": 12,
+    "dimension_averages": {
+      "budget": 0.0,
+      "completeness": 0.4,
+      "constraints": 0.0,
+      "light": 1.0,
+      "traceability": 0.0
+    },
+    "issue_frequency": {
+      "TRANSFER_BUFFER": 32,
+      "TIME_OVERRUN": 12,
+      "BUDGET_EXCEEDED": 12,
+      "UNKNOWN_LOCATION": 12,
+      "SHOOT_TOO_SHORT": 12,
+      "NO_ALTERNATIVE": 12,
+      "NO_SOURCE_REF": 12
+    },
+    "by_group": {
+      "conflict": {
+        "cases": 4,
+        "hard_pass_rate": 0.0,
+        "avg_score": 0.19,
+        "passed": 0
+      },
+      "edge": {
+        "cases": 3,
+        "hard_pass_rate": 0.0,
+        "avg_score": 0.19,
+        "passed": 0
+      },
+      "normal": {
+        "cases": 5,
+        "hard_pass_rate": 0.0,
+        "avg_score": 0.19,
+        "passed": 0
+      }
+    }
+  },
+  "generated_at": "2026-11-12T07:02:28+00:00"
+}
