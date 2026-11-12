@@ -5,3 +5,6 @@
 {"id":"C28","group":"edge","description":"2 月冬季边界、7 小时","request":{"city":"xian","date":"2026-02-14","hours":7,"budget_cny":1800,"styles":["song"]},"expect_hard_pass":true,"expect_min_score":0.70}
 {"id":"C29","group":"edge","description":"未指定风格，需回退到最便宜妆造","request":{"city":"xian","date":"2026-10-04","hours":6,"budget_cny":1500,"styles":[]},"expect_hard_pass":true,"expect_min_score":0.65}
 {"id":"C30","group":"edge","description":"10 人团体、6 小时","request":{"city":"xian","date":"2026-10-04","hours":6,"budget_cny":2500,"party_size":10,"styles":["song"]},"expect_hard_pass":true,"expect_min_score":0.65}
+{"id":"C46","group":"edge","description":"洛阳 1.5 小时边界","request":{"city":"luoyang","date":"2026-10-04","hours":1.5,"budget_cny":1500,"styles":["republic"]},"expect_hard_pass":true,"expect_min_score":0.45}
+{"id":"C47","group":"edge","description":"洛阳 12 小时上限","request":{"city":"luoyang","date":"2026-10-04","hours":12,"budget_cny":3000,"styles":["tang"]},"expect_hard_pass":true,"expect_min_score":0.60}
+{"id":"C48","group":"edge","description":"洛阳冬季 1 月、6 小时","request":{"city":"luoyang","date":"2026-01-10","hours":6,"budget_cny":1500,"styles":["ming"]},"expect_hard_pass":true,"expect_min_score":0.55}

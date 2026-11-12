@@ -26,13 +26,13 @@
 
 ## 阶段 3 · 证明质量可被测量 ✅
 
-- [x] 36 个评测用例，分 normal / conflict / edge / infeasible 四组
+- [x] 50 个评测用例，分 normal / conflict / edge / infeasible 四组
 - [x] 对照组 provider + 基线快照（`v1` 12 用例时代、`v2` 36 用例时代）
 - [x] 自动生成的 Markdown 评测报告（含成本/延迟维度与不可满足需求识别）
 - [x] 回归阈值与「测量失效」检查
 - [x] GitHub Actions：测试 + lint + 评测门禁（Python 3.10–3.13 四版本矩阵）
 
-验收：`python -m evals.run_eval --write-report` 退出码 0；实测 36/36 通过、均分 0.9811、对照组 0.325。
+验收：`python -m evals.run_eval --write-report` 退出码 0；实测 50/50 通过、均分 0.9785、对照组 0.325。
 
 ## 阶段 4 · 接真实模型，让评测真正承压 ⏳
 
@@ -44,8 +44,8 @@
 - [x] 成本/延迟报告：P50/P95、token 汇总、估算成本、修复轮次（离线成本恒 0，格式已验证）
 - [ ] 用真实 OpenAI 兼容端点跑通 `SHOTPLAN_PROVIDER=openai_compatible`
 - [ ] 记录 v1 / v2 prompt 在真实模型上的硬约束通过率差异，写进 `PROMPT_CHANGELOG`
-- [x] 修复循环实验（离线）：一次修复成功率 100%（30/30）、30 次更差修复全被拦截，见 [repair-experiment.md](repair-experiment.md)
-- [x] 失败案例库框架 + 离线对照组 170 条记录；真实模型典型错误待补，见 [failure-gallery.md](failure-gallery.md)
+- [x] 修复循环实验（离线）：一次修复成功率 100%（42/42）、42 次更差修复全被拦截，见 [repair-experiment.md](repair-experiment.md)
+- [x] 失败案例库框架 + 离线对照组 277 条记录；真实模型典型错误待补，见 [failure-gallery.md](failure-gallery.md)
 - [ ] 用真实模型数据填满成本/延迟对比表
 
 验收：报告里出现真实模型的一行数据，且能与基线做 `--compare`；`docs/eval-report.md` 记录至少一次「改动导致分数下降并回滚」的实例。

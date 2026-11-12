@@ -40,6 +40,8 @@
 
 ### Added
 
+- 评测集扩到 **50 个用例**：新增洛阳知识库（8 个地点），分组变为 normal 18 / conflict 14 / edge 10 / infeasible 8；新增 `evals/baselines/v3-naive.json`，CI 与文档统一指向 v3。同时修复 planner 把妆造地点与备选地点写死为西安 id 的多城市缺陷。
+- 展示页数据块改由 `scripts/build_showcase.py` 从评测产物生成，杜绝页面数字与报告漂移。
 - **修复循环实验**（`evals/repair_lab.py` + [docs/repair-experiment.md](docs/repair-experiment.md)）：三种刻意构造的 provider 在同一批 30 个可满足 brief 上对照，统计一次修复成功率、接受/拒绝次数；trace 新增 `accepted` 字段，让「单调保护拦截了几次」成为可测量数据。
 - **结构化失败案例库**（`evals/collect_failures.py` + `evals/failures/cases.jsonl` + [docs/failure-gallery.md](docs/failure-gallery.md)）：170 条记录、4 类硬约束违规，每条含输入 brief、输出片段、期望规则与修复建议。
 - **可观测聚合面板**（`src/shotplan/observability.py` + [docs/observability.md](docs/observability.md)）：按 provider / prompt 版本聚合通过率、均分、P50/P95 延迟、成本、修复轮次与不可行数量；接入 `cli stats`、`/api/stats` 与 Web「运行统计」标签页。

@@ -145,6 +145,10 @@ class MockProvider:
 
         slots: list[dict[str, Any]] = []
         style_ref = f"styles.json#{style['id']}"
+        # Makeup happens at the current city's indoor fallback, not a hard-coded id.
+        makeup_location_id = (context["indoor_fallback"] or [{}])[0].get(
+            "id", "indoor_studio"
+        )
 
         def push(
             start: int,
@@ -170,7 +174,7 @@ class MockProvider:
             )
 
         push(
-            cursor, cursor + makeup_minutes, "makeup", "indoor_studio",
+            cursor, cursor + makeup_minutes, "makeup", makeup_location_id,
             f"{style['name']}妆造", styling_cost, [style_ref],
             f"含发型 {style['makeup_minutes']} 分钟、着装 {style['costume_minutes']} 分钟；{style['notes']}",
         )
@@ -200,6 +204,17 @@ class MockProvider:
 
         fallback = (context["indoor_fallback"] or [{}])[0]
         fallback_id = fallback.get("id", "indoor_studio")
+        # Alternatives must point at the CURRENT city, never a hard-coded id.
+        quiet = next(
+            (
+                item
+                for item in context["candidate_locations"]
+                if item.get("crowd") == "low" and not item["indoor"]
+            ),
+            None,
+        )
+        crowd_id = quiet["id"] if quiet else fallback_id
+        crowd_name = quiet["name"] if quiet else fallback.get("name", "室内影棚")
         total_cost = (
             styling_cost + photography + loc_costs + TRANSFER_COST_CNY
         )
@@ -225,8 +240,8 @@ class MockProvider:
                 },
                 {
                     "trigger": "crowd",
-                    "description": "客流超预期时改去青龙寺，客流低且树荫多",
-                    "location_id": "qinglong_temple",
+                    "description": f"客流超预期时改去{crowd_name}，客流低且更从容",
+                    "location_id": crowd_id,
                 },
             ],
             "assumptions": assumptions,

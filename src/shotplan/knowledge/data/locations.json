@@ -119,6 +119,124 @@
           "notes": "雨天与强风天的兜底方案，光线完全可控"
         }
       ]
+    },
+    "luoyang": {
+      "name": "洛阳",
+      "center": "丽景门",
+      "locations": [
+        {
+          "id": "luoyi_ancient_city",
+          "name": "洛邑古城",
+          "district": "laocheng",
+          "tags": ["tang", "street", "night", "outdoor"],
+          "best_light": ["golden", "night"],
+          "indoor": false,
+          "min_minutes": 90,
+          "travel_min_from_center": 15,
+          "cost_cny": 0,
+          "crowd": "high",
+          "weather_risk": "medium",
+          "notes": "夜景灯笼密集，适合唐制；节假日人流大，建议错峰"
+        },
+        {
+          "id": "yingtianmen",
+          "name": "应天门",
+          "district": "xigong",
+          "tags": ["tang", "architecture", "night", "outdoor"],
+          "best_light": ["golden", "night"],
+          "indoor": false,
+          "min_minutes": 90,
+          "travel_min_from_center": 20,
+          "cost_cny": 120,
+          "crowd": "high",
+          "weather_risk": "high",
+          "notes": "城楼夜景气势足，机位紧张，需提前占位"
+        },
+        {
+          "id": "longmen_grottoes",
+          "name": "龙门石窟",
+          "district": "luolong",
+          "tags": ["tang", "architecture", "open", "outdoor"],
+          "best_light": ["morning", "golden"],
+          "indoor": false,
+          "min_minutes": 120,
+          "travel_min_from_center": 40,
+          "cost_cny": 120,
+          "crowd": "high",
+          "weather_risk": "high",
+          "notes": "伊河沿岸光线通透，步行距离长，注意体力分配"
+        },
+        {
+          "id": "baima_temple",
+          "name": "白马寺",
+          "district": "luolong",
+          "tags": ["tang", "architecture", "quiet", "outdoor"],
+          "best_light": ["morning", "golden"],
+          "indoor": false,
+          "min_minutes": 90,
+          "travel_min_from_center": 45,
+          "cost_cny": 60,
+          "crowd": "low",
+          "weather_risk": "medium",
+          "notes": "古柏与红墙，客流低，适合安静内敛的风格"
+        },
+        {
+          "id": "lijing_gate",
+          "name": "丽景门",
+          "district": "laocheng",
+          "tags": ["tang", "street", "human", "outdoor"],
+          "best_light": ["morning", "night"],
+          "indoor": false,
+          "min_minutes": 60,
+          "travel_min_from_center": 10,
+          "cost_cny": 0,
+          "crowd": "medium",
+          "weather_risk": "medium",
+          "notes": "老街纵深好，适合街拍与人文题材"
+        },
+        {
+          "id": "mingtang_tiantang",
+          "name": "明堂天堂",
+          "district": "xigong",
+          "tags": ["tang", "architecture", "night", "indoor"],
+          "best_light": ["any"],
+          "indoor": true,
+          "min_minutes": 90,
+          "travel_min_from_center": 20,
+          "cost_cny": 120,
+          "crowd": "medium",
+          "weather_risk": "low",
+          "notes": "室内展陈，雨雪天可用，光线稳定但偏暗"
+        },
+        {
+          "id": "luoyang_museum",
+          "name": "洛阳博物馆",
+          "district": "luolong",
+          "tags": ["ming", "indoor", "controlled", "human"],
+          "best_light": ["any"],
+          "indoor": true,
+          "min_minutes": 90,
+          "travel_min_from_center": 30,
+          "cost_cny": 0,
+          "crowd": "medium",
+          "weather_risk": "low",
+          "notes": "免费但需预约，室内光线稳定，适合明制"
+        },
+        {
+          "id": "indoor_studio_luoyang",
+          "name": "洛阳室内影棚",
+          "district": "xigong",
+          "tags": ["indoor", "minimal", "controlled"],
+          "best_light": ["any"],
+          "indoor": true,
+          "min_minutes": 90,
+          "travel_min_from_center": 20,
+          "cost_cny": 400,
+          "crowd": "low",
+          "weather_risk": "low",
+          "notes": "雨天兜底，光线完全可控"
+        }
+      ]
     }
   }
 }

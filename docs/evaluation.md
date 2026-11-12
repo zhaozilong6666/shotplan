@@ -9,8 +9,8 @@
 ```bash
 python -m evals.run_eval                         # 只跑，打印摘要
 python -m evals.run_eval --write-report         # 生成 docs/eval-report.md
-python -m evals.run_eval --compare evals/baselines/v2-naive.json
-python -m evals.run_eval --save-baseline evals/baselines/v2-naive.json
+python -m evals.run_eval --compare evals/baselines/v3-naive.json
+python -m evals.run_eval --save-baseline evals/baselines/v3-naive.json
 python -m evals.run_eval --prompt-version planner-v1 --write-report
 python -m evals.run_eval --min-score 0.85 --min-hard-pass-rate 0.95
 ```
@@ -19,7 +19,7 @@ python -m evals.run_eval --min-score 0.85 --min-hard-pass-rate 0.95
 
 - `evals/out/latest.json`：完整原始结果（每个用例的分数、问题码、耗时、修复轮次、token）
 - `docs/eval-report.md`：代码生成的 Markdown 报告
-- `evals/baselines/*.json`：对照组基线快照。`v1-naive.json` 是 12 用例时代的历史基线，**不能与 36 用例的结果直接比较**；当前使用 `v2-naive.json`
+- `evals/baselines/*.json`：对照组基线快照。`v1-naive.json` 是 12 用例时代的历史基线，**不能与 36 用例的结果直接比较**；当前使用 `v3-naive.json`
 
 `--write-report` 生成的文件不要手工编辑；改内容请改 `evals/run_eval.py::build_report` 后重新生成。`docs/eval-report.md` **会随仓库提交**，让访客不必运行代码就能看到结论；`evals/out/latest.json` 才是被 `.gitignore` 忽略的原始产物。
 
@@ -57,11 +57,11 @@ brief (jsonl)
 
 ## 四类用例与「正确拒绝」
 
-当前 36 个用例：`normal` 13、`conflict` 10、`edge` 7、`infeasible` 6。
+当前 50 个用例：`normal` 18、`conflict` 14、`edge` 10、`infeasible` 8。
 
 `infeasible` 组描述的不是「难做」，而是**数学上不可能同时满足**：预算低于最低可执行成本、时长短于最短闭环、城市不在知识库、约束互相矛盾。用例带 `expect_infeasible: true`。这类用例的期望输出不是方案，而是 `status=infeasible` + 原因/缺口/建议；正确拒绝记 1.0 分，硬凑方案记 0.0 分（见 [ADR 0007](adr/0007-feasibility-before-generation.md)）。
 
-因为 preflight 在生成之前且不确定于 provider，两个 provider 在这 6 个用例上必然同分。这不是评测漏洞，而是设计结果：**能力差异应由生成质量体现，不应由「会不会做算术」体现**。
+因为 preflight 在生成之前且不确定于 provider，两个 provider 在这 8 个用例上必然同分。这不是评测漏洞，而是设计结果：**能力差异应由生成质量体现，不应由「会不会做算术」体现**。
 
 ## 如何新增用例
 
@@ -81,7 +81,7 @@ brief (jsonl)
 新增用例后必须重刷基线，否则 `--compare` 会把用例集变化误读成质量变化：
 
 ```bash
-python -m evals.run_eval --write-report --save-baseline evals/baselines/v2-naive.json
+python -m evals.run_eval --write-report --save-baseline evals/baselines/v3-naive.json
 python -m pytest tests/test_scorers.py -q
 ```
 
@@ -102,7 +102,7 @@ python -m pytest tests/test_scorers.py -q
 - **「均分 0.98 说明系统完美」** — 不。它说明当前离线 provider 严格按规则生成。真实模型接入后这个数字大概率下降，那才是评测开始发挥作用的时候。
 - **「对照组分数低是理所当然的，没必要跑」** — 恰恰相反。控制组检验的是评测工具，不是被测系统。去掉它，整套分数就失去意义。
 - **「用例全通过就不用看明细」** — 要看。C10 的 `SHOOT_TOO_SHORT` 是有价值的信号，说明极短预约下质量确实在下降。
-- **「不可满足用例两组同分，说明评测失效」** — 见上文：可行性判定是共享的确定性前置步骤，区分度由其余 30 个用例提供。
+- **「不可满足用例两组同分，说明评测失效」** — 见上文：可行性判定是共享的确定性前置步骤，区分度由其余 42 个用例提供。
 
 ## 相关材料
 

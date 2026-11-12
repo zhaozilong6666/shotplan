@@ -11,3 +11,8 @@
 {"id":"C18","group":"normal","description":"指定必去青龙寺","request":{"city":"xian","date":"2026-10-04","hours":6,"budget_cny":1500,"styles":["tang"],"must_include":["qinglong_temple"]},"expect_hard_pass":true,"expect_min_score":0.70}
 {"id":"C19","group":"normal","description":"排除单个热门景点","request":{"city":"xian","date":"2026-10-04","hours":6,"budget_cny":1500,"styles":["tang"],"avoid":["city_wall"]},"expect_hard_pass":true,"expect_min_score":0.70}
 {"id":"C20","group":"normal","description":"四项偏好、四人、10 小时、明制","request":{"city":"xian","date":"2026-05-02","hours":10,"budget_cny":3000,"party_size":4,"styles":["ming"],"preferences":["人少","街巷","人文","开阔"]},"expect_hard_pass":true,"expect_min_score":0.70}
+{"id":"C37","group":"normal","description":"洛阳唐制：6 小时、1500 元、夜景","request":{"city":"luoyang","date":"2026-10-04","hours":6,"budget_cny":1500,"styles":["tang"],"preferences":["夜景"]},"expect_hard_pass":true,"expect_min_score":0.65}
+{"id":"C38","group":"normal","description":"洛阳宋制：5 小时、1200 元","request":{"city":"luoyang","date":"2026-04-12","hours":5,"budget_cny":1200,"styles":["song"]},"expect_hard_pass":true,"expect_min_score":0.60}
+{"id":"C39","group":"normal","description":"洛阳明制：7 小时、1800 元","request":{"city":"luoyang","date":"2026-09-15","hours":7,"budget_cny":1800,"styles":["ming"]},"expect_hard_pass":true,"expect_min_score":0.60}
+{"id":"C40","group":"normal","description":"洛阳魏晋风：8 小时、2000 元","request":{"city":"luoyang","date":"2026-06-20","hours":8,"budget_cny":2000,"styles":["weijin"]},"expect_hard_pass":true,"expect_min_score":0.60}
+{"id":"C41","group":"normal","description":"洛阳民国风：4 小时、800 元","request":{"city":"luoyang","date":"2026-11-07","hours":4,"budget_cny":800,"styles":["republic"]},"expect_hard_pass":true,"expect_min_score":0.55}

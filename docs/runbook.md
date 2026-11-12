@@ -12,7 +12,7 @@
 | 看运行历史 | `python -m shotplan.cli history --limit 10` |
 | 跑测试 | `python -m pytest` |
 | 跑评测并出报告 | `python -m evals.run_eval --write-report` |
-| 与当前基线对比 | `python -m evals.run_eval --compare evals/baselines/v2-naive.json` |
+| 与当前基线对比 | `python -m evals.run_eval --compare evals/baselines/v3-naive.json` |
 | 记录指定 prompt 版本 | `python -m evals.run_eval --prompt-version planner-v1 --write-report` |
 | 跑修复循环实验 | `python -m evals.repair_lab --write-report` |
 | 采集失败案例库 | `python -m evals.collect_failures --write-report` |
@@ -50,7 +50,7 @@
 对照组均分追上了正式方案。说明打分器或规则被改坏了，属于严重回归，不要用提高阈值的方式绕过。
 
 **`--compare` 显示巨大差值**
-先确认基线是不是同一批用例。`v1-naive.json` 是 12 用例时代的历史快照，当前 36 用例必须比 `v2-naive.json`。新增用例后要重刷基线，否则用例集变化会被误读成质量变化。
+先确认基线是不是同一批用例。`v1-naive.json` 是 12 用例时代的历史快照，当前 36 用例必须比 `v3-naive.json`。新增用例后要重刷基线，否则用例集变化会被误读成质量变化。
 
 **页面打开但点「生成方案」报错**
 先看终端里 serve 是否还在运行，再访问 `http://127.0.0.1:8000/api/health`。若用 `file://` 直接打开 `web/index.html`，浏览器无法请求相对路径的 API，必须通过 serve 访问。
