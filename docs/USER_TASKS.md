@@ -1,5 +1,6 @@
 # 需要你本人动手的事项（当前状态）
 
+> **项目主副本已迁到 `D:\WorkBuddy\projects\shotplan`**（C 盘空间不足），下面所有命令都基于新路径；C 盘旧副本暂留作备份。
 > **2026-11-12 更新：第 1、2 节已由我在本机执行完毕并验证，你不用再照着做。**
 > 线上仓库：<https://github.com/zhaozilong6666/shotplan>
 >
@@ -36,7 +37,7 @@
 **你想自己复核，在 Git Bash 里执行**（只读，安全）：
 
 ```bash
-cd "C:/Users/34877/WorkBuddy/2026-11-12-14-29-42/shotplan"
+cd "D:/WorkBuddy/projects/shotplan"
 
 git remote -v                 # origin 应指向 https://github.com/zhaozilong6666/shotplan.git
 git status                    # working tree clean，且与 origin/main 同步
@@ -65,7 +66,7 @@ git ls-files | grep -E "\.env$|\.db$|evals/out/" || echo "没有敏感文件被�
 你想自己再跑一遍（Git Bash）：
 
 ```bash
-cd "C:/Users/34877/WorkBuddy/2026-11-12-14-29-42/shotplan"
+cd "D:/WorkBuddy/projects/shotplan"
 python -m pip install -e ".[api,dev]"
 python -m pytest
 python -m evals.run_eval --write-report --compare evals/baselines/v1-naive.json
