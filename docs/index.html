@@ -100,7 +100,7 @@
     <h1>shotplan</h1>
     <p class="lede">把一句模糊的「想去西安拍汉服」，变成<strong>能执行、能核对、能追溯</strong>的小时级方案。</p>
     <p class="sub">
-      核心不是调模型，而是让质量可被测量：生成前先判定需求是否可满足，生成后用一层<strong>不经过模型</strong>的硬约束校验器判定，并以带<strong>对照组</strong>的 60 个用例守住回归。
+      核心不是调模型，而是让质量可被测量：生成前先判定需求是否可满足，生成后用一层<strong>不经过模型</strong>的硬约束校验器判定，并以带<strong>对照组</strong>的 80 个用例守住回归；再用 8 处受控变异验证门禁本身有效。
       技术栈 Python / FastAPI / SQLite；核心引擎仅标准库，无 API key 也能完整跑通。
     </p>
     <div class="links">
@@ -110,6 +110,7 @@
       <a class="btn" href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/failure-gallery.md">失败案例库</a>
       <a class="btn" href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/examples.md">真实输出示例</a>
       <a class="btn" href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/loadtest.md">并发负载</a>
+      <a class="btn" href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/mutation-report.md">门禁有效性</a>
       <a class="btn" href="https://github.com/zhaozilong6666/shotplan/blob/main/README.en.md">English</a>
     </div>
     <div class="metrics">
@@ -139,14 +140,14 @@
       <div class="card">
         <span class="tag">评测</span>
         <h3>测量本身是否有效</h3>
-        <p>同一批 brief 上同时跑规则 Agent 与故意犯错的对照组。若对照组均分追上正式方案，CI 判定「测量失效」并失败——先证明尺子是准的，再谈分数。</p>
+        <p>同一批 brief 上同时跑规则 Agent 与故意犯错的对照组；对照组必须命中每一条已知硬规则。再注入 8 处受控故障，要求门禁全部拦截——先证明尺子是准的，再谈分数。</p>
       </div>
     </div>
   </section>
 
   <section>
     <h2>评测结果</h2>
-    <p class="section-note">60 个用例：normal 22、conflict 17、edge 12、infeasible 9。最后一组描述数学上无法满足的 brief，正确行为是结构化拒绝而非硬凑方案。</p>
+    <p class="section-note">80 个用例：normal 30、conflict 23、edge 16、infeasible 11。最后一组描述数学上无法满足的 brief，正确行为是结构化拒绝而非硬凑方案。</p>
     <table>
       <thead>
         <tr><th>分组</th><th class="num">用例</th><th class="num">硬约束通过率</th><th class="num">平均分</th><th class="num">通过</th></tr>
@@ -163,6 +164,17 @@
       对照基线 <code>naive</code>：硬约束通过率 13.8%、均分 0.3014。差值 0.6774。
       11 个 infeasible 用例因共享生成前判定而两组同分，区分度由其余 69 个用例提供——这一点在报告里如实写明。
     </p>
+  </section>
+
+  <section>
+    <h2>门禁有效性：变异测试</h2>
+    <p class="section-note">80/80 全绿只能说明「当前代码通过了当前检查」。在进程内注入受控故障、跑同一套用例、要求真实门禁拒绝，再回滚逐字段比对——检验的是检查本身。<a href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/mutation-report.md">完整实验报告 →</a></p>
+    <div class="metrics mutation">
+      <div class="metric good"><b>8 / 8</b><span>受控变异被门禁拦截</span></div>
+      <div class="metric bad"><b>4 / 8</b><span>旧门禁只能拦住的数量</span></div>
+      <div class="metric good"><b>0</b><span>存活变异</span></div>
+      <div class="metric good"><b>8 / 8</b><span>回滚后与基线一致</span></div>
+    </div>
   </section>
 
   <section>
@@ -242,17 +254,19 @@
           python -m shotplan.cli plan --budget 100<br>
           python -m evals.run_eval --write-report<br>
           python -m evals.repair_lab --check<br>
+          python -m evals.mutation_lab --check<br>
           python -m evals.collect_failures --check<br>
           python -m shotplan.cli stats
         </p>
-        <p style="margin-top:10px">109 个单元测试；CI 覆盖 Python 3.10 / 3.11 / 3.12 / 3.13。</p>
+        <p style="margin-top:10px">单元测试与 11 道质量门禁；CI 覆盖 Python 3.10 / 3.11 / 3.12 / 3.13。</p>
       </div>
       <div class="card">
-        <h3>8 份 ADR</h3>
+        <h3>决策记录（ADR）</h3>
         <ul class="clean">
           <li><a href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/adr/0002-validator-outside-model.md">0002 校验器不经过模型</a></li>
           <li><a href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/adr/0006-scoring-determinism.md">0006 评分跨版本逐位一致</a></li>
           <li><a href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/adr/0007-feasibility-before-generation.md">0007 可行性判定在生成之前</a></li>
+          <li><a href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/adr/0009-gate-sensitivity.md">0009 门禁自身的有效性</a></li>
           <li><a href="https://github.com/zhaozilong6666/shotplan/tree/main/docs/adr">全部 ADR →</a></li>
         </ul>
       </div>

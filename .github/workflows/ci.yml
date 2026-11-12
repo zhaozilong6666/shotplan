@@ -34,6 +34,9 @@ jobs:
       - name: Evaluation gate
         run: python -m evals.run_eval --write-report
 
+      - name: Mutation gate (are the gates themselves effective?)
+        run: python -m evals.mutation_lab --check
+
       - name: Repair-loop gate
         run: python -m evals.repair_lab --check
 

@@ -35,15 +35,19 @@ brief (jsonl)
   → evaluate_case            ← 硬约束结论符合预期 AND 分数 >= 用例下限
                                （不可满足用例：正确拒绝才通过）
   → aggregate                ← 通过率、均分、分组、P50/P95、token
-  → regression_check         ← 阈值 + 对照组有效性
+  → eval_gate_problems       ← 阈值 + 对照组有效性 + 规则级覆盖（唯一门禁实现）
+  → mutation_lab --check     ← 反向验证：注入故障后上述门禁必须失败
   → exit code                ← CI 据此失败
 ```
 
-三个独立的失败信号，不要混为一谈：
+四类独立的失败信号，不要混为一谈：
 
 1. **硬约束未通过** — 方案不可执行。
 2. **用例未通过** — 硬约束结论或质量下限不符合该用例预期。
 3. **测量失效** — `good` 均分 ≤ `naive` 均分，说明打分器已经分不出好坏，此时即使前两项通过也必须让 CI 失败。
+4. **测量被削弱** — 对照组突然不再命中某条已知缺陷、分数异常升高，或两组差值过小。这一条由 `control_group_check` 负责：对照组是一份**已知缺陷清单**，不只是「低分样本」。少了它，删掉单条校验规则后 CI 仍会全绿（实测 4/8 变异漏网，见 [ADR 0009](adr/0009-gate-sensitivity.md)）。
+
+门禁实现收敛在 `evals.scorers.eval_gate_problems`，`run_eval` 与变异实验室共用同一个函数。
 
 ## 阈值
 
@@ -52,6 +56,10 @@ brief (jsonl)
 | 平均分下限 | 0.80 | `SHOTPLAN_EVAL_MIN_SCORE` / `--min-score` |
 | 硬约束通过率下限 | 0.90 | `--min-hard-pass-rate` |
 | 用例失败数 | 0 | `regression_check` |
+| good − naive 差值下限 | 0.45 | `--min-delta` |
+| 对照组均分上限 | 0.45 | `MAX_CONTROL_AVG_SCORE` |
+| 对照组硬约束通过率上限 | 0.30 | `MAX_CONTROL_HARD_PASS_RATE` |
+| 对照组规则覆盖下限 | 见 `CONTROL_RULE_MIN_COUNTS` | 实测次数的一半左右 |
 
 阈值写在环境变量而不是硬编码，是为了让阶段 4 接真实模型后可以逐步提高门槛，而不必改代码。
 

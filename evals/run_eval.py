@@ -21,7 +21,15 @@ from pathlib import Path
 from typing import Any
 
 from evals import CASES_DIR, OUT_DIR, __doc__  # noqa: F401
-from evals.scorers import aggregate, evaluate_case, failed_case, regression_check
+from evals.scorers import (
+    CONTROL_RULE_MIN_COUNTS,
+    MAX_CONTROL_AVG_SCORE,
+    MIN_CONTROL_DELTA,
+    aggregate,
+    eval_gate_problems,
+    evaluate_case,
+    failed_case,
+)
 from shotplan.agents import MockProvider
 from shotplan.agents.prompts import PROMPT_VERSION
 from shotplan.config import get_settings
@@ -30,6 +38,14 @@ from shotplan.pipeline import run_plan
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_REPORT = ROOT / "docs" / "eval-report.md"
+MUTATION_SNAPSHOT = ROOT / "evals" / "mutation.json"
+
+
+def mutation_snapshot() -> dict[str, Any] | None:
+    """Committed, deterministic results of the gate-sensitivity lab."""
+    if not MUTATION_SNAPSHOT.exists():
+        return None
+    return json.loads(MUTATION_SNAPSHOT.read_text(encoding="utf-8"))
 
 
 def load_cases(cases_dir: Path | None = None) -> list[dict[str, Any]]:
@@ -124,8 +140,34 @@ def build_report(
         "5. 维度权重：`constraints 0.40 / budget 0.20 / traceability 0.15 / light 0.15 / completeness 0.10`。",
         "6. 不可满足需求的用例单独计分：正确返回结构化拒绝记 1.0，硬凑一份违规方案记 0.0。",
         "",
-        "对照组的意义：如果只对自己写的 planner 跑评测，很容易写出一套永远通过的评分器。"
-        "把一份明确不可执行的方案放进去，是检验评测本身是否有效的控制组。",
+    "对照组的意义：如果只对自己写的 planner 跑评测，很容易写出一套永远通过的评分器。"
+    "把一份明确不可执行的方案放进去，是检验评测本身是否有效的控制组。",
+    "",
+    "## 测量有效性：对照组的规则覆盖",
+    "",
+    "「对照组分数低」还不够。故意犯错的方案同时违反多条规则，"
+    "少命中一条时它的 `constraints` 维度可能仍被 clamp 到 0，均分几乎不动——"
+    "也就是说，**悄悄删掉一条硬规则，旧门禁可能照样全绿**。"
+    "因此门禁还要求每条已知缺陷都必须被报出来（下限约为实测次数的一半，"
+    "新增用例不会让下限漂移）。",
+    "",
+    "| 规则码 | 本次命中次数 | 门禁下限 | 结论 |",
+    "| --- | ---: | ---: | --- |",
+    ]
+    observed_counts = thresholds.get("control_rule_counts", {})
+    for code, floor in CONTROL_RULE_MIN_COUNTS.items():
+        count = observed_counts.get(code, 0)
+        lines.append(
+            f"| `{code}` | {count} | {floor} | {'通过' if count >= floor else '未通过'} |"
+        )
+
+    lines += [
+        "",
+        f"对照组均分上限 `{thresholds.get('max_control_avg_score', '—')}`"
+        f"（本次 {naive['avg_score']}）、两组最小差值 `{thresholds.get('min_delta', '—')}`"
+        f"（本次 {round(good['avg_score'] - naive['avg_score'], 4)}）。"
+        "这三条加上上面的覆盖下限，由 `evals.scorers.eval_gate_problems` 统一实现，"
+        "变异测试会逐个注入故障验证它们确实生效（见 [mutation-report.md](mutation-report.md)）。",
         "",
         "## 分项平均得分",
         "",
@@ -200,10 +242,48 @@ def build_report(
         f"- 硬约束通过率下限：`{_fmt_pct(thresholds['min_hard_pass_rate'])}`"
         f"（当前 {_fmt_pct(good['hard_pass_rate'])}）",
         f"- 用例失败数：`{good['cases_failed']}`",
+        f"- 对照组规则覆盖：{sum(observed_counts.get(c, 0) >= f for c, f in CONTROL_RULE_MIN_COUNTS.items())}"
+        f"/{len(CONTROL_RULE_MIN_COUNTS)} 条达标",
         f"- 阈值结论：**{'通过' if not thresholds['problems'] else '未通过'}**",
     ]
     if thresholds["problems"]:
         lines += ["", "失败原因："] + [f"- {p}" for p in thresholds["problems"]]
+
+    snapshot = mutation_snapshot()
+    if snapshot:
+        base = snapshot["baseline"]
+        candidates = [
+            m for m in snapshot["mutants"]
+            if m["side"] == "planner" and m["good_avg"] < base["good_avg"]
+        ]
+        if candidates:
+            worst = min(candidates, key=lambda m: m["good_avg"])
+            lines += [
+                "",
+                "## 一次真实的「分数下降 → 门禁拦截 → 回滚复原」",
+                "",
+                "全绿的评测报告本身不能证明门禁有效。下面这一行来自 "
+                "[变异测试](mutation-report.md)：在**不改仓库文件**的前提下，"
+                "于进程内注入一处故意的改动，跑同一套 80 个用例，再恢复。",
+                "",
+                "| 阶段 | good 均分 | 硬约束通过率 | 失败用例 | 门禁结论 |",
+                "| --- | ---: | ---: | ---: | --- |",
+                f"| 基线 | {base['good_avg']} | {_fmt_pct(base['good_hard_pass_rate'])} | "
+                f"{base['cases_failed']} | 通过 |",
+                f"| 注入 `{worst['key']}`：{worst['description']} | {worst['good_avg']} | "
+                f"{_fmt_pct(worst['good_hard_pass_rate'])} | {worst['cases_failed']} | "
+                f"**失败**（{worst['signals'][0] if worst['signals'] else '阈值未通过'}） |",
+                f"| 回滚后 | {snapshot['restored_avg']} | "
+                f"{_fmt_pct(snapshot['restored_hard_pass_rate'])} | "
+                f"{snapshot['restored_cases_failed']} | 通过 |",
+                "",
+                f"共注入 {snapshot['mutant_count']} 处改动，"
+                f"**{snapshot['caught']}/{snapshot['mutant_count']}** 被门禁拦截，"
+                f"存活 {snapshot['survivors']} 处；回滚后指标与基线逐项一致"
+                f"（{'是' if snapshot['restored'] else '否'}）。"
+                "这比「80/80 通过」更能说明质量门禁不是摆设。",
+                "",
+            ]
 
     if comparison:
         lines += [
@@ -248,6 +328,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--prompt-version", default=None, help="record a prompt version in traces")
     parser.add_argument("--min-score", type=float)
     parser.add_argument("--min-hard-pass-rate", type=float, default=0.90)
+    parser.add_argument("--min-delta", type=float, default=MIN_CONTROL_DELTA)
     parser.add_argument("--out", type=Path, default=OUT_DIR / "latest.json")
     parser.add_argument("--quiet", action="store_true")
     args = parser.parse_args(argv)
@@ -272,9 +353,9 @@ def main(argv: list[str] | None = None) -> int:
             "current": naive,
         }
 
-    problems = regression_check(good, min_score, args.min_hard_pass_rate)
-    if good["avg_score"] <= naive["avg_score"]:
-        problems.append("control group scored at or above the planner: measurement is broken")
+    problems = eval_gate_problems(
+        good, naive, min_score, args.min_hard_pass_rate, min_delta=args.min_delta
+    )
 
     payload = {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -282,6 +363,12 @@ def main(argv: list[str] | None = None) -> int:
         "thresholds": {
             "min_score": min_score,
             "min_hard_pass_rate": args.min_hard_pass_rate,
+            "min_delta": args.min_delta,
+            "max_control_avg_score": MAX_CONTROL_AVG_SCORE,
+            "control_rule_counts": {
+                code: naive["issue_frequency"].get(code, 0)
+                for code in CONTROL_RULE_MIN_COUNTS
+            },
             "problems": problems,
         },
         "good": good,

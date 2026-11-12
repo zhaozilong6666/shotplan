@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import time
 
+from evals.cost_latency import build_report
 from evals.simulated_provider import PriceCard, SimulatedProvider
 
 from shotplan.domain.models import PlanRequest
@@ -39,3 +40,19 @@ def test_price_card_is_frozen_and_versioned():
     assert provider.prompt_version == "planner-v1"
     result = run_plan(PlanRequest(), provider=provider, max_repairs=0)
     assert result.trace.prompt_version == "planner-v1"
+
+
+def test_cost_report_latency_is_rounded_to_whole_ms():
+    """0.01 ms of local overhead must not make the committed report drift."""
+    row = {
+        "model": "test-model", "price_in_per_1k": 0.001, "price_out_per_1k": 0.002,
+        "configured_latency_ms": 800, "provider_calls": 69,
+        "total_tokens_in": 100, "total_tokens_out": 200,
+        "total_cost_cny": 0.5, "cost_per_call_cny": 0.0072,
+        "p50_duration_ms": 800.14, "p95_duration_ms": 800.37,
+        "hard_pass_rate": 1.0,
+    }
+    document = build_report([row], 80)
+    assert "800 / 800 ms" in document
+    assert "800.14" not in document
+    assert "800.37" not in document

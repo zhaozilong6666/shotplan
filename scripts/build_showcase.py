@@ -7,6 +7,8 @@ happened once: the page said 102 tests while the suite had 109).
 Run after regenerating the eval artifacts:
 
     python -m evals.run_eval --write-report
+    python -m evals.mutation_lab --write
+    python -m evals.run_eval --write-report
     python -m evals.repair_lab --write-report
     python -m evals.collect_failures --write-report
     python -m evals.cost_latency --write-report
@@ -71,8 +73,67 @@ def metrics_block(good: dict, naive: dict) -> str:
     )
 
 
+GROUP_ORDER = ["normal", "conflict", "edge", "infeasible"]
+
+
+def hero_note_block(good: dict, lab: dict) -> str:
+    cases = good["case_count"]
+    mutants = lab["mutant_count"]
+    return (
+        '<p class="sub">\n'
+        "      核心不是调模型，而是让质量可被测量：生成前先判定需求是否可满足，"
+        "生成后用一层<strong>不经过模型</strong>的硬约束校验器判定，"
+        f"并以带<strong>对照组</strong>的 {cases} 个用例守住回归；"
+        f"再用 {mutants} 处受控变异验证门禁本身有效。\n"
+        "      技术栈 Python / FastAPI / SQLite；核心引擎仅标准库，无 API key 也能完整跑通。\n"
+        "    </p>"
+    )
+
+
+def groups_note_block(good: dict) -> str:
+    parts = "、".join(
+        f"{name} {good['by_group'][name]['cases']}"
+        for name in GROUP_ORDER if name in good["by_group"]
+    )
+    return (
+        f'<p class="section-note">{good["case_count"]} 个用例：{parts}。'
+        "最后一组描述数学上无法满足的 brief，正确行为是结构化拒绝而非硬凑方案。</p>"
+    )
+
+
+def naive_note_block(good: dict, naive: dict) -> str:
+    delta = round(good["avg_score"] - naive["avg_score"], 4)
+    infeasible = good["by_group"].get("infeasible", {}).get("cases", 0)
+    rest = good["case_count"] - infeasible
+    return (
+        '<p class="section-note" style="margin-top:14px">\n'
+        f'      对照基线 <code>naive</code>：硬约束通过率 {naive["hard_pass_rate"] * 100:.1f}%、'
+        f'均分 {naive["avg_score"]:.4f}。差值 {delta:.4f}。\n'
+        f"      {infeasible} 个 infeasible 用例因共享生成前判定而两组同分，"
+        f"区分度由其余 {rest} 个用例提供——这一点在报告里如实写明。\n"
+        "    </p>"
+    )
+
+
+def mutation_block(lab: dict) -> str:
+    total = lab["mutant_count"]
+    restored = lab["restored_checks"] if lab["restored"] else 0
+    return (
+        '<div class="metrics mutation">\n'
+        f'      <div class="metric good"><b>{lab["caught"]} / {total}</b>'
+        "<span>受控变异被门禁拦截</span></div>\n"
+        f'      <div class="metric bad"><b>{lab["caught_by_legacy_gate"]} / {total}</b>'
+        "<span>旧门禁只能拦住的数量</span></div>\n"
+        f'      <div class="metric good"><b>{lab["survivors"]}</b>'
+        "<span>存活变异</span></div>\n"
+        f'      <div class="metric good"><b>{restored} / {total}</b>'
+        "<span>回滚后与基线一致</span></div>\n"
+        "    </div>"
+    )
+
+
 def groups_block(good: dict) -> str:
-    order = ["normal", "conflict", "edge", "infeasible"]
+    order = GROUP_ORDER
     rows = []
     for name in order:
         stats = good["by_group"].get(name)
@@ -175,6 +236,7 @@ def main() -> int:
     latest = _load(OUT / "latest.json")
     repair = _load(OUT / "repair-experiment.json")
     cost = _load(OUT / "cost-latency.json")
+    mutation = _load(ROOT / "evals" / "mutation.json")
     # Benchmark numbers are machine-specific and cannot be regenerated identically
     # in CI, so the page reads a committed snapshot instead of evals/out/.
     # Refresh it with: python -m evals.benchmark --out evals/benchmark.json
@@ -192,15 +254,39 @@ def main() -> int:
     html = page.read_text(encoding="utf-8")
     html = replace_block(
         html,
+        r'<p class="sub">.*?</p>',
+        lambda m: hero_note_block(latest["good"], mutation),
+        "hero note",
+    )
+    html = replace_block(
+        html,
         r'<div class="metrics">.*?</div>\s*</header>',
         metrics_block(latest["good"], latest["naive"]) + "\n  </header>",
         "metrics",
     )
     html = replace_block(
         html,
+        r'(<h2>评测结果</h2>\s*)<p class="section-note">.*?</p>',
+        lambda m: m.group(1) + groups_note_block(latest["good"]),
+        "groups note",
+    )
+    html = replace_block(
+        html,
+        r'<p class="section-note" style="margin-top:14px">.*?</p>',
+        lambda m: naive_note_block(latest["good"], latest["naive"]),
+        "control note",
+    )
+    html = replace_block(
+        html,
         r'(<h2>评测结果</h2>.*?)\s*<tbody>.*?</tbody>',
         lambda m: m.group(1).rstrip() + "\n" + groups_block(latest["good"]),
         "groups",
+    )
+    html = replace_block(
+        html,
+        r'<div class="metrics mutation">.*?</div>\s*</section>',
+        mutation_block(mutation) + "\n  </section>",
+        "mutation",
     )
     html = replace_block(
         html,

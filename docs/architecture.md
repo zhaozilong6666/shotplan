@@ -74,7 +74,7 @@ flowchart TB
 - 任何 `location_id` 都必须在知识库中存在（travel 块允许 `-` 占位），否则判硬失败。
 - 评分用 `math.fsum` + 固定 6 位精度，跨 Python 3.10–3.13 逐位一致（ADR 0006）。
 - 不可行结果同样写入运行历史，且 `status` / `feasibility` 会随 JSON 一起返回给 CLI、API 与 Web。
-- 评测集同时跑 `good` 与 `naive`，若两者均分接近则判定测量失效。
+- 评测集同时跑 `good` 与 `naive`：均值接近、对照组分数异常升高，或对照组不再命中某条已知缺陷，都判定测量失效。门禁实现只有 `evals.scorers.eval_gate_problems` 一处，并由 `evals/mutation_lab.py` 注入受控故障反向验证（ADR 0009）。
 
 ## 依赖策略
 

@@ -1,0 +1,203 @@
+{
+  "baseline": {
+    "cases_failed": 0,
+    "delta": 0.6774,
+    "good_avg": 0.9788,
+    "good_hard_pass_rate": 1.0,
+    "naive_avg": 0.3014,
+    "naive_hard_pass_rate": 0.1375,
+    "rule_counts": {
+      "BUDGET_EXCEEDED": 69,
+      "NO_ALTERNATIVE": 69,
+      "NO_SOURCE_REF": 69,
+      "SHOOT_TOO_SHORT": 69,
+      "TIME_OVERRUN": 64,
+      "TRANSFER_BUFFER": 198,
+      "UNKNOWN_LOCATION": 186
+    }
+  },
+  "baseline_gate_problems": [],
+  "case_count": 80,
+  "caught": 8,
+  "caught_by_legacy_gate": 4,
+  "mutant_count": 8,
+  "mutants": [
+    {
+      "cases_failed": 69,
+      "caught": true,
+      "caught_by_legacy_gate": true,
+      "delta": -0.1639,
+      "description": "生成端不再插入转场时间块（校验端仍要求 20 分钟）",
+      "disabled_rules": [],
+      "good_avg": 0.1375,
+      "good_hard_pass_rate": 0.1375,
+      "key": "planner/no-transfer",
+      "naive_avg": 0.3014,
+      "score_delta": -0.8413,
+      "side": "planner",
+      "signals": [
+        "avg_score 0.1375 is below threshold 0.8",
+        "hard_pass_rate 0.1375 is below 0.9",
+        "69 case(s) failed their expectation",
+        "control group scored at or above the planner: measurement is broken",
+        "control delta -0.1639 is below 0.45: good and bad outputs are no longer distinguishable"
+      ]
+    },
+    {
+      "cases_failed": 69,
+      "caught": true,
+      "caught_by_legacy_gate": true,
+      "delta": 0.4304,
+      "description": "转场费从 50 元抬到 5000 元",
+      "disabled_rules": [],
+      "good_avg": 0.7318,
+      "good_hard_pass_rate": 0.1375,
+      "key": "planner/transfer-cost-5000",
+      "naive_avg": 0.3014,
+      "score_delta": -0.247,
+      "side": "planner",
+      "signals": [
+        "avg_score 0.7318 is below threshold 0.8",
+        "hard_pass_rate 0.1375 is below 0.9",
+        "69 case(s) failed their expectation",
+        "control delta 0.4304 is below 0.45: good and bad outputs are no longer distinguishable"
+      ]
+    },
+    {
+      "cases_failed": 69,
+      "caught": true,
+      "caught_by_legacy_gate": true,
+      "delta": 0.5872,
+      "description": "生成端删掉必需的妆造时间块",
+      "disabled_rules": [],
+      "good_avg": 0.8886,
+      "good_hard_pass_rate": 0.1375,
+      "key": "planner/no-makeup",
+      "naive_avg": 0.3014,
+      "score_delta": -0.0902,
+      "side": "planner",
+      "signals": [
+        "hard_pass_rate 0.1375 is below 0.9",
+        "69 case(s) failed their expectation"
+      ]
+    },
+    {
+      "cases_failed": 0,
+      "caught": true,
+      "caught_by_legacy_gate": false,
+      "delta": 0.5044,
+      "description": "预算容差改成 10^9，BUDGET_EXCEEDED 永不触发",
+      "disabled_rules": [
+        "BUDGET_EXCEEDED"
+      ],
+      "good_avg": 0.9788,
+      "good_hard_pass_rate": 1.0,
+      "key": "validator/budget-tolerance",
+      "naive_avg": 0.4744,
+      "score_delta": 0.0,
+      "side": "validator",
+      "signals": [
+        "control avg_score 0.4744 exceeds 0.45: the validator may have been weakened",
+        "control rule BUDGET_EXCEEDED fired 0 times, expected >= 30: a validator rule appears to be disabled"
+      ]
+    },
+    {
+      "cases_failed": 0,
+      "caught": true,
+      "caught_by_legacy_gate": false,
+      "delta": 0.6612,
+      "description": "转场下限改成 0，TRANSFER_BUFFER 永不触发",
+      "disabled_rules": [
+        "TRANSFER_BUFFER"
+      ],
+      "good_avg": 0.9788,
+      "good_hard_pass_rate": 1.0,
+      "key": "validator/no-transfer-rule",
+      "naive_avg": 0.3176,
+      "score_delta": 0.0,
+      "side": "validator",
+      "signals": [
+        "control rule TRANSFER_BUFFER fired 0 times, expected >= 100: a validator rule appears to be disabled"
+      ]
+    },
+    {
+      "cases_failed": 0,
+      "caught": true,
+      "caught_by_legacy_gate": false,
+      "delta": 0.6774,
+      "description": "时长宽限改成 10^6 分钟，TIME_OVERRUN 永不触发",
+      "disabled_rules": [
+        "TIME_OVERRUN"
+      ],
+      "good_avg": 0.9788,
+      "good_hard_pass_rate": 1.0,
+      "key": "validator/no-time-limit",
+      "naive_avg": 0.3014,
+      "score_delta": 0.0,
+      "side": "validator",
+      "signals": [
+        "control rule TIME_OVERRUN fired 0 times, expected >= 30: a validator rule appears to be disabled"
+      ]
+    },
+    {
+      "cases_failed": 0,
+      "caught": true,
+      "caught_by_legacy_gate": false,
+      "delta": 0.6769,
+      "description": "所有地点 id 都视为存在，UNKNOWN_LOCATION 永不触发",
+      "disabled_rules": [
+        "UNKNOWN_LOCATION"
+      ],
+      "good_avg": 0.9788,
+      "good_hard_pass_rate": 1.0,
+      "key": "validator/no-grounding",
+      "naive_avg": 0.3019,
+      "score_delta": 0.0,
+      "side": "validator",
+      "signals": [
+        "control rule UNKNOWN_LOCATION fired 0 times, expected >= 90: a validator rule appears to be disabled"
+      ]
+    },
+    {
+      "cases_failed": 0,
+      "caught": true,
+      "caught_by_legacy_gate": true,
+      "delta": 0.0,
+      "description": "校验器直接返回满分且无问题",
+      "disabled_rules": [
+        "BUDGET_EXCEEDED",
+        "NO_ALTERNATIVE",
+        "NO_SOURCE_REF",
+        "SHOOT_TOO_SHORT",
+        "TIME_OVERRUN",
+        "TRANSFER_BUFFER",
+        "UNKNOWN_LOCATION"
+      ],
+      "good_avg": 1.0,
+      "good_hard_pass_rate": 1.0,
+      "key": "validator/always-pass",
+      "naive_avg": 1.0,
+      "score_delta": 0.0212,
+      "side": "validator",
+      "signals": [
+        "control group scored at or above the planner: measurement is broken",
+        "control delta 0.0 is below 0.45: good and bad outputs are no longer distinguishable",
+        "control avg_score 1.0 exceeds 0.45: the validator may have been weakened",
+        "control hard_pass_rate 1.0 exceeds 0.3: invalid plans are being accepted",
+        "control rule TRANSFER_BUFFER fired 0 times, expected >= 100: a validator rule appears to be disabled",
+        "control rule UNKNOWN_LOCATION fired 0 times, expected >= 90: a validator rule appears to be disabled",
+        "control rule BUDGET_EXCEEDED fired 0 times, expected >= 30: a validator rule appears to be disabled",
+        "control rule TIME_OVERRUN fired 0 times, expected >= 30: a validator rule appears to be disabled",
+        "control rule SHOOT_TOO_SHORT fired 0 times, expected >= 30: a validator rule appears to be disabled",
+        "control rule NO_ALTERNATIVE fired 0 times, expected >= 30: a validator rule appears to be disabled",
+        "control rule NO_SOURCE_REF fired 0 times, expected >= 30: a validator rule appears to be disabled"
+      ]
+    }
+  ],
+  "restored": true,
+  "restored_avg": 0.9788,
+  "restored_cases_failed": 0,
+  "restored_checks": 8,
+  "restored_hard_pass_rate": 1.0,
+  "survivors": 0
+}

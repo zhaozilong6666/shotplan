@@ -4,7 +4,30 @@
 
 ## [Unreleased]
 
-阶段 5 剩余项：可交互的在线 Demo、可观测面板的更多维度、简历与面试材料定稿。详见 `docs/ROADMAP.md`。
+阶段 4 剩余项：接真实模型跑 `openai_compatible`、记录 prompt v1/v2 的实测差异、用真实数据填满成本/延迟表。阶段 5 剩余项：可交互的在线 Demo、简历与面试材料定稿。详见 `docs/ROADMAP.md`。
+
+## [0.6.0] - 2026-11-12
+
+**给门禁本身做回归测试**：80/80 全绿不等于检查有效。注入 8 处受控故障后发现旧门禁漏掉 4 处「悄悄删掉一条校验规则」的改动，补齐对照组规则覆盖后 8/8 全部拦截。
+
+### Added
+
+- **变异测试实验室**（`evals/mutation_lab.py`）：3 处改生成端、5 处改校验端，全部在进程内注入并回滚，**不修改任何源文件**；跑同一批 80 用例、调用与 CI 完全相同的门禁函数。产物 [docs/mutation-report.md](docs/mutation-report.md) 与 `evals/mutation.json` 由代码生成、逐字节可复现，`--check` 作为 CI 第 11 道门禁。
+- **对照组规则覆盖门禁**（`evals/scorers.py`）：`naive` 必须继续命中每条已知缺陷（`TRANSFER_BUFFER ≥ 100`、`UNKNOWN_LOCATION ≥ 90`、`BUDGET_EXCEEDED ≥ 30`、`TIME_OVERRUN ≥ 30` 及三条软规则各 ≥ 30），另加差值下限 0.45、对照组均分上限 0.45、硬约束通过率上限 0.30。门禁实现收敛到唯一函数 `eval_gate_problems`，实验室与 `run_eval` 共用。
+- [ADR 0009](docs/adr/0009-gate-sensitivity.md)：记录盲点、决策、阈值取舍与备选方案。
+- [docs/eval-report.md](docs/eval-report.md) 新增「对照组规则覆盖」与一处由代码生成的「改动 → 分数下降 → 门禁拦截 → 回滚复原」实例（good 均分 0.9788 → 0.1375 → 0.9788），满足阶段 4 的该项验收，无需 API key。
+- 14 个新测试（`tests/test_mutation_lab.py` 13 个 + `tests/test_simulated_provider.py` 1 个），含「实验室与 CI 使用同一个门禁函数」的对象身份断言，以及成本报告延迟取整的确定性回归测试。
+
+### Changed
+
+- 展示页新增「门禁有效性」区块，且把原先手写的分组说明、对照组说明改为脚本生成（修掉页面仍写着「60 个用例 / 109 个单元测试」的漂移）。
+- 中英文 README、路线图、任务手册、面试讲稿按 v0.6.0 同步；英文 README 补上此前遗漏的五座城市与 80 用例口径。
+- `Makefile` 新增 `mutation` 目标并纳入 `gates`；CI 新增 Mutation gate。
+
+### Measured
+
+- 变异体 **8/8 被拦截、0 存活**；旧门禁只能拦住 **4/8**（漏掉的 4 个全是校验端削弱，good 均分保持 0.9788 不变）。
+- 8 次回滚后与基线逐字段一致；测试 **180 个**、覆盖率 **89%**、评测 80/80、CI 11 道门禁 × 4 个 Python 版本。
 
 ## [0.5.0] - 2026-11-12
 

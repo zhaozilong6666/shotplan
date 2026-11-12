@@ -195,3 +195,86 @@ def regression_check(
     if metrics.get("cases_failed", 0) > 0:
         problems.append(f"{metrics['cases_failed']} case(s) failed their expectation")
     return problems
+
+
+# The naive provider emits a plan with KNOWN defects. A green CI run is only
+# meaningful if the validator still reports those defects. Without this check,
+# disabling a single hard rule can go unnoticed: the control plan is so broken
+# that its `constraints` score is already clamped at 0, so one fewer issue does
+# not move the aggregate. See docs/adr/0009-gate-sensitivity.md.
+CONTROL_RULE_MIN_COUNTS: dict[str, int] = {
+    "TRANSFER_BUFFER": 100,   # observed 198 across 80 cases
+    "UNKNOWN_LOCATION": 90,   # observed 186
+    "BUDGET_EXCEEDED": 30,    # observed 69
+    "TIME_OVERRUN": 30,       # observed 64
+    "SHOOT_TOO_SHORT": 30,    # observed 69 (soft)
+    "NO_ALTERNATIVE": 30,     # observed 69 (soft)
+    "NO_SOURCE_REF": 30,      # observed 69 (soft)
+}
+
+MIN_CONTROL_DELTA = 0.45
+MAX_CONTROL_AVG_SCORE = 0.45
+MAX_CONTROL_HARD_PASS_RATE = 0.30
+
+
+def control_group_check(
+    naive: dict[str, Any],
+    *,
+    max_avg_score: float = MAX_CONTROL_AVG_SCORE,
+    max_hard_pass_rate: float = MAX_CONTROL_HARD_PASS_RATE,
+    min_rule_counts: dict[str, int] | None = None,
+) -> list[str]:
+    """Fail when the control group stops looking like a broken plan.
+
+    Two aggregate ceilings plus a rule-level coverage floor. The floors are
+    deliberately well below the observed counts: they must not drift when new
+    eval cases are added, but they must still catch a disabled rule.
+    """
+    problems: list[str] = []
+    if naive["avg_score"] > max_avg_score:
+        problems.append(
+            f"control avg_score {naive['avg_score']} exceeds {max_avg_score}: "
+            "the validator may have been weakened"
+        )
+    if naive["hard_pass_rate"] > max_hard_pass_rate:
+        problems.append(
+            f"control hard_pass_rate {naive['hard_pass_rate']} exceeds "
+            f"{max_hard_pass_rate}: invalid plans are being accepted"
+        )
+    observed = naive.get("issue_frequency", {})
+    for code, floor in (min_rule_counts or CONTROL_RULE_MIN_COUNTS).items():
+        count = observed.get(code, 0)
+        if count < floor:
+            problems.append(
+                f"control rule {code} fired {count} times, expected >= {floor}: "
+                "a validator rule appears to be disabled"
+            )
+    return problems
+
+
+def eval_gate_problems(
+    good: dict[str, Any],
+    naive: dict[str, Any],
+    min_score: float,
+    min_hard_pass_rate: float = 0.90,
+    *,
+    min_delta: float = MIN_CONTROL_DELTA,
+    control_check_kwargs: dict[str, Any] | None = None,
+) -> list[str]:
+    """The ONE gate used by CI and by the mutation lab.
+
+    Keeping a single definition matters: the mutation lab injects sabotage and
+    asserts this function rejects it. If the lab tested a copy, a later change
+    to run_eval could silently open a hole.
+    """
+    problems = regression_check(good, min_score, min_hard_pass_rate)
+    if good["avg_score"] <= naive["avg_score"]:
+        problems.append("control group scored at or above the planner: measurement is broken")
+    delta = round(good["avg_score"] - naive["avg_score"], 4)
+    if delta < min_delta:
+        problems.append(
+            f"control delta {delta} is below {min_delta}: good and bad outputs "
+            "are no longer distinguishable"
+        )
+    problems.extend(control_group_check(naive, **(control_check_kwargs or {})))
+    return problems

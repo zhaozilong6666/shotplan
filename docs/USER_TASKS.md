@@ -14,7 +14,7 @@
 | 2 | 申请一个 API key（可选） | 阶段 4 真实模型实验 | 需要注册并实名/付款的服务 |
 | 3 | 注册部署平台账号（可选） | 阶段 5 | 需要你的账号授权 |
 
-其余全部已完成或由我继续推进。阶段 4 里不依赖 key 的部分（80 用例评测集、`INFEASIBLE` 分支、prompt v1/v2 对比框架、成本/延迟报告、修复循环实验、失败案例库）以及运行统计面板、英文 README 都已做完并验证。需要你配合时，我会给「一步一条命令 + 验证方法」，不会让你自己去查。
+其余全部已完成或由我继续推进。阶段 4 里不依赖 key 的部分（80 用例评测集、`INFEASIBLE` 分支、prompt v1/v2 对比框架、成本/延迟报告、修复循环实验、失败案例库、评测报告里的「分数下降→门禁拦截→回滚」实例）以及门禁有效性变异测试、运行统计面板、英文 README 都已做完并验证。需要你配合时，我会给「一步一条命令 + 验证方法」，不会让你自己去查。
 
 ---
 
@@ -59,9 +59,10 @@ git ls-files | grep -E "\.env$|\.db$|evals/out/" || echo "没有敏感文件被�
 
 | 检查 | 结果 |
 | --- | --- |
-| `pytest` | 166 passed（本机 Python 3.13），覆盖率 89% |
+| `pytest` | 180 passed（本机 Python 3.13），覆盖率 89% |
 | `ruff check src tests evals scripts` | All checks passed |
 | `evals.run_eval --compare v6` | 80/80，均分 0.9788，对照组 0.3014，差值 0.6774，退出码 0 |
+| `evals.mutation_lab --check` | 8/8 受控变异被门禁拦截、0 存活、8/8 回滚后与基线一致（旧门禁仅 4/8） |
 | 不可满足需求 | 11/11 正确结构化拒绝 |
 | 输入模糊测试 | 1000 次变异，0 未捕获异常 |
 | 性能基准 | p95 ≈0.4ms、单核数千次/秒、堆峰值 0.02MB（全部低于门禁上限一个数量级） |
@@ -77,6 +78,7 @@ cd "D:/WorkBuddy/projects/shotplan"
 python -m pip install -e ".[api,dev]"
 python -m pytest
 python -m evals.run_eval --write-report --compare evals/baselines/v6-naive.json
+python -m evals.mutation_lab --check
 python -m evals.fuzz --check --iterations 500
 python -m evals.benchmark --check
 python -m evals.loadtest --check --requests 50
@@ -192,4 +194,4 @@ curl https://你的地址/api/health
 
 ## 我这边已经做完、你不用管的
 
-仓库结构与全部源码、166 个单元测试、80 个评测用例与六代对照基线、自动生成的评测报告、架构文档与 8 份 ADR、CI 工作流（含评测阈值、修复实验、失败案例库、模糊测试、性能基准、并发负载、扩展性、示例一致性、覆盖率与展示页一致性十道门禁）、Docker 配置、Web 界面（含运行统计视图）、中英文 README、GitHub Pages 静态展示页、路线图、面试讲稿、排错手册、GitHub 建仓与推送、仓库描述与 topics、CI 跨版本浮点问题修复、代理受限时的 API 推送脚本、生成前可行性判定、prompt v1/v2 对比框架、成本/延迟报告与模拟 provider、修复循环实验、结构化失败案例库、按 provider / prompt 版本聚合的运行统计面板。本地已验证：测试全绿、评测退出码 0、CLI 与 API 端到端可用；GitHub Actions 4 个 Python 版本全部通过。
+仓库结构与全部源码、180 个单元测试、80 个评测用例与六代对照基线、自动生成的评测报告、架构文档与 9 份 ADR、CI 工作流（含评测阈值、**门禁有效性变异测试**、修复实验、失败案例库、模糊测试、性能基准、并发负载、扩展性、示例一致性、覆盖率与展示页一致性共 11 道门禁）、Docker 配置、Web 界面（含运行统计视图）、中英文 README、GitHub Pages 静态展示页、路线图、面试讲稿、排错手册、GitHub 建仓与推送、仓库描述与 topics、CI 跨版本浮点问题修复、代理受限时的 API 推送脚本、生成前可行性判定、prompt v1/v2 对比框架、成本/延迟报告与模拟 provider、修复循环实验、结构化失败案例库、对照组规则覆盖门禁与可复核的「改动→拦截→回滚」实例、按 provider / prompt 版本聚合的运行统计面板。本地已验证：测试全绿、评测退出码 0、变异门禁 8/8、CLI 与 API 端到端可用；GitHub Actions 4 个 Python 版本全部通过。

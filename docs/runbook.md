@@ -14,6 +14,8 @@
 | 跑评测并出报告 | `python -m evals.run_eval --write-report` |
 | 与当前基线对比 | `python -m evals.run_eval --compare evals/baselines/v6-naive.json` |
 | 记录指定 prompt 版本 | `python -m evals.run_eval --prompt-version planner-v1 --write-report` |
+| 验证门禁本身有效 | `python -m evals.mutation_lab --check` |
+| 重刷变异报告与快照 | `python -m evals.mutation_lab --write` |
 | 跑修复循环实验 | `python -m evals.repair_lab --write-report` |
 | 采集失败案例库 | `python -m evals.collect_failures --write-report` |
 | 看运行统计 | `python -m shotplan.cli stats --limit 50` |
@@ -35,7 +37,7 @@
 `.env` 里把 `SHOTPLAN_PROVIDER` 设成了 `openai_compatible` 但没填 key。改用 `SHOTPLAN_PROVIDER=mock`，或按 [USER_TASKS.md](USER_TASKS.md) 第 4 节配置。
 
 **`unknown city` / `KnowledgeError`**
-知识库目前只有 `xian`。走 `run_plan()` 时这会变成结构化 `INFEASIBLE`（`UNSUPPORTED_CITY`），不是异常；若直接调 `KnowledgeTools.city()` 才会抛错。要加城市就往 `knowledge/data/locations.json` 增加一个 city 对象。
+知识库目前有 `xian` / `luoyang` / `hangzhou` / `suzhou` / `nanjing` 五座城市。走 `run_plan()` 时未知城市会变成结构化 `INFEASIBLE`（`UNSUPPORTED_CITY`），不是异常；若直接调 `KnowledgeTools.city()` 才会抛错。要加城市就往 `knowledge/data/locations.json` 增加一个 city 对象，并同步补用例与基线。
 
 **`budget ... cannot cover the cheapest styling plus transfer`**
 预算连「最简妆造 300 元 + 转场 50 元」都覆盖不了（低于 350 元）。通常不会看到这个异常：生成前的 `check_feasibility()` 会先返回结构化 `INFEASIBLE`。若直接调用了 `best_style_for()` 才可能触发。用 `--budget 400` 以上即可，或看拒绝结果里的原因与建议。
@@ -44,10 +46,13 @@
 不是崩溃，是需求不可满足。输出里会列出 `code / 缺口 / 建议` 与理论下限。退出码约定：`0` 成功、`2` 方案未过硬约束、`3` 不可行、`1` 其它错误。API 返回 HTTP 200 但 `status=infeasible`，Web 渲染专门的不可行视图。
 
 **评测退出码 1**
-看输出里的 `REGRESSION:` 段落。四种可能：均分低于阈值、硬约束通过率低于阈值、有用例未达预期、对照组均分追上正式方案。用 `evals/out/latest.json` 查具体是哪个用例、触发了哪些问题码。不要直接调低阈值，先定位原因——C24 就是这样逼出了一次真实的实现修复。
+看输出里的 `REGRESSION:` 段落。可能原因：均分低于阈值、硬约束通过率低于阈值、有用例未达预期、对照组均分追上正式方案、两组差值过小、对照组分数/通过率异常升高，或某条已知缺陷不再被报出。用 `evals/out/latest.json` 查具体是哪个用例、触发了哪些问题码。不要直接调低阈值，先定位原因——C24 就是这样逼出了一次真实的实现修复。
 
-**`measurement is broken`**
-对照组均分追上了正式方案。说明打分器或规则被改坏了，属于严重回归，不要用提高阈值的方式绕过。
+**`measurement is broken` / `a validator rule appears to be disabled`**
+对照组追上正式方案，或校验端某条规则不再命中已知缺陷。说明打分器或规则被改坏了，属于严重回归，不要用提高阈值的方式绕过。可以先跑 `python -m evals.mutation_lab --check` 确认门禁自身是否仍然有效。
+
+**`MUTATION GATE FAILED`**
+两种可能：出现了存活变异（注入的故障没被门禁拦住，说明门禁被削弱），或 `docs/mutation-report.md` / `evals/mutation.json` 过期。前者要修门禁，不要改变异体；后者执行 `python -m evals.mutation_lab --write` 重刷，再跑一次 `python -m evals.run_eval --write-report`（评测报告会引用变异快照）。
 
 **`--compare` 显示巨大差值**
 先确认基线是不是同一批用例。`v1-naive.json` 是 12 用例时代的历史快照，当前 80 用例必须比 `v6-naive.json`。新增用例后要重刷基线，否则用例集变化会被误读成质量变化。
@@ -81,6 +86,8 @@ python scripts/push_via_api.py             # 推送当前 HEAD 到 origin 当前
 
 1. `python -m pytest`（规则、可行性与边界没被改坏）
 2. `python -m evals.run_eval --write-report`（质量没退化，用例没失效）
-3. `python -m ruff check src tests evals`（风格）
-4. `python -m shotplan.cli plan` 与 `python -m shotplan.cli plan --budget 100`（正常路径 + 拒绝路径冒烟）
-5. `git status` 确认没有把 `.env` / `.db` / `evals/out/` 加进去
+3. `python -m evals.mutation_lab --check`（门禁本身仍有效，且产物未过期）
+4. `python -m ruff check src tests evals scripts`（风格）
+5. `make gates` 跑完 CI 的全部质量门禁（含覆盖率、模糊测试、并发、扩展性与展示页一致性）
+6. `python -m shotplan.cli plan` 与 `python -m shotplan.cli plan --budget 100`（正常路径 + 拒绝路径冒烟）
+7. `git status` 确认没有把 `.env` / `.db` / `evals/out/` 加进去
