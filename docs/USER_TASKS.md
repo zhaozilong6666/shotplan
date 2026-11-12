@@ -64,6 +64,7 @@ git ls-files | grep -E "\.env$|\.db$|evals/out/" || echo "没有敏感文件被�
 | `evals.run_eval --compare v2` | 36/36，均分 0.9811，对照组 0.3250，差值 0.6561，退出码 0 |
 | 不可满足需求 | 6/6 正确结构化拒绝 |
 | 真实启动服务 | `/api/health`、首页、`/api/plan` 全部正常 |
+| 静态展示页 | <https://zhaozilong6666.github.io/shotplan/>（GitHub Pages，已验证 built） |
 | CI 矩阵 | Python 3.10 / 3.11 / 3.12 / 3.13 全部通过 |
 
 你想自己再跑一遍（Git Bash）：
