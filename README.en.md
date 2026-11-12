@@ -3,7 +3,7 @@
 > Turn a vague "I want a Hanfu photoshoot in Xi'an" into an **executable, checkable, traceable** hour-by-hour plan.
 > An evaluable agent system, not another chat box.
 
-[中文 README](README.md) · ![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![CI](https://github.com/zhaozilong6666/shotplan/actions/workflows/ci.yml/badge.svg) ![coverage](https://img.shields.io/badge/coverage-88%25-brightgreen)
+[中文 README](README.md) · ![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![CI](https://github.com/zhaozilong6666/shotplan/actions/workflows/ci.yml/badge.svg) ![coverage](https://img.shields.io/badge/coverage-89%25-brightgreen)
 
 ---
 
@@ -68,21 +68,21 @@ Exit code `3`. The API returns HTTP 200 with `status: "infeasible"` and a `feasi
 
 ## Evaluation: an experiment with a control group
 
-Running an eval only against a planner you wrote yourself makes it easy to build a scorer that always returns full marks. So both providers run over **the exact same 60 cases**:
+Running an eval only against a planner you wrote yourself makes it easy to build a scorer that always returns full marks. So both providers run over **the exact same 70 cases**:
 
 | Metric | Rule agent (`good`) | Control (`naive`) |
 | --- | ---: | ---: |
-| Hard-constraint pass rate | **100%** | 15.0% |
-| Average score | **0.9762** | 0.3115 |
-| Cases passed | **60 / 60** | 9 / 60 |
+| Hard-constraint pass rate | **100%** | 14.3% |
+| Average score | **0.9778** | 0.3057 |
+| Cases passed | **70 / 70** | 10 / 70 |
 
-The **0.6647** gap is the point. `naive` deliberately ignores time, transfers, budget, sourcing and invents locations; if it ever scores as high as the planner, CI declares "measurement is broken" and fails.
+The **0.6721** gap is the point. `naive` deliberately ignores time, transfers, budget, sourcing and invents locations; if it ever scores as high as the planner, CI declares "measurement is broken" and fails.
 
-Cases: `normal` 18, `conflict` 14, `edge` 10, `infeasible` 8. The last group describes briefs that are **mathematically unsatisfiable**; the correct behaviour is a structured refusal, not a fabricated plan. Since feasibility is checked before generation and is provider-independent, both providers share that verdict — differentiation comes from the other 51 cases.
+Cases: `normal` 18, `conflict` 14, `edge` 10, `infeasible` 8. The last group describes briefs that are **mathematically unsatisfiable**; the correct behaviour is a structured refusal, not a fabricated plan. Since feasibility is checked before generation and is provider-independent, both providers share that verdict — differentiation comes from the other 60 cases.
 
 ```bash
 python -m evals.run_eval --write-report
-python -m evals.run_eval --compare evals/baselines/v4-naive.json
+python -m evals.run_eval --compare evals/baselines/v5-naive.json
 python -m evals.run_eval --prompt-version planner-v1
 ```
 
@@ -90,7 +90,7 @@ The generated [eval report](docs/eval-report.md) is committed, so a reviewer can
 
 ## Three extra pieces of evidence
 
-1. **[Repair-loop experiment](docs/repair-experiment.md)** — three constructed providers over the same 51 satisfiable briefs. A repairable provider goes from 0% to 100% hard-pass in one round (51/51); all 51 "repairs" from a provider that ignores hints are rejected; all 51 worse-than-original repairs are blocked by the monotonic guard. Every accept/reject decision is read from the run trace.
+1. **[Repair-loop experiment](docs/repair-experiment.md)** — three constructed providers over the same 60 satisfiable briefs. A repairable provider goes from 0% to 100% hard-pass in one round (60/60); all 60 "repairs" from a provider that ignores hints are rejected; all 60 worse-than-original repairs are blocked by the monotonic guard. Every accept/reject decision is read from the run trace.
 2. **[Failure gallery](docs/failure-gallery.md)** — 170 structured failure records in 4 categories, each with the input brief, observed output fragment, expected rule and repair suggestion. New rules should be backed by a real failure; real-model failures get appended in the same format later.
 3. **[Observability dashboard](docs/observability.md)** — `python -m shotplan.cli stats`, `GET /api/stats` and a Web tab aggregate stored runs by provider / prompt version: pass rate, average score, P50/P95 latency, cost, repairs and structured refusals. Data comes from the full SQLite payloads, with no second metrics table.
 
@@ -109,8 +109,8 @@ shotplan/
 │   ├── api.py         # Optional FastAPI layer
 │   └── cli.py         # CLI entry point
 ├── web/               # Dependency-free single-page UI (5 tabs)
-├── evals/             # 60 cases, scorers, report generator, repair lab, failure library
-├── tests/             # 116 unit tests
+├── evals/             # 70 cases, scorers, report generator, repair lab, failure library
+├── tests/             # 148 unit tests
 └── docs/              # Architecture, metrics, 7 ADRs, ops, interview notes
 ```
 
@@ -143,7 +143,7 @@ Any OpenAI-compatible endpoint works (OpenAI, DeepSeek, local Ollama / vLLM). Wi
 ## Roadmap
 
 - [x] Phases 1–3: domain, knowledge base, validator, pipeline, tracing, API/Web, eval suite, CI gates
-- [x] Phase 4 offline work: 60 cases, `INFEASIBLE` branch, repair lab, failure library, prompt v1/v2 framework, cost/latency reporting
+- [x] Phase 4 offline work: 70 cases, `INFEASIBLE` branch, repair lab, failure library, prompt v1/v2 framework, cost/latency reporting
 - [ ] Phase 4 remaining: real-model comparison experiments (needs an API key)
 - [ ] Phase 5: public online demo, bilingual polish, final resume materials
 
@@ -153,11 +153,13 @@ Any OpenAI-compatible endpoint works (OpenAI, DeepSeek, local Ollama / vLLM). Wi
 - Feasibility minimums (350 CNY / 1.5 h) are theoretical values derived from static data; no real-time prices, closures, weather or availability.
 - The offline `good` provider is a **deterministic implementation written against the rules**; its high score is an upper-bound reference, not evidence of model quality.
 - Estimated cost is 0 in offline mode; real-model cost/latency comparisons are not yet measured.
-- No multi-city support, real booking/payment, authentication or concurrent writes. Single-process SQLite by design.
+- Real booking/payment, authentication and concurrent writes are out of scope. The knowledge base covers four cities (Xi'an, Luoyang, Hangzhou, Suzhou); adding a city means adding data, cases and a baseline together.
+- Benchmark numbers are single-process and single-machine; no concurrent load test.
+- Fuzzing proves "any input returns a structured result", not "any input gets a good plan" — quality is still the eval suite's job.
 
 ## For interviews
 
-> "I built an evaluable planning agent. The point wasn't calling a model — it was writing 'executable' as 12 testable hard constraints, checking satisfiability *before* generation, grading outputs with a validator that never uses a model, feeding the report back as a repair hint, and refusing worse rewrites. To make quality comparable I built 36 eval cases plus a deliberately broken control provider; CI fails if the control ever catches up."
+> "I built an evaluable planning agent. The point wasn't calling a model — it was writing 'executable' as 12 testable hard constraints, checking satisfiability *before* generation, grading outputs with a validator that never uses a model, feeding the report back as a repair hint, and refusing worse rewrites. To make quality comparable I built 70 eval cases across four cities plus a deliberately broken control provider; CI fails if the control ever catches up. A deterministic fuzzer also guarantees no malformed brief can crash the service."
 
 Detailed Q&A: [docs/interview-notes.md](docs/interview-notes.md).
 

@@ -10,6 +10,7 @@ these are detected deterministically BEFORE generation. See ADR 0007.
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
+from datetime import datetime
 from typing import Any
 
 from .constraints import MIN_FEASIBLE_HOURS, MIN_TRANSFER_COST_CNY
@@ -44,6 +45,14 @@ class FeasibilityReport:
             "reasons": [reason.to_dict() for reason in self.reasons],
             "minimums": dict(self.minimums),
         }
+
+
+def _is_iso_date(value: str) -> bool:
+    try:
+        datetime.strptime(value, "%Y-%m-%d")
+    except (TypeError, ValueError):
+        return False
+    return True
 
 
 def check_feasibility(request: PlanRequest, tools: Any) -> FeasibilityReport:
@@ -88,6 +97,16 @@ def check_feasibility(request: PlanRequest, tools: Any) -> FeasibilityReport:
                 shortfall=f"至少需要 {MIN_FEASIBLE_HOURS} 小时",
                 suggestion=(f"把预约延长到 {MIN_FEASIBLE_HOURS} 小时以上，"
                             "或改为纯室内单场景拍摄"),
+            )
+        )
+
+    if not _is_iso_date(req.date):
+        reasons.append(
+            FeasibilityIssue(
+                code="DATE_INVALID",
+                message=f"日期 {req.date!r} 不是合法的 YYYY-MM-DD",
+                shortfall="无法确定季节、日照与黄金光线窗口",
+                suggestion="按 2026-10-04 这样的格式填写日期（含真实存在的日）",
             )
         )
 

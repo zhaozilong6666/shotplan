@@ -77,7 +77,7 @@ async def create_plan(request: Request) -> JSONResponse:
             max_repairs=cfg.max_repairs,
         )
         return JSONResponse(result.to_dict())
-    except (ShotplanError, ValueError) as exc:
+    except (ShotplanError, ValueError, TypeError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 

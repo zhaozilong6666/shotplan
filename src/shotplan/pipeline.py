@@ -77,6 +77,53 @@ def _infeasible_result(
     )
 
 
+def _error_result(
+    request: PlanRequest,
+    agent: PlanProvider,
+    collector: TraceCollector,
+    started: float,
+    exc: ShotplanError,
+) -> PlanResult:
+    """A broken provider or unparseable output must not surface as a 500."""
+    collector.record(
+        "error", started,
+        error_type=type(exc).__name__,
+        message=str(exc)[:200],
+    )
+    trace = collector.finish(success=False)
+    report = ValidationReport(
+        issues=[
+            ValidationIssue(
+                code="PIPELINE_ERROR",
+                severity="hard",
+                message=f"规划流水线失败：{exc}",
+                expected="一份可执行且满足全部硬约束的方案",
+                suggestion=(
+                    "检查 provider 配置与模型输出格式；离线可用 mock provider 复现，"
+                    "真实模型请确认返回的是 JSON 且包含非空 slots"
+                ),
+            )
+        ],
+        scores={},
+        score=0.0,
+        hard_pass=False,
+    )
+    plan = Plan(
+        request_id=request.request_id,
+        city=request.city,
+        date=request.date,
+        provider=agent.name,
+        prompt_version=agent.prompt_version,
+    )
+    return PlanResult(
+        request=request,
+        plan=plan,
+        validation=report,
+        trace=trace,
+        status="error",
+    )
+
+
 def run_plan(
     request: PlanRequest,
     *,
@@ -115,7 +162,13 @@ def run_plan(
 
     # 2. Generation --------------------------------------------------------------
     tick = time.perf_counter()
-    generation = agent.generate(req, context)
+    try:
+        generation = agent.generate(req, context)
+    except ShotplanError as exc:
+        result = _error_result(req, agent, collector, tick, exc)
+        if store is not None:
+            store.save(result)
+        return result
     collector.record(
         "generate", tick,
         duration_ms=generation.duration_ms,
@@ -127,7 +180,13 @@ def run_plan(
 
     # 3. Parsing -----------------------------------------------------------------
     tick = time.perf_counter()
-    plan = parse_plan(generation.payload, req, agent.name, agent.prompt_version)
+    try:
+        plan = parse_plan(generation.payload, req, agent.name, agent.prompt_version)
+    except ShotplanError as exc:
+        result = _error_result(req, agent, collector, tick, exc)
+        if store is not None:
+            store.save(result)
+        return result
     collector.record("parse", tick, slots=len(plan.slots))
 
     # 4. Validation --------------------------------------------------------------

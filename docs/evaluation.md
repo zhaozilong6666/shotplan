@@ -9,8 +9,8 @@
 ```bash
 python -m evals.run_eval                         # 只跑，打印摘要
 python -m evals.run_eval --write-report         # 生成 docs/eval-report.md
-python -m evals.run_eval --compare evals/baselines/v4-naive.json
-python -m evals.run_eval --save-baseline evals/baselines/v4-naive.json
+python -m evals.run_eval --compare evals/baselines/v5-naive.json
+python -m evals.run_eval --save-baseline evals/baselines/v5-naive.json
 python -m evals.run_eval --prompt-version planner-v1 --write-report
 python -m evals.run_eval --min-score 0.85 --min-hard-pass-rate 0.95
 ```
@@ -19,7 +19,7 @@ python -m evals.run_eval --min-score 0.85 --min-hard-pass-rate 0.95
 
 - `evals/out/latest.json`：完整原始结果（每个用例的分数、问题码、耗时、修复轮次、token）
 - `docs/eval-report.md`：代码生成的 Markdown 报告
-- `evals/baselines/*.json`：对照组基线快照。`v1-naive.json` 是 12 用例时代的历史基线，**不能与 36 用例的结果直接比较**；当前使用 `v4-naive.json`
+- `evals/baselines/*.json`：对照组基线快照。`v1-naive.json` 是 12 用例时代的历史基线，**不能与当前 70 用例的结果直接比较**；当前使用 `v5-naive.json`
 
 `--write-report` 生成的文件不要手工编辑；改内容请改 `evals/run_eval.py::build_report` 后重新生成。`docs/eval-report.md` **会随仓库提交**，让访客不必运行代码就能看到结论；`evals/out/latest.json` 才是被 `.gitignore` 忽略的原始产物。
 
@@ -57,11 +57,11 @@ brief (jsonl)
 
 ## 四类用例与「正确拒绝」
 
-当前 60 个用例：`normal` 22、`conflict` 17、`edge` 12、`infeasible` 9。
+当前 70 个用例：`normal` 26、`conflict` 20、`edge` 14、`infeasible` 10。
 
 `infeasible` 组描述的不是「难做」，而是**数学上不可能同时满足**：预算低于最低可执行成本、时长短于最短闭环、城市不在知识库、约束互相矛盾。用例带 `expect_infeasible: true`。这类用例的期望输出不是方案，而是 `status=infeasible` + 原因/缺口/建议；正确拒绝记 1.0 分，硬凑方案记 0.0 分（见 [ADR 0007](adr/0007-feasibility-before-generation.md)）。
 
-因为 preflight 在生成之前且不确定于 provider，两个 provider 在这 9 个用例上必然同分。这不是评测漏洞，而是设计结果：**能力差异应由生成质量体现，不应由「会不会做算术」体现**。
+因为 preflight 在生成之前且不确定于 provider，两个 provider 在这 10 个用例上必然同分。这不是评测漏洞，而是设计结果：**能力差异应由生成质量体现，不应由「会不会做算术」体现**。
 
 ## 如何新增用例
 
@@ -81,7 +81,7 @@ brief (jsonl)
 新增用例后必须重刷基线，否则 `--compare` 会把用例集变化误读成质量变化：
 
 ```bash
-python -m evals.run_eval --write-report --save-baseline evals/baselines/v4-naive.json
+python -m evals.run_eval --write-report --save-baseline evals/baselines/v5-naive.json
 python -m pytest tests/test_scorers.py -q
 ```
 
@@ -102,10 +102,26 @@ python -m pytest tests/test_scorers.py -q
 - **「均分 0.98 说明系统完美」** — 不。它说明当前离线 provider 严格按规则生成。真实模型接入后这个数字大概率下降，那才是评测开始发挥作用的时候。
 - **「对照组分数低是理所当然的，没必要跑」** — 恰恰相反。控制组检验的是评测工具，不是被测系统。去掉它，整套分数就失去意义。
 - **「用例全通过就不用看明细」** — 要看。C10 的 `SHOOT_TOO_SHORT` 是有价值的信号，说明极短预约下质量确实在下降。
-- **「不可满足用例两组同分，说明评测失效」** — 见上文：可行性判定是共享的确定性前置步骤，区分度由其余 51 个用例提供。
+- **「不可满足用例两组同分，说明评测失效」** — 见上文：可行性判定是共享的确定性前置步骤，区分度由其余 60 个用例提供。
+
+## 另外两层：模糊测试与性能基准
+
+评测集回答的是「在真实 brief 上够不够好」。它天生回答不了另外两个问题，所以各有一层专门负责：
+
+| 层 | 问题 | 判定 | 报告 |
+| --- | --- | --- | --- |
+| 评测集 | 方案质量够不够？ | 分数、硬约束通过率、对照组差值 | [eval-report.md](eval-report.md) |
+| 模糊测试 | 垃圾输入会不会让服务崩？ | 0 未捕获异常、0 不可序列化结果 | [fuzz-report.md](fuzz-report.md) |
+| 性能基准 | 有没有性能回归？ | p95、吞吐、堆峰值相对绝对上限 | [benchmark.md](benchmark.md) |
+
+模糊测试的输入由真实 brief 变异而来（错类型、`NaN`、`1e400`、emoji 洪水、NULL 字段、不存在的日期），每个用例带独立种子，失败可用 `--only-seed` 单条复现。它守住的不变量是「无论输入是什么，都返回结构化结果」——这条契约能成立，是因为归一化是全域函数、非法日期走结构化拒绝、provider 与解析失败返回 `status=error`。
+
+性能基准测的是**不含模型延迟**的常数成本，用 `tracemalloc` 单独一轮统计堆峰值。门禁设在实测值的十倍以上（p95 < 50ms、吞吐 > 50/s、堆 < 64MB），目的是抓「意外的 O(n²)」「每次调用重载知识库」这类回归，而不是卡 CI 抖动。
 
 ## 相关材料
 
 - [修复循环实验](repair-experiment.md)：把「有修复循环」变成可量化的成功率与拦截次数。
 - [失败案例库](failure-gallery.md)：校验器真实抓到过的错误模式，新增规则的证据来源。
+- [输入模糊测试](fuzz-report.md)：任意输入不崩的契约与可复现种子。
+- [性能基准](benchmark.md)：延迟分位、吞吐与内存画像。
 - [可观测性说明](observability.md)：评测报告是实验，运行统计是实际使用记录，两者不能互相替代。

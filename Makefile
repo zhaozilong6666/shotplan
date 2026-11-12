@@ -1,39 +1,62 @@
-.PHONY: help install test lint eval report serve plan smoke clean
+.PHONY: help install test lint eval report fuzz bench gates showcase serve plan smoke clean
 
 PYTHON ?= python
 
 help:
 	@echo "shotplan commands"
 	@echo "  install   安装可选依赖 (api + dev)"
-	@echo "  test      运行单元测试"
+	@echo "  test      运行单元测试（含覆盖率门槛）"
 	@echo "  lint      ruff 静态检查"
 	@echo "  eval      运行评测集并生成报告"
+	@echo "  report    评测 + 与当前基线对比"
+	@echo "  fuzz      确定性模糊测试（1000 次变异，生成报告）"
+	@echo "  bench     性能基准（P50/P95、吞吐、堆峰值）"
+	@echo "  gates     本地跑一遍 CI 的全部质量门禁"
+	@echo "  showcase  重新生成展示页数据块"
 	@echo "  plan      用离线 mock 生成一份示例方案"
 	@echo "  serve     启动 Web / API (需要 install)"
-	@echo "  smoke     测试 + 评测 + CLI 冒烟，一条命令验证全仓"
+	@echo "  smoke     门禁 + 评测 + CLI 冒烟，一条命令验证全仓"
 
 install:
 	$(PYTHON) -m pip install -e ".[api,dev]"
 
 test:
-	$(PYTHON) -m pytest
+	$(PYTHON) -m pytest --cov=src/shotplan --cov-fail-under=85
 
 lint:
-	$(PYTHON) -m ruff check src tests evals
+	$(PYTHON) -m ruff check src tests evals scripts
 
 eval:
 	$(PYTHON) -m evals.run_eval --write-report
 
-plan:
-	$(PYTHON) -m shotplan.cli plan --city xian --date 2026-10-04 --hours 6 --budget 1500 --style tang
+report:
+	$(PYTHON) -m evals.run_eval --write-report --compare evals/baselines/v5-naive.json
+
+fuzz:
+	$(PYTHON) -m evals.fuzz --iterations 1000 --write-report
+
+bench:
+	$(PYTHON) -m evals.benchmark --write-report
+
+gates:
+	$(PYTHON) -m evals.run_eval --write-report
+	$(PYTHON) -m evals.repair_lab --check
+	$(PYTHON) -m evals.collect_failures --check
+	$(PYTHON) -m evals.fuzz --check --iterations 500
+	$(PYTHON) -m evals.benchmark --check
+
+showcase:
+	$(PYTHON) -m evals.cost_latency --write-report
+	$(PYTHON) -m evals.benchmark --out evals/benchmark.json --write-report
+	$(PYTHON) scripts/build_showcase.py
 
 serve:
 	$(PYTHON) -m shotplan.cli serve --port 8000
 
-smoke: test eval plan
+plan:
+	$(PYTHON) -m shotplan.cli plan --city xian --date 2026-10-04 --hours 6 --budget 1500 --style tang
 
-report:
-	$(PYTHON) -m evals.run_eval --write-report --compare evals/baselines/v1-naive.json
+smoke: lint test gates plan
 
 clean:
 	rm -rf .pytest_cache .ruff_cache evals/out

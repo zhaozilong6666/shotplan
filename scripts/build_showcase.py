@@ -10,6 +10,7 @@ Run after regenerating the eval artifacts:
     python -m evals.repair_lab --write-report
     python -m evals.collect_failures --write-report
     python -m evals.cost_latency --write-report
+    python -m evals.benchmark --out evals/benchmark.json --write-report
     python scripts/build_showcase.py
 
 The script locates each block by its section heading / wrapper and replaces only
@@ -136,6 +137,23 @@ def cost_block(cost: dict) -> str:
     return "      <tbody>\n" + "\n".join(rows) + "\n      </tbody>"
 
 
+def benchmark_block(bench: dict) -> str:
+    single = bench["single"]
+    corpus = bench["corpus"]
+    return (
+        '<div class="metrics perf">\n'
+        f'      <div class="metric good"><b>{single["p95_ms"]:.2f} ms</b>'
+        "<span>P95 延迟</span></div>\n"
+        f'      <div class="metric good"><b>{single["p50_ms"]:.2f} ms</b>'
+        "<span>P50 延迟</span></div>\n"
+        f'      <div class="metric good"><b>{single["throughput_rps"]:.0f} /s</b>'
+        "<span>单核吞吐</span></div>\n"
+        f'      <div class="metric good"><b>{single["peak_kb"] / 1024:.2f} MB</b>'
+        f'<span>堆峰值（{corpus["cases"]} 用例扫一遍 {corpus["wall_s"]:.2f}s）</span></div>\n'
+        "    </div>"
+    )
+
+
 def failures_block(failures: list[dict]) -> str:
     counts = Counter(record["code"] for record in failures)
     items = []
@@ -157,6 +175,10 @@ def main() -> int:
     latest = _load(OUT / "latest.json")
     repair = _load(OUT / "repair-experiment.json")
     cost = _load(OUT / "cost-latency.json")
+    # Benchmark numbers are machine-specific and cannot be regenerated identically
+    # in CI, so the page reads a committed snapshot instead of evals/out/.
+    # Refresh it with: python -m evals.benchmark --out evals/benchmark.json
+    bench = _load(ROOT / "evals" / "benchmark.json")
     failures_path = ROOT / "evals" / "failures" / "cases.jsonl"
     if not failures_path.exists():
         raise SystemExit(f"missing {failures_path}; run evals.collect_failures first")
@@ -197,6 +219,12 @@ def main() -> int:
         r'(<h2>失败案例库.*?)\s*<ul class="clean">.*?</ul>',
         lambda m: m.group(1).rstrip() + "\n" + failures_block(failures),
         "failures",
+    )
+    html = replace_block(
+        html,
+        r'<div class="metrics perf">.*?</div>\s*</section>',
+        benchmark_block(bench) + "\n  </section>",
+        "benchmark",
     )
     page.write_text(html, encoding="utf-8")
     print(f"wrote {page}")

@@ -1,0 +1,62 @@
+{
+  "naive": {
+    "case_count": 70,
+    "hard_pass_rate": 0.1429,
+    "cases_passed": 10,
+    "cases_failed": 60,
+    "avg_score": 0.3057,
+    "min_score": 0.19,
+    "avg_duration_ms": 0.12,
+    "p50_duration_ms": 0.13,
+    "p95_duration_ms": 0.14,
+    "total_repairs": 60,
+    "total_tokens_in": 79542,
+    "total_tokens_out": 25486,
+    "total_cost_cny": 0.0,
+    "dimension_averages": {
+      "budget": 0.0,
+      "completeness": 0.4,
+      "constraints": 0.0,
+      "light": 1.0,
+      "traceability": 0.0
+    },
+    "issue_frequency": {
+      "TRANSFER_BUFFER": 171,
+      "UNKNOWN_LOCATION": 150,
+      "BUDGET_EXCEEDED": 60,
+      "SHOOT_TOO_SHORT": 60,
+      "NO_ALTERNATIVE": 60,
+      "NO_SOURCE_REF": 60,
+      "TIME_OVERRUN": 56,
+      "STYLE_MISMATCH": 11,
+      "INFEASIBLE": 10
+    },
+    "by_group": {
+      "conflict": {
+        "cases": 20,
+        "hard_pass_rate": 0.0,
+        "avg_score": 0.19,
+        "passed": 0
+      },
+      "edge": {
+        "cases": 14,
+        "hard_pass_rate": 0.0,
+        "avg_score": 0.19,
+        "passed": 0
+      },
+      "infeasible": {
+        "cases": 10,
+        "hard_pass_rate": 1.0,
+        "avg_score": 1.0,
+        "passed": 10
+      },
+      "normal": {
+        "cases": 26,
+        "hard_pass_rate": 0.0,
+        "avg_score": 0.19,
+        "passed": 0
+      }
+    }
+  },
+  "generated_at": "2026-11-12T11:41:51+00:00"
+}

@@ -355,6 +355,185 @@
           "notes": "雨天兜底，光线完全可控"
         }
       ]
+    },
+    "suzhou": {
+      "name": "苏州",
+      "center": "观前街",
+      "locations": [
+        {
+          "id": "pingjiang_road",
+          "name": "平江路",
+          "district": "gusu",
+          "tags": [
+            "song",
+            "ming",
+            "street",
+            "human",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning",
+            "night"
+          ],
+          "indoor": false,
+          "min_minutes": 90,
+          "travel_min_from_center": 10,
+          "cost_cny": 0,
+          "crowd": "high",
+          "weather_risk": "medium",
+          "notes": "水巷与石桥，清晨人少；夜间灯笼适合宋制与明制"
+        },
+        {
+          "id": "humble_administrator_garden",
+          "name": "拙政园",
+          "district": "gusu",
+          "tags": [
+            "ming",
+            "garden",
+            "open",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning"
+          ],
+          "indoor": false,
+          "min_minutes": 120,
+          "travel_min_from_center": 20,
+          "cost_cny": 70,
+          "crowd": "high",
+          "weather_risk": "medium",
+          "notes": "明代园林，旺季限流，需提前预约"
+        },
+        {
+          "id": "suzhou_museum",
+          "name": "苏州博物馆",
+          "district": "gusu",
+          "tags": [
+            "ming",
+            "indoor",
+            "controlled",
+            "human"
+          ],
+          "best_light": [
+            "any"
+          ],
+          "indoor": true,
+          "min_minutes": 90,
+          "travel_min_from_center": 15,
+          "cost_cny": 0,
+          "crowd": "medium",
+          "weather_risk": "low",
+          "notes": "免费需预约，几何窗格光影稳定"
+        },
+        {
+          "id": "tiger_hill",
+          "name": "虎丘",
+          "district": "gusu",
+          "tags": [
+            "tang",
+            "architecture",
+            "open",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning",
+            "golden"
+          ],
+          "indoor": false,
+          "min_minutes": 90,
+          "travel_min_from_center": 30,
+          "cost_cny": 60,
+          "crowd": "medium",
+          "weather_risk": "medium",
+          "notes": "斜塔与山林层次，登高取景"
+        },
+        {
+          "id": "shantang_street",
+          "name": "山塘街",
+          "district": "gusu",
+          "tags": [
+            "republic",
+            "song",
+            "street",
+            "night",
+            "outdoor"
+          ],
+          "best_light": [
+            "golden",
+            "night"
+          ],
+          "indoor": false,
+          "min_minutes": 60,
+          "travel_min_from_center": 20,
+          "cost_cny": 0,
+          "crowd": "high",
+          "weather_risk": "medium",
+          "notes": "临河老街，夜景灯影与水面对称"
+        },
+        {
+          "id": "canglang_pavilion",
+          "name": "沧浪亭",
+          "district": "gusu",
+          "tags": [
+            "song",
+            "garden",
+            "quiet",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning",
+            "golden"
+          ],
+          "indoor": false,
+          "min_minutes": 75,
+          "travel_min_from_center": 15,
+          "cost_cny": 20,
+          "crowd": "low",
+          "weather_risk": "low",
+          "notes": "最古老的苏州园林之一，客流低，适合安静取景"
+        },
+        {
+          "id": "jinji_lake",
+          "name": "金鸡湖",
+          "district": "sip",
+          "tags": [
+            "republic",
+            "open",
+            "night",
+            "outdoor"
+          ],
+          "best_light": [
+            "night"
+          ],
+          "indoor": false,
+          "min_minutes": 90,
+          "travel_min_from_center": 35,
+          "cost_cny": 0,
+          "crowd": "medium",
+          "weather_risk": "high",
+          "notes": "现代天际线与湖面，适合民国风与时尚混搭"
+        },
+        {
+          "id": "indoor_studio_suzhou",
+          "name": "苏州室内影棚",
+          "district": "gusu",
+          "tags": [
+            "indoor",
+            "minimal",
+            "controlled"
+          ],
+          "best_light": [
+            "any"
+          ],
+          "indoor": true,
+          "min_minutes": 90,
+          "travel_min_from_center": 20,
+          "cost_cny": 400,
+          "crowd": "low",
+          "weather_risk": "low",
+          "notes": "雨天兜底，光线完全可控"
+        }
+      ]
     }
   }
 }

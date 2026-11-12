@@ -14,7 +14,7 @@
 | 2 | 申请一个 API key（可选） | 阶段 4 真实模型实验 | 需要注册并实名/付款的服务 |
 | 3 | 注册部署平台账号（可选） | 阶段 5 | 需要你的账号授权 |
 
-其余全部已完成或由我继续推进。阶段 4 里不依赖 key 的部分（36 用例评测集、`INFEASIBLE` 分支、prompt v1/v2 对比框架、成本/延迟报告、修复循环实验、失败案例库）以及运行统计面板、英文 README 都已做完并验证。需要你配合时，我会给「一步一条命令 + 验证方法」，不会让你自己去查。
+其余全部已完成或由我继续推进。阶段 4 里不依赖 key 的部分（70 用例评测集、`INFEASIBLE` 分支、prompt v1/v2 对比框架、成本/延迟报告、修复循环实验、失败案例库）以及运行统计面板、英文 README 都已做完并验证。需要你配合时，我会给「一步一条命令 + 验证方法」，不会让你自己去查。
 
 ---
 
@@ -32,7 +32,7 @@
 
 **CI 与评测抓到并修掉的两个真问题**：
 - Python 3.10/3.11 失败、3.12/3.13 通过 —— 3.12 起 `sum()` 改用补偿求和，满分方案在旧版本算出 `1.0000000000000002`。已改为 `math.fsum` + 固定 6 位精度（ADR 0006）。
-- 36 用例里的 C24（预算 400 元）暴露 planner 会挑收费景点导致超预算。已改为按剩余预算裁剪地点组合 + 风格选择先预留转场费。修的是实现，不是调低用例期望。
+- 较早用例集里的 C24（预算 400 元）暴露 planner 会挑收费景点导致超预算。已改为按剩余预算裁剪地点组合 + 风格选择先预留转场费。修的是实现，不是调低用例期望。
 
 **网络后患也处理了**：`git push` 走不通时不必换网络，仓库里有 `scripts/push_via_api.py`，通过 GitHub Git Data API 完成等价推送并逐对象校验 SHA（详见 [runbook.md](runbook.md)）。密钥仍从系统凭证读取，不落盘。
 
@@ -59,10 +59,12 @@ git ls-files | grep -E "\.env$|\.db$|evals/out/" || echo "没有敏感文件被�
 
 | 检查 | 结果 |
 | --- | --- |
-| `pytest` | 116 passed（本机 Python 3.13） |
-| `ruff check src tests evals` | All checks passed |
-| `evals.run_eval --compare v4` | 60/60，均分 0.9762，对照组 0.3115，差值 0.6647，退出码 0 |
-| 不可满足需求 | 8/8 正确结构化拒绝 |
+| `pytest` | 148 passed（本机 Python 3.13），覆盖率 89% |
+| `ruff check src tests evals scripts` | All checks passed |
+| `evals.run_eval --compare v5` | 70/70，均分 0.9778，对照组 0.3057，差值 0.6721，退出码 0 |
+| 不可满足需求 | 10/10 正确结构化拒绝 |
+| 输入模糊测试 | 1000 次变异，0 未捕获异常 |
+| 性能基准 | p95 ≈0.6ms、单核数千次/秒、堆峰值 0.02MB（全部低于门禁上限一个数量级） |
 | 真实启动服务 | `/api/health`、首页、`/api/plan` 全部正常 |
 | 静态展示页 | <https://zhaozilong6666.github.io/shotplan/>（GitHub Pages，已验证 built） |
 | CI 矩阵 | Python 3.10 / 3.11 / 3.12 / 3.13 全部通过 |
@@ -73,8 +75,10 @@ git ls-files | grep -E "\.env$|\.db$|evals/out/" || echo "没有敏感文件被�
 cd "D:/WorkBuddy/projects/shotplan"
 python -m pip install -e ".[api,dev]"
 python -m pytest
-python -m evals.run_eval --write-report --compare evals/baselines/v4-naive.json
-python -m ruff check src tests evals
+python -m evals.run_eval --write-report --compare evals/baselines/v5-naive.json
+python -m evals.fuzz --check --iterations 500
+python -m evals.benchmark --check
+python -m ruff check src tests evals scripts
 python -m shotplan.cli serve
 ```
 
@@ -88,7 +92,7 @@ python -m shotplan.cli serve
 
 直接可用的一行描述：
 
-> **shotplan** — 可评测的旅拍方案 Agent（Python / FastAPI / SQLite）：生成前判定需求可满足性，以确定性硬约束校验替代 LLM 自评，校验报告驱动定向修复；建 36 用例评测集与对照组，CI 设质量回归门禁。
+> **shotplan** — 可评测的旅拍方案 Agent（Python / FastAPI / SQLite）：生成前判定需求可满足性，以确定性硬约束校验替代 LLM 自评，校验报告驱动定向修复；建 70 用例评测集与对照组，CI 设质量回归门禁。
 
 四条 bullets 和 10 分钟讲稿在 [interview-notes.md](interview-notes.md)，挑 2–3 条贴进简历即可。验证方法：找个人用 30 秒讲一遍，对方能复述出「校验不交给模型」这个点就算成功。
 
@@ -129,7 +133,7 @@ SHOTPLAN_LLM_API_KEY=你复制的key
 ```bash
 python -m shotplan.cli config      # 应显示 "api_key_set": true，且不会打印 key 本身
 python -m shotplan.cli plan        # 不带 --mock-mode，走真实模型
-python -m evals.run_eval --write-report --compare evals/baselines/v4-naive.json
+python -m evals.run_eval --write-report --compare evals/baselines/v5-naive.json
 ```
 
 ### 安全提醒
@@ -186,4 +190,4 @@ curl https://你的地址/api/health
 
 ## 我这边已经做完、你不用管的
 
-仓库结构与全部源码、116 个单元测试、50 个评测用例与两代对照基线、自动生成的评测报告、架构文档与 7 份 ADR、CI 工作流（含修复实验与失败案例两道门禁）、Docker 配置、Web 界面（含运行统计视图）、中英文 README、GitHub Pages 静态展示页、路线图、面试讲稿、排错手册、GitHub 建仓与推送、仓库描述与 topics、CI 跨版本浮点问题修复、代理受限时的 API 推送脚本、生成前可行性判定、prompt v1/v2 对比框架、成本/延迟报告与模拟 provider、修复循环实验、结构化失败案例库、按 provider / prompt 版本聚合的运行统计面板。本地已验证：测试全绿、评测退出码 0、CLI 与 API 端到端可用；GitHub Actions 4 个 Python 版本全部通过。
+仓库结构与全部源码、148 个单元测试、70 个评测用例与五代对照基线、自动生成的评测报告、架构文档与 7 份 ADR、CI 工作流（含修复实验与失败案例两道门禁）、Docker 配置、Web 界面（含运行统计视图）、中英文 README、GitHub Pages 静态展示页、路线图、面试讲稿、排错手册、GitHub 建仓与推送、仓库描述与 topics、CI 跨版本浮点问题修复、代理受限时的 API 推送脚本、生成前可行性判定、prompt v1/v2 对比框架、成本/延迟报告与模拟 provider、修复循环实验、结构化失败案例库、按 provider / prompt 版本聚合的运行统计面板。本地已验证：测试全绿、评测退出码 0、CLI 与 API 端到端可用；GitHub Actions 4 个 Python 版本全部通过。

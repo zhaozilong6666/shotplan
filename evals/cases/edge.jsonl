@@ -10,3 +10,5 @@
 {"id":"C48","group":"edge","description":"洛阳冬季 1 月、6 小时","request":{"city":"luoyang","date":"2026-01-10","hours":6,"budget_cny":1500,"styles":["ming"]},"expect_hard_pass":true,"expect_min_score":0.55}
 {"id":"C58","group":"edge","description":"杭州 1.5 小时边界","request":{"city":"hangzhou","date":"2026-10-04","hours":1.5,"budget_cny":1500,"styles":["republic"]},"expect_hard_pass":true,"expect_min_score":0.45}
 {"id":"C59","group":"edge","description":"杭州 12 小时上限","request":{"city":"hangzhou","date":"2026-10-04","hours":12,"budget_cny":3000,"styles":["song"]},"expect_hard_pass":true,"expect_min_score":0.55}
+{"id":"C68","group":"edge","description":"苏州 12 小时上限、4000 元","request":{"city":"suzhou","date":"2026-10-04","hours":12,"budget_cny":4000,"styles":["ming"]},"expect_hard_pass":true,"expect_min_score":0.55}
+{"id":"C69","group":"edge","description":"苏州 3 小时短时长，仍可完成最短闭环","request":{"city":"suzhou","date":"2026-08-15","hours":3,"budget_cny":900,"styles":["republic"]},"expect_hard_pass":true,"expect_min_score":0.45}

@@ -7,6 +7,7 @@ validation is added at the API boundary, not in the domain. See docs/adr/0001.
 
 from __future__ import annotations
 
+import math
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
@@ -36,6 +37,52 @@ def fmt_minutes(total: int) -> str:
     return f"{total // 60:02d}:{total % 60:02d}"
 
 
+# --------------------------------------------------------------------------- #
+# Total coercion helpers.
+#
+# Requests arrive from JSON, forms and fuzzers, so every field can be any type
+# at runtime. Normalisation must therefore never raise: junk degrades to the
+# documented default and the pipeline still returns a structured verdict.
+# A 500 from a bad brief is a bug, not an acceptable answer.
+# --------------------------------------------------------------------------- #
+def as_float(value: Any, default: float) -> float:
+    """Best-effort finite float. Rejects NaN/inf, which would poison clamps."""
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return default
+    return number if math.isfinite(number) else default
+
+
+def as_int(value: Any, default: int) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError, OverflowError):
+        # Accept "1500" and 1500.9, reject "1500 元" and 1e400.
+        return int(as_float(value, float(default)))
+
+
+def as_text(value: Any, default: str = "") -> str:
+    if value is None:
+        return default
+    return str(value).strip()
+
+
+def as_str_list(value: Any) -> list[str]:
+    """Accept a scalar, an iterable, or None. Never iterate a string by chars."""
+    if value is None:
+        return []
+    items = [value] if isinstance(value, str) else list(value) if isinstance(
+        value, (list, tuple, set)
+    ) else [value]
+    out: list[str] = []
+    for item in items:
+        text = "" if item is None else str(item).strip()
+        if text:
+            out.append(text)
+    return out
+
+
 @dataclass
 class PlanRequest:
     """A deliberately under-specified brief, like something a real client would send."""
@@ -52,17 +99,19 @@ class PlanRequest:
     request_id: str = field(default_factory=lambda: new_id("req"))
 
     def normalized(self) -> PlanRequest:
+        """Clamp and coerce every field. Total function: never raises."""
+        hours = as_float(self.hours, 6.0)
         return PlanRequest(
-            city=str(self.city).strip().lower(),
-            date=str(self.date).strip(),
-            hours=max(1.0, min(float(self.hours), 12.0)),
-            budget_cny=max(0, int(self.budget_cny)),
-            party_size=max(1, int(self.party_size)),
-            styles=[str(s).strip().lower() for s in self.styles if str(s).strip()],
-            preferences=[str(p).strip() for p in self.preferences],
-            must_include=[str(m).strip().lower() for m in self.must_include],
-            avoid=[str(a).strip().lower() for a in self.avoid],
-            request_id=self.request_id,
+            city=as_text(self.city).lower(),
+            date=as_text(self.date),
+            hours=max(1.0, min(hours, 12.0)),
+            budget_cny=max(0, as_int(self.budget_cny, 1500)),
+            party_size=max(1, as_int(self.party_size, 1)),
+            styles=[s.lower() for s in as_str_list(self.styles)],
+            preferences=as_str_list(self.preferences),
+            must_include=[m.lower() for m in as_str_list(self.must_include)],
+            avoid=[a.lower() for a in as_str_list(self.avoid)],
+            request_id=as_text(self.request_id) or new_id("req"),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -219,7 +268,7 @@ class PlanResult:
     plan: Plan
     validation: ValidationReport
     trace: RunTrace
-    status: str = "ok"  # ok | infeasible
+    status: str = "ok"  # ok | infeasible | error
     feasibility: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:

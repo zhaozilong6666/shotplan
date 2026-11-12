@@ -1,0 +1,38 @@
+{
+  "single": {
+    "iterations": 300,
+    "p50_ms": 0.235,
+    "p95_ms": 0.616,
+    "p99_ms": 2.162,
+    "mean_ms": 0.338,
+    "max_ms": 3.179,
+    "throughput_rps": 2946.55,
+    "peak_kb": 21.2,
+    "wall_s": 0.102
+  },
+  "corpus": {
+    "cases": 70,
+    "status_counts": {
+      "infeasible": 10,
+      "ok": 60
+    },
+    "p50_ms": 0.229,
+    "p95_ms": 0.457,
+    "mean_ms": 0.236,
+    "max_ms": 0.545,
+    "wall_s": 0.018
+  },
+  "steps_ms_total": {
+    "preflight": 9.42,
+    "retrieve": 9.22,
+    "generate": 11.9,
+    "parse": 10.33,
+    "validate": 17.69
+  },
+  "environment": {
+    "python": "3.13.14",
+    "system": "Windows",
+    "release": "11",
+    "machine": "AMD64"
+  }
+}

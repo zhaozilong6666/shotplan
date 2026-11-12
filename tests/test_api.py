@@ -48,6 +48,20 @@ def test_plan_endpoint_rejects_bad_input(client):
     assert client.post("/api/plan", json="not-an-object").status_code == 422
 
 
+def test_plan_endpoint_survives_junk_fields(client):
+    """Wrong types must degrade to a structured answer, never a 500."""
+    response = client.post(
+        "/api/plan",
+        json={"hours": "abc", "budget_cny": None, "styles": "tang",
+              "party_size": [1], "date": "2026-02-30", "mock_mode": "good"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] in {"ok", "infeasible"}
+    assert data["request"]["styles"] == ["tang"]
+    assert 1.0 <= data["request"]["hours"] <= 12.0
+
+
 def test_run_history_and_detail(client):
     created = client.post("/api/plan", json={"mock_mode": "good"}).json()
     run_id = created["trace"]["run_id"]
