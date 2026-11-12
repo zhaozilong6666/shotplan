@@ -18,7 +18,7 @@ from ..config import Settings
 from ..domain.errors import ProviderError
 from ..domain.models import PlanRequest
 from .base import GenerationResult
-from .prompts import PROMPT_VERSION, SYSTEM_PROMPT, build_user_prompt
+from .prompts import PROMPT_VERSION, build_user_prompt, get_system_prompt
 
 # Approximate prices in CNY per 1K tokens. Used only for trace accounting;
 # never for billing claims.
@@ -40,14 +40,15 @@ def _estimate_cost(model: str, tokens_in: int, tokens_out: int) -> float:
 class OpenAICompatibleProvider:
     name = "openai_compatible"
 
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Settings, prompt_version: str | None = None) -> None:
         if not settings.llm_api_key:
             raise ProviderError(
                 "SHOTPLAN_LLM_API_KEY is empty. Set it in .env, or use "
                 "SHOTPLAN_PROVIDER=mock to run fully offline."
             )
         self.settings = settings
-        self.prompt_version = PROMPT_VERSION
+        self.prompt_version = prompt_version or PROMPT_VERSION
+        self._system_prompt = get_system_prompt(self.prompt_version)
 
     def _post(self, body: dict[str, Any], timeout: int) -> dict[str, Any]:
         url = f"{self.settings.llm_base_url}/chat/completions"
@@ -77,7 +78,7 @@ class OpenAICompatibleProvider:
         repair_hint: str | None = None,
     ) -> GenerationResult:
         messages: list[dict[str, str]] = [
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": self._system_prompt},
             {"role": "user", "content": build_user_prompt(request, context, repair_hint)},
         ]
         body: dict[str, Any] = {

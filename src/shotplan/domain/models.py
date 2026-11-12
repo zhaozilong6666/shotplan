@@ -219,11 +219,17 @@ class PlanResult:
     plan: Plan
     validation: ValidationReport
     trace: RunTrace
+    status: str = "ok"  # ok | infeasible
+    feasibility: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        payload: dict[str, Any] = {
+            "status": self.status,
             "request": self.request.to_dict(),
             "plan": self.plan.to_dict(),
             "validation": self.validation.to_dict(),
             "trace": self.trace.to_dict(),
         }
+        if self.feasibility is not None:
+            payload["feasibility"] = self.feasibility
+        return payload

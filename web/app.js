@@ -48,7 +48,25 @@
     badge.style.color = ok ? "var(--good)" : "var(--bad)";
   }
 
+  function infeasibleHtml(r) {
+    var f = r.feasibility || {};
+    var html = '<div class="issue hard"><code>需求不可满足</code><p>' +
+      esc(f.headline || "当前条件无法生成可执行方案，已停止生成以避免硬凑行程。") + '</p></div>';
+    html += '<div class="alternatives"><h4>原因与建议</h4><ul>';
+    (f.reasons || []).forEach(function (reason) {
+      html += '<li><code>' + esc(reason.code) + '</code> · ' + esc(reason.message) +
+        '<br>缺口：' + esc(reason.shortfall) + ' ｜ 建议：' + esc(reason.suggestion) + '</li>';
+    });
+    html += '</ul></div>';
+    var m = f.minimums || {};
+    html += '<div class="summary"><div class="stat"><b>' + esc(m.min_budget_cny) +
+      ' 元</b><span>最低预算</span></div><div class="stat"><b>' + esc(m.min_hours) +
+      ' 小时</b><span>最短时长</span></div></div>';
+    return html;
+  }
+
   function renderPlan(r) {
+    if (r.status === "infeasible") return infeasibleHtml(r);
     var plan = r.plan;
     var html = '<div class="summary">' +
       '<div class="stat"><b>' + esc(plan.slots.length) + '</b><span>时间块</span></div>' +
@@ -162,7 +180,12 @@
       }
       state.result = await response.json();
       el("badge-provider").textContent = "provider: " + state.result.trace.provider;
-      setStatus(state.result.validation.hard_pass ? "硬约束通过" : "发现问题", state.result.validation.hard_pass);
+      if (state.result.status === "infeasible") {
+        setStatus("需求不可满足", false);
+      } else {
+        setStatus(state.result.validation.hard_pass ? "硬约束通过" : "发现问题",
+                  state.result.validation.hard_pass);
+      }
       render();
     } catch (error) {
       setStatus("请求失败", false);

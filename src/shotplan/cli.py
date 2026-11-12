@@ -17,7 +17,30 @@ from .storage import RunStore
 from .tracing import trace_to_markdown
 
 
+def _print_infeasible(result: Any) -> None:
+    feasibility = result.feasibility or {}
+    print("\n需求不可满足：未生成方案（避免输出看似合理但无法执行的行程）")
+    print("-" * 78)
+    for reason in feasibility.get("reasons", []):
+        print(f"  [{reason['code']}] {reason['message']}")
+        print(f"    缺口：{reason['shortfall']}")
+        print(f"    建议：{reason['suggestion']}")
+    minimums = feasibility.get("minimums", {})
+    print("-" * 78)
+    print(f"  最低预算 {minimums.get('min_budget_cny')} 元 "
+          f"（最简妆造 {minimums.get('min_styling_cny')} + "
+          f"最低场地 {minimums.get('min_location_cny')} + "
+          f"转场 {minimums.get('transfer_cost_cny')}）")
+    print(f"  最短时长 {minimums.get('min_hours')} 小时  ｜  "
+          f"支持城市：{', '.join(minimums.get('supported_cities', []))}")
+    print()
+    print(trace_to_markdown(result.trace))
+
+
 def _print_plan(result: Any) -> None:
+    if result.status == "infeasible":
+        _print_infeasible(result)
+        return
     plan, report = result.plan, result.validation
     print(f"\n方案 {plan.plan_id}  |  {plan.city}  {plan.date}  |  provider={plan.provider}")
     print("-" * 78)
@@ -72,6 +95,8 @@ def cmd_plan(args: argparse.Namespace) -> int:
             json.dumps(result.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8"
         )
         print(f"\n已写入 {args.out}")
+    if result.status == "infeasible":
+        return 3
     return 0 if result.validation.hard_pass else 2
 
 

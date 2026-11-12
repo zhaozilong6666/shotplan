@@ -9,7 +9,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..domain.constraints import MIN_TRANSFER_MINUTES, golden_window
+from ..domain.constraints import (
+    MIN_TRANSFER_COST_CNY,
+    MIN_TRANSFER_MINUTES,
+    golden_window,
+)
 from ..domain.errors import KnowledgeError
 from ..domain.models import PlanRequest, fmt_minutes
 from .loader import load_locations, load_styles
@@ -103,16 +107,19 @@ class KnowledgeTools:
         return fmt_minutes(start * 60), fmt_minutes(end * 60)
 
     def best_style_for(self, requested: list[str], budget_cny: int) -> dict[str, Any]:
+        # Reserve the transfer fee first: a styling package that consumes the
+        # whole budget makes even a single-location plan unexecutable.
+        usable = max(0, budget_cny - MIN_TRANSFER_COST_CNY)
         for style_id in requested:
             style = self.style(style_id)
-            if style and style["price_cny"][0] <= budget_cny:
+            if style and style["price_cny"][0] <= usable:
                 return style
         # Budget too tight for the requested styles: fall back to the cheapest one.
         cheapest = min(self.styles(), key=lambda s: s["price_cny"][0])
-        if cheapest["price_cny"][0] > budget_cny:
+        if cheapest["price_cny"][0] > usable:
             raise KnowledgeError(
-                f"budget {budget_cny} cannot cover even the cheapest styling "
-                f"({cheapest['price_cny'][0]})"
+                f"budget {budget_cny} cannot cover the cheapest styling plus transfer "
+                f"({cheapest['price_cny'][0]} + {MIN_TRANSFER_COST_CNY})"
             )
         return cheapest
 

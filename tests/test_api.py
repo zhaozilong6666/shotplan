@@ -61,3 +61,14 @@ def test_index_page_is_served(client):
     response = client.get("/")
     assert response.status_code == 200
     assert "shotplan" in response.text
+
+
+def test_plan_endpoint_reports_infeasible_brief(client):
+    response = client.post("/api/plan", json={"hours": 1, "budget_cny": 0,
+                                              "mock_mode": "good"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "infeasible"
+    assert data["feasibility"]["feasible"] is False
+    assert data["plan"]["slots"] == []
+    assert data["validation"]["issues"][0]["code"] == "INFEASIBLE"

@@ -38,8 +38,17 @@
 
 阶段 4（真实模型与 prompt 版本对比）与阶段 5（在线 Demo、可观测面板、简历材料定稿），详见 `docs/ROADMAP.md`。
 
+### Added
+
+- 生成前的**可行性判定**（`domain/feasibility.py`）：预算低于最低可执行成本、时长过短、未知城市、约束互相矛盾时，返回 `status=infeasible` + 原因/缺口/建议/理论下限，不调用 provider、不生成硬凑方案。CLI 退出码 3、API 与 Web 同步展示，见 ADR 0007。
+- 评测集扩到 **36 个用例**（normal 13 / conflict 10 / edge 7 / infeasible 6），新增 `evals/baselines/v2-naive.json` 基线；`v1-naive.json` 保留为 12 用例时代的历史快照。
+- 评测报告新增「不可满足需求识别」与「运行成本与延迟」（P50/P95、token 汇总、估算成本、修复轮次）两节。
+- prompt v1/v2 版本表、`get_system_prompt()`、真实模型 provider 的版本参数与 `--prompt-version` 评测参数，为接真实模型后的对比实验备好框架。
+- 9 个可行性单元测试（含「provider 绝不被调用」与边界值）、2 个打分器测试、1 个 API 测试；测试总数 77 → 90。
+
 ### Fixed
 
+- 紧预算用例 C24 暴露的实现缺陷：规则 planner 会挑收费景点导致 `BUDGET_EXCEEDED`。现在按剩余预算裁剪地点组合，并让 `best_style_for()` 先为转场预留 50 元、必要时自动降级妆造档位。修的是实现，不是调低用例期望。
 - 评分聚合改用 `math.fsum` 并统一规整到 6 位小数：修复 Python 3.10/3.11 下满分方案得到 `1.0000000000000002`、导致 CI 两个矩阵失败的问题（3.12 起 `sum()` 使用补偿求和，掩盖了该差异）。评测聚合同步改为精确求和，新增固定精度契约测试与 ADR 0006（测试数 76 → 77，ADR 5 → 6 份）。
 
 ### Changed

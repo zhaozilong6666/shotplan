@@ -7,7 +7,7 @@
 - [x] 领域模型与规范化输入
 - [x] 人工整理的知识库（8 个地点 / 5 种风格）+ 精确检索工具
 - [x] 12 条硬/软约束及其单一定义源
-- [x] 不依赖模型的校验器
+- [x] 不依赖模型的校验器（另加生成前的可行性判定，见 ADR 0007）
 - [x] 离线 provider（含故意犯错的对照模式）
 - [x] CLI：`plan` / `rules` / `config` / `history` / `eval` / `serve`
 
@@ -15,40 +15,42 @@
 
 ## 阶段 2 · 让它成为一个系统 ✅
 
-- [x] 编排：检索 → 生成 → 解析 → 校验 → 修复（拒绝更差结果）
+- [x] 编排：可行性判定 → 检索 → 生成 → 解析 → 校验 → 修复（拒绝更差结果）
 - [x] 运行追踪：每步耗时、token、估算成本、修复轮次
 - [x] SQLite 运行历史与聚合摘要
 - [x] 可选 FastAPI 层与原生单页界面（四种视图）
 - [x] 版本化 prompt、真实模型 provider（urllib + 重试 + 降级）
-- [x] 77 个单元测试，逐条覆盖规则与边界
+- [x] 90 个单元测试，逐条覆盖规则、可行性与边界
 
 验收：`python -m pytest` 全绿；`python -m shotplan.cli serve` 后界面能切换 good/naive 并看到问题清单。
 
 ## 阶段 3 · 证明质量可被测量 ✅
 
-- [x] 12 个评测用例，分 normal / conflict / edge 三组
-- [x] 对照组 provider + 基线快照
-- [x] 自动生成的 Markdown 评测报告
+- [x] 36 个评测用例，分 normal / conflict / edge / infeasible 四组
+- [x] 对照组 provider + 基线快照（`v1` 12 用例时代、`v2` 36 用例时代）
+- [x] 自动生成的 Markdown 评测报告（含成本/延迟维度与不可满足需求识别）
 - [x] 回归阈值与「测量失效」检查
-- [x] GitHub Actions：测试 + lint + 评测门禁
+- [x] GitHub Actions：测试 + lint + 评测门禁（Python 3.10–3.13 四版本矩阵）
 
-验收：`python -m evals.run_eval --write-report` 退出码 0，报告里 good 与 naive 有显著差值。
+验收：`python -m evals.run_eval --write-report` 退出码 0；实测 36/36 通过、均分 0.9811、对照组 0.325。
 
 ## 阶段 4 · 接真实模型，让评测真正承压 ⏳
 
 这一阶段才会出现「中间地带」，也是项目从工程作业变成有说服力作品的关键。
 
+- [x] 扩充评测集到 30+ 用例：36 个，含多风格、多人、节假日边界与 6 个不可满足需求
+- [x] 显式处理 `INFEASIBLE`：生成前判定并返回原因、缺口、建议与理论下限（ADR 0007）
+- [x] prompt v1 / v2 版本表 + `get_system_prompt()` + `--prompt-version` 评测参数，对比框架就绪
+- [x] 成本/延迟报告：P50/P95、token 汇总、估算成本、修复轮次（离线成本恒 0，格式已验证）
 - [ ] 用真实 OpenAI 兼容端点跑通 `SHOTPLAN_PROVIDER=openai_compatible`
 - [ ] 记录 v1 / v2 prompt 在真实模型上的硬约束通过率差异，写进 `PROMPT_CHANGELOG`
-- [ ] 扩充评测集到 30+ 用例：加入多风格混搭、多人、节假日、不可满足需求
-- [ ] 显式处理 `INFEASIBLE`：预算低于最低成本时，让 Agent 明确说明无法满足，而不是硬凑方案
 - [ ] 修复循环实验：统计「一次修复成功率」与「修复后质量下降被拦截的次数」
 - [ ] 失败案例库：把真实模型的典型错误沉淀成新规则与新用例
-- [ ] 成本/延迟报告：对比不同模型在同等质量下的性价比
+- [ ] 用真实模型数据填满成本/延迟对比表
 
 验收：报告里出现真实模型的一行数据，且能与基线做 `--compare`；`docs/eval-report.md` 记录至少一次「改动导致分数下降并回滚」的实例。
 
-**需要你做的**：申请一个 API key 并写入 `.env`，步骤见 [USER_TASKS.md](USER_TASKS.md) 第 4 节。
+**需要你做的**：申请一个 API key 并写入 `.env`，步骤见 [USER_TASKS.md](USER_TASKS.md) 第 4 节。不需要把 key 发给任何人。
 
 ## 阶段 5 · 上线与叙事 ⏳
 

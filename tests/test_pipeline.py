@@ -23,7 +23,7 @@ def test_naive_pipeline_fails_in_the_expected_ways():
 def test_trace_records_every_stage():
     result = run_plan(PlanRequest(), provider=MockProvider("good"), max_repairs=0)
     names = [e.name for e in result.trace.events]
-    assert names[:4] == ["retrieve", "generate", "parse", "validate"]
+    assert names[:5] == ["preflight", "retrieve", "generate", "parse", "validate"]
     assert result.trace.total_duration_ms >= sum(e.duration_ms for e in result.trace.events) - 0.01
     assert result.trace.success is True
 

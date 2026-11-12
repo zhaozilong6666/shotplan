@@ -1,9 +1,9 @@
-"""The orchestration layer: retrieve -> generate -> parse -> validate -> repair.
+"""The orchestration layer: preflight -> retrieve -> generate -> parse -> validate -> repair.
 
-The important design choice: validation is NOT part of the model call. A
-deterministic validator gates the output, and its report is fed back as a
-repair prompt when the draft fails. This is what makes quality measurable and
-regression-testable instead of a matter of opinion.
+Two decisions are deliberately NOT made by a model: whether the brief is
+satisfiable at all (preflight), and whether an output is executable (validator).
+The validator's report is fed back as a repair prompt when a draft fails. This
+is what makes quality measurable and regression-testable instead of opinion.
 """
 
 from __future__ import annotations
@@ -16,12 +16,65 @@ from .agents.base import PlanProvider
 from .agents.prompts import build_repair_hint
 from .config import Settings
 from .domain.errors import ShotplanError
-from .domain.models import Plan, PlanRequest, PlanResult, ValidationReport
+from .domain.feasibility import check_feasibility
+from .domain.models import (
+    Plan,
+    PlanRequest,
+    PlanResult,
+    ValidationIssue,
+    ValidationReport,
+)
 from .knowledge.tools import KnowledgeTools, get_tools
 from .storage import RunStore
 from .tracing import TraceCollector
 
 __all__ = ["PlanResult", "run_plan"]
+
+
+def _infeasible_result(
+    request: PlanRequest,
+    kb: KnowledgeTools,
+    agent: PlanProvider,
+    collector: TraceCollector,
+    started: float,
+) -> PlanResult:
+    """Build a structured refusal instead of a plan that is bound to fail."""
+    feasibility = check_feasibility(request, kb)
+    collector.record(
+        "preflight", started,
+        outcome="infeasible",
+        reasons=[reason.code for reason in feasibility.reasons],
+    )
+    trace = collector.finish(success=False)
+    report = ValidationReport(
+        issues=[
+            ValidationIssue(
+                code="INFEASIBLE",
+                severity="hard",
+                message=f"需求不可满足：{feasibility.headline}",
+                expected="一份可执行且满足全部硬约束的方案",
+                suggestion=feasibility.reasons[0].suggestion,
+            )
+        ],
+        scores={},
+        score=0.0,
+        hard_pass=False,
+    )
+    plan = Plan(
+        request_id=request.request_id,
+        city=request.city,
+        date=request.date,
+        provider=agent.name,
+        prompt_version=agent.prompt_version,
+    )
+    return PlanResult(
+        request=request,
+        plan=plan,
+        validation=report,
+        trace=trace,
+        status="infeasible",
+        feasibility=feasibility.to_dict(),
+    )
 
 
 def run_plan(
@@ -40,6 +93,16 @@ def run_plan(
     req = request.normalized()
     retries = cfg.max_repairs if max_repairs is None else max(0, max_repairs)
     collector = TraceCollector(agent.name, agent.prompt_version)
+
+    # 0. Preflight feasibility ---------------------------------------------------
+    tick = time.perf_counter()
+    feasibility = check_feasibility(req, kb)
+    if not feasibility.feasible:
+        result = _infeasible_result(req, kb, agent, collector, tick)
+        if store is not None:
+            store.save(result)
+        return result
+    collector.record("preflight", tick, outcome="feasible")
 
     # 1. Retrieval ---------------------------------------------------------------
     tick = time.perf_counter()
@@ -116,6 +179,7 @@ def as_summary(result: PlanResult) -> dict[str, Any]:
     """Compact shape used by the API list endpoints and the eval harness."""
     return {
         "run_id": result.trace.run_id,
+        "status": result.status,
         "score": round(result.validation.score, 4),
         "hard_pass": result.validation.hard_pass,
         "issues": [i.code for i in result.validation.issues],

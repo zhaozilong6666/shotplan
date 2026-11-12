@@ -4,10 +4,12 @@ Usage:
     python -m evals.run_eval --write-report
     python -m evals.run_eval --compare evals/baselines/v1-naive.json
     python -m evals.run_eval --save-baseline evals/baselines/v1-naive.json
+    python -m evals.run_eval --prompt-version planner-v1 --write-report
 
 The suite always runs TWO providers over the same cases: the rule-based planner
 and a deliberately flawed planner. If both score the same, the measurement is
-broken and CI fails.
+broken and CI fails. Offline providers do not consume prompts, but the requested
+prompt version is recorded so a later real-model v1/v2 comparison is reproducible.
 """
 
 from __future__ import annotations
@@ -21,6 +23,7 @@ from typing import Any
 from evals import CASES_DIR, OUT_DIR, __doc__  # noqa: F401
 from evals.scorers import aggregate, evaluate_case, failed_case, regression_check
 from shotplan.agents import MockProvider
+from shotplan.agents.prompts import PROMPT_VERSION
 from shotplan.config import get_settings
 from shotplan.domain.models import PlanRequest
 from shotplan.pipeline import run_plan
@@ -54,8 +57,10 @@ def load_cases(cases_dir: Path | None = None) -> list[dict[str, Any]]:
     return cases
 
 
-def run_suite(cases: list[dict[str, Any]], mode: str) -> list[Any]:
-    provider = MockProvider(mode=mode)
+def run_suite(
+    cases: list[dict[str, Any]], mode: str, prompt_version: str | None = None
+) -> list[Any]:
+    provider = MockProvider(mode=mode, prompt_version=prompt_version)
     outcomes = []
     for case in cases:
         try:
@@ -78,12 +83,16 @@ def build_report(
     naive_cases: list[Any],
     comparison: dict[str, Any] | None,
     thresholds: dict[str, Any],
+    prompt_version: str = PROMPT_VERSION,
 ) -> str:
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    infeasible = [o for o in good_cases if o.group == "infeasible"]
+    infeasible_passed = sum(o.passed for o in infeasible)
     lines = [
         "# shotplan 评测报告",
         "",
         f"生成时间：{now}  ｜  命令：`python -m evals.run_eval --write-report`",
+        f"评测用例：{good['case_count']} 个  ｜  prompt 版本：`{prompt_version}`",
         "",
         "## 结论摘要",
         "",
@@ -113,6 +122,7 @@ def build_report(
         "3. 每份输出都经过同一个**不依赖模型的硬约束校验器**，由它给出问题清单与分项得分。",
         "4. 用例通过需同时满足：硬约束结论符合预期，且得分不低于该用例的分数下限。",
         "5. 维度权重：`constraints 0.40 / budget 0.20 / traceability 0.15 / light 0.15 / completeness 0.10`。",
+        "6. 不可满足需求的用例单独计分：正确返回结构化拒绝记 1.0，硬凑一份违规方案记 0.0。",
         "",
         "对照组的意义：如果只对自己写的 planner 跑评测，很容易写出一套永远通过的评分器。"
         "把一份明确不可执行的方案放进去，是检验评测本身是否有效的控制组。",
@@ -138,6 +148,32 @@ def build_report(
             f"| {group} | {stats['cases']} | {_fmt_pct(stats['hard_pass_rate'])} | "
             f"{stats['avg_score']} | {stats['passed']}/{stats['cases']} |"
         )
+
+    lines += [
+        "", "## 不可满足需求识别", "",
+        f"共 **{len(infeasible)}** 个用例的 brief 在数学上无法同时满足"
+        "（预算低于最低可执行成本、时长过短、未知城市或约束互相矛盾）。",
+        "正确行为是**在生成之前停止并返回结构化原因 + 缺口 + 建议**，"
+        "而不是硬凑一份会被校验器打回的方案。",
+        f"本次正确识别并通过：**{infeasible_passed}/{len(infeasible)}**。",
+        "",
+        "可行性判定不经过模型、且发生在生成之前，所以两个 provider 在这些用例上共享同一结论；"
+        "两组之间的区分度由其余用例提供。这是「AI 系统里哪些判断不该交给 AI」的第二个例子（ADR 0007）。",
+        "",
+        "## 运行成本与延迟", "",
+        "| 指标 | 规则 Agent | 对照基线 |",
+        "| --- | ---: | ---: |",
+        f"| 平均耗时 ms | {good['avg_duration_ms']} | {naive['avg_duration_ms']} |",
+        f"| P50 / P95 耗时 ms | {good['p50_duration_ms']} / {good['p95_duration_ms']} | "
+        f"{naive['p50_duration_ms']} / {naive['p95_duration_ms']} |",
+        f"| 修复轮次合计 | {good['total_repairs']} | {naive['total_repairs']} |",
+        f"| token in / out | {good['total_tokens_in']} / {good['total_tokens_out']} | "
+        f"{naive['total_tokens_in']} / {naive['total_tokens_out']} |",
+        f"| 估算成本合计（元） | {good['total_cost_cny']} | {naive['total_cost_cny']} |",
+        "",
+        "离线 provider 的估算成本恒为 0。这一节验证的是可观测链路与报告格式，"
+        "接入真实模型后才是有效的成本/延迟对比。",
+    ]
 
     lines += [
         "", "## 逐用例明细（规则 Agent）", "",
@@ -193,6 +229,7 @@ def build_report(
         "```bash",
         "python -m evals.run_eval --write-report",
         "python -m evals.run_eval --compare evals/baselines/v1-naive.json",
+        "python -m evals.run_eval --prompt-version planner-v1 --write-report",
         "```",
         "",
         "报告由代码生成，请勿手工编辑。",
@@ -208,6 +245,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--compare", type=Path, help="baseline JSON to diff against")
     parser.add_argument("--save-baseline", type=Path, help="save naive metrics as baseline")
     parser.add_argument("--cases-dir", type=Path)
+    parser.add_argument("--prompt-version", default=None, help="record a prompt version in traces")
     parser.add_argument("--min-score", type=float)
     parser.add_argument("--min-hard-pass-rate", type=float, default=0.90)
     parser.add_argument("--out", type=Path, default=OUT_DIR / "latest.json")
@@ -217,9 +255,10 @@ def main(argv: list[str] | None = None) -> int:
     cfg = get_settings()
     min_score = args.min_score if args.min_score is not None else cfg.eval_min_score
     cases = load_cases(args.cases_dir)
+    prompt_version = args.prompt_version or PROMPT_VERSION
 
-    good_cases = run_suite(cases, "good")
-    naive_cases = run_suite(cases, "naive")
+    good_cases = run_suite(cases, "good", prompt_version)
+    naive_cases = run_suite(cases, "naive", prompt_version)
     good = aggregate(good_cases)
     naive = aggregate(naive_cases)
 
@@ -239,6 +278,7 @@ def main(argv: list[str] | None = None) -> int:
 
     payload = {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "prompt_version": prompt_version,
         "thresholds": {
             "min_score": min_score,
             "min_hard_pass_rate": args.min_hard_pass_rate,
@@ -266,16 +306,17 @@ def main(argv: list[str] | None = None) -> int:
         args.report_path.parent.mkdir(parents=True, exist_ok=True)
         args.report_path.write_text(
             build_report(good, naive, good_cases, naive_cases, comparison,
-                         payload["thresholds"]),
+                         payload["thresholds"], prompt_version),
             encoding="utf-8",
         )
 
     if not args.quiet:
-        print(f"cases: {good['case_count']}")
+        print(f"cases: {good['case_count']}  prompt: {prompt_version}")
         print(f"good  : hard_pass={good['hard_pass_rate']}  avg_score={good['avg_score']}"
               f"  passed={good['cases_passed']}/{good['case_count']}")
         print(f"naive : hard_pass={naive['hard_pass_rate']}  avg_score={naive['avg_score']}")
         print(f"delta : {round(good['avg_score'] - naive['avg_score'], 4)}")
+        print(f"latency p50/p95: {good['p50_duration_ms']} / {good['p95_duration_ms']} ms")
         if problems:
             print("REGRESSION:")
             for problem in problems:

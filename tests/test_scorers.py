@@ -48,4 +48,31 @@ def test_eval_cases_are_well_formed_and_unique():
     for case in cases:
         assert "request" in case and "expect_hard_pass" in case
         assert "expect_min_score" in case
-        assert case["group"] in {"normal", "conflict", "edge"}
+        assert case["group"] in {"normal", "conflict", "edge", "infeasible"}
+
+
+def test_infeasible_case_scores_a_structured_refusal():
+    from evals.scorers import evaluate_case
+
+    from shotplan.domain.models import PlanRequest
+    from shotplan.pipeline import run_plan
+
+    result = run_plan(PlanRequest(hours=1.0, budget_cny=0), max_repairs=0)
+    outcome = evaluate_case(
+        {"id": "X", "group": "infeasible", "expect_infeasible": True}, result
+    )
+    assert outcome.passed is True
+    assert outcome.score == 1.0
+    assert outcome.status == "infeasible"
+    assert outcome.issues == ["INFEASIBLE"]
+
+
+def test_aggregate_reports_latency_percentiles_and_tokens():
+    outcomes = [_outcome("A", 0.9, True, True), _outcome("B", 0.7, True, True)]
+    outcomes[0].duration_ms = 10.0
+    outcomes[1].duration_ms = 30.0
+    outcomes[0].tokens_in = 5
+    metrics = aggregate(outcomes)
+    assert metrics["p50_duration_ms"] == 10.0
+    assert metrics["p95_duration_ms"] == 30.0
+    assert metrics["total_tokens_in"] == 5

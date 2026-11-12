@@ -16,6 +16,12 @@ MIN_TRANSFER_MINUTES = 20
 # A shoot block shorter than this is not worth setting up lights for.
 MIN_SHOOT_BLOCK_MINUTES = 60
 
+# Below this, makeup + one transfer + one shoot cannot fit at all.
+MIN_FEASIBLE_HOURS = 1.5
+
+# Minimum transport cost of any executable plan (shared by the offline planner).
+MIN_TRANSFER_COST_CNY = 50
+
 # Makeup and costume must happen before the first shoot block.
 REQUIRED_ACTIVITIES = ("makeup", "shoot")
 

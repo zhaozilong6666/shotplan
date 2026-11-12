@@ -1,5 +1,10 @@
 """Versioned prompts. Prompts are treated as code: versioned, reviewed, and
 regression-tested against the eval set. See docs/adr/0004.
+
+Two versions are kept on purpose. Once a real model is connected, the same eval
+suite can be run with --prompt-version planner-v1 / planner-v2 and the reports
+compared. Offline mock providers are unaffected because they do not consume a
+system prompt; the version is still recorded in every trace.
 """
 
 from __future__ import annotations
@@ -26,7 +31,13 @@ PROMPT_CHANGELOG: list[dict[str, str]] = [
     },
 ]
 
-SYSTEM_PROMPT = """You are a shot-planning assistant for a Hanfu photoshoot studio.
+SYSTEM_PROMPTS: dict[str, str] = {
+    "planner-v1": """You are a shot-planning assistant for a Hanfu photoshoot studio.
+Turn the client brief into a friendly hour-by-hour plan. Use the knowledge base
+if helpful. Return your plan as JSON with slots, styling, alternatives and
+assumptions.
+""",
+    "planner-v2": """You are a shot-planning assistant for a Hanfu photoshoot studio.
 
 You receive a client brief plus a SMALL, CURATED knowledge base. You must turn the
 brief into an executable, hour-by-hour plan.
@@ -55,7 +66,18 @@ JSON schema:
   "assumptions": ["..."],
   "source_refs": ["locations.json#...","styles.json#..."]
 }
-"""
+""",
+}
+
+SYSTEM_PROMPT = SYSTEM_PROMPTS[PROMPT_VERSION]
+
+
+def get_system_prompt(version: str | None = None) -> str:
+    """Resolve a versioned prompt; unknown versions fail loudly, not silently."""
+    key = version or PROMPT_VERSION
+    if key not in SYSTEM_PROMPTS:
+        raise KeyError(f"unknown prompt version {key!r}; available: {sorted(SYSTEM_PROMPTS)}")
+    return SYSTEM_PROMPTS[key]
 
 
 def build_user_prompt(request: PlanRequest, context: dict[str, Any], repair_hint: str | None) -> str:
