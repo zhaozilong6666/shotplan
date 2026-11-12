@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import copy
+from math import fsum
 
-from shotplan.agents.validator import validate
+from shotplan.agents.validator import SCORE_DECIMALS, validate
 from shotplan.domain.constraints import SCORE_WEIGHTS
 
 
@@ -20,8 +21,22 @@ def test_perfect_plan_has_no_issues_and_full_score(valid_plan, brief, tools):
     report = validate(valid_plan, brief, tools)
     assert report.hard_pass is True
     assert report.issues == []
-    assert report.score == 1.0
+    assert report.score == 1.0  # exact, not 1.0000000000000002, on every Python version
     assert set(report.scores) == set(SCORE_WEIGHTS)
+
+
+def test_scores_are_fixed_precision_and_use_exact_summation(valid_plan, brief, tools):
+    """Python 3.12 changed sum() to compensated summation; scores must not drift.
+
+    See ADR 0006. CI runs 3.10-3.13, so a float tail in the score breaks the
+    eval gate on older interpreters even though the plan is identical.
+    """
+    report = validate(valid_plan, brief, tools)
+    assert report.score == round(report.score, SCORE_DECIMALS)
+    assert all(v == round(v, SCORE_DECIMALS) for v in report.scores.values())
+    assert report.score == round(
+        fsum(SCORE_WEIGHTS[k] * v for k, v in report.scores.items()), SCORE_DECIMALS
+    )
 
 
 def test_time_overlap_is_hard(valid_plan, brief, tools):

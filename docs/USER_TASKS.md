@@ -26,7 +26,9 @@
 3. `README.md` 里还有 `YOUR_NAME` 占位符，直接推上去 CI 徽章会是死链。
 4. 手册里的 `grep`、`python -c "..."` 在 PowerShell 下容易因引号和命令不存在而报错，需要 Git Bash 或等价写法。
 
-**已完成的操作**：替换占位符 → 仓库级配置提交身份 → `git init` → 提交全部 73 个文件 → 设置 `origin` → 推送 `main` → 通过 API 补齐仓库描述与 topics → 检查 CI 首次运行结论。提交身份只写在**本仓库**，没有改动你的全局 git 配置。
+**已完成的操作**：替换占位符 → 仓库级配置提交身份 → `git init` → 提交全部文件 → 设置 `origin` → 推送 `main` → 通过 API 补齐仓库描述与 topics → 检查 CI 首次运行结论。提交身份只写在**本仓库**，没有改动你的全局 git 配置。
+
+**CI 顺带抓到并修掉的一个真问题**：首次运行在 Python 3.10 / 3.11 上失败、3.12 / 3.13 通过 —— 3.12 起内置 `sum()` 改用补偿求和，导致同一份满分方案在旧版本上算出 `1.0000000000000002`。已把评分改为 `math.fsum` + 固定 6 位精度，评测聚合同步处理，并加了契约测试与 [ADR 0006](adr/0006-scoring-determinism.md)。这类跨解释器差异本地单版本跑不出来，只有推上 CI 才暴露，所以这一步不能省。
 
 **你想自己复核，在 Git Bash 里执行**（只读，安全）：
 
@@ -35,7 +37,7 @@ cd "C:/Users/34877/WorkBuddy/2026-11-12-14-29-42/shotplan"
 
 git remote -v                 # origin 应指向 https://github.com/zhaozilong6666/shotplan.git
 git status                    # working tree clean
-git log --oneline -1          # 首次提交
+git log --oneline -3          # 首次提交 + 修复提交
 git ls-files | grep -E "\.env$|\.db$|evals/out/" || echo "没有敏感文件被提交"
 ```
 
@@ -51,10 +53,11 @@ git ls-files | grep -E "\.env$|\.db$|evals/out/" || echo "没有敏感文件被�
 
 | 检查 | 结果 |
 | --- | --- |
-| `pytest` | 76 passed |
+| `pytest` | 77 passed |
 | `ruff check src tests evals` | All checks passed |
 | `evals.run_eval --compare` | 12/12，均分 0.9734，对照组 0.1900，退出码 0 |
 | 真实启动服务 | `/api/health`、首页、`/api/plan` 全部正常 |
+| CI 矩阵 | Python 3.10 / 3.11 / 3.12 / 3.13，见仓库 Actions |
 
 你想自己再跑一遍（Git Bash）：
 
@@ -80,6 +83,8 @@ python -m shotplan.cli serve
 > **shotplan** — 可评测的旅拍方案 Agent（Python / FastAPI / SQLite）：以确定性硬约束校验替代 LLM 自评，校验报告驱动定向修复；建 12 用例评测集与对照组，CI 设质量回归门禁。
 
 三条 bullets 和 10 分钟讲稿在 [interview-notes.md](interview-notes.md)，挑 2–3 条贴进简历即可。验证方法：找个人用 30 秒讲一遍，对方能复述出「校验不交给模型」这个点就算成功。
+
+> 面试时可以主动加一句：首次推送 CI 在 Python 3.10/3.11 上暴露了浮点求和差异，我用固定精度评分与 4 版本矩阵解决了它（ADR 0006）。这比只讲功能更能证明你真的跑过工程闭环。
 
 ---
 
@@ -171,4 +176,4 @@ curl https://你的地址/api/health
 
 ## 我这边已经做完、你不用管的
 
-仓库结构与全部源码、76 个单元测试、12 个评测用例与对照基线、自动生成的评测报告、架构文档与 5 份 ADR、CI 工作流、Docker 配置、Web 界面、README、路线图、面试讲稿、排错手册、GitHub 建仓与推送、仓库描述与 topics。本地已验证：测试全绿、评测退出码 0、CLI 与 API 端到端可用。
+仓库结构与全部源码、77 个单元测试、12 个评测用例与对照基线、自动生成的评测报告、架构文档与 6 份 ADR、CI 工作流、Docker 配置、Web 界面、README、路线图、面试讲稿、排错手册、GitHub 建仓与推送、仓库描述与 topics、CI 跨版本浮点问题修复。本地已验证：测试全绿、评测退出码 0、CLI 与 API 端到端可用。

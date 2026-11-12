@@ -1,6 +1,6 @@
 # shotplan 评测报告
 
-生成时间：2026-11-12 07:13 UTC  ｜  命令：`python -m evals.run_eval --write-report`
+生成时间：2026-11-12 07:41 UTC  ｜  命令：`python -m evals.run_eval --write-report`
 
 ## 结论摘要
 

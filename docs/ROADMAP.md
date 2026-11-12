@@ -20,7 +20,7 @@
 - [x] SQLite 运行历史与聚合摘要
 - [x] 可选 FastAPI 层与原生单页界面（四种视图）
 - [x] 版本化 prompt、真实模型 provider（urllib + 重试 + 降级）
-- [x] 76 个单元测试，逐条覆盖规则与边界
+- [x] 77 个单元测试，逐条覆盖规则与边界
 
 验收：`python -m pytest` 全绿；`python -m shotplan.cli serve` 后界面能切换 good/naive 并看到问题清单。
 

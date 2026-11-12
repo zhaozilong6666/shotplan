@@ -3,12 +3,16 @@
 A case passes only when BOTH the deterministic hard constraints and the
 per-case quality floor are met. Keeping them separate matters: a plan can be
 executable but low quality, and the eval should say which.
+
+All float aggregation uses math.fsum so that reported metrics are identical on
+every supported Python version (see ADR 0006).
 """
 
 from __future__ import annotations
 
 from collections import Counter, defaultdict
 from dataclasses import asdict, dataclass, field
+from math import fsum
 from typing import Any
 
 from shotplan.pipeline import PlanResult
@@ -97,22 +101,22 @@ def aggregate(outcomes: list[CaseOutcome]) -> dict[str, Any]:
     for name, items in sorted(groups.items()):
         by_group[name] = {
             "cases": len(items),
-            "hard_pass_rate": round(sum(i.hard_pass for i in items) / len(items), 4),
-            "avg_score": round(sum(i.score for i in items) / len(items), 4),
+            "hard_pass_rate": round(fsum(i.hard_pass for i in items) / len(items), 4),
+            "avg_score": round(fsum(i.score for i in items) / len(items), 4),
             "passed": sum(i.passed for i in items),
         }
 
     return {
         "case_count": total,
-        "hard_pass_rate": round(sum(o.hard_pass for o in outcomes) / total, 4),
+        "hard_pass_rate": round(fsum(o.hard_pass for o in outcomes) / total, 4),
         "cases_passed": sum(o.passed for o in outcomes),
         "cases_failed": total - sum(o.passed for o in outcomes),
-        "avg_score": round(sum(o.score for o in outcomes) / total, 4),
+        "avg_score": round(fsum(o.score for o in outcomes) / total, 4),
         "min_score": round(min(o.score for o in outcomes), 4),
-        "avg_duration_ms": round(sum(o.duration_ms for o in outcomes) / total, 2),
+        "avg_duration_ms": round(fsum(o.duration_ms for o in outcomes) / total, 2),
         "total_repairs": sum(o.repair_count for o in outcomes),
         "dimension_averages": {
-            k: round(sum(v) / len(v), 4) for k, v in sorted(dimensions.items())
+            k: round(fsum(v) / len(v), 4) for k, v in sorted(dimensions.items())
         },
         "issue_frequency": dict(issue_counter.most_common()),
         "by_group": by_group,

@@ -8,6 +8,8 @@ definition of quality in the codebase.
 
 from __future__ import annotations
 
+from math import fsum
+
 from ..domain.constraints import (
     BUDGET_TOLERANCE_CNY,
     MAX_OVERRUN_MINUTES,
@@ -26,6 +28,10 @@ from ..domain.models import (
     to_minutes,
 )
 from ..knowledge.tools import KnowledgeTools, get_tools
+
+# Python 3.12 changed sum() to compensated summation. Scores appear in reports,
+# baselines and CI gates, so they must not vary by interpreter (see ADR 0006).
+SCORE_DECIMALS = 6
 
 
 def _clamp(value: float) -> float:
@@ -264,7 +270,9 @@ def validate(
         "light": light,
         "completeness": completeness,
     }
-    score = sum(SCORE_WEIGHTS[k] * v for k, v in scores.items())
+    scores = {k: round(v, SCORE_DECIMALS) for k, v in scores.items()}
+    # fsum is exact regardless of the interpreter's builtin sum() implementation.
+    score = round(fsum(SCORE_WEIGHTS[k] * v for k, v in scores.items()), SCORE_DECIMALS)
 
     return ValidationReport(
         issues=issues,
