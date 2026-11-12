@@ -12,9 +12,13 @@ the deployment answer is worker processes (e.g. ``uvicorn --workers N``), not
 more threads. If both plateau, the bottleneck is elsewhere and adding workers
 would only add memory.
 
-Numbers are machine-dependent; the gate only asserts that every run succeeded
-and that processes are not *slower* than threads (which would indicate a real
-serialisation bug, not a GIL limit).
+Speed is machine-dependent and workload-dependent: with a small batch the
+inter-process transport can cost more than the work itself, so "processes are
+faster" is a *finding in the report*, never a CI assertion (ADR 0008). The gate
+checks only machine-independent contracts: every run succeeded, every arm
+recorded elapsed time, and a multi-worker process arm really used more than one
+OS process. Otherwise a busy CI runner would turn a physics result into a red
+build.
 
 Usage:
     python -m evals.scaling --check
@@ -84,6 +88,7 @@ class Arm:
     requests: int
     wall_s: float = 0.0
     errors: int = 0
+    pids: tuple[int, ...] = ()
 
     def metrics(self, baseline_rps: float) -> dict[str, Any]:
         rps = self.requests / self.wall_s if self.wall_s else 0.0
@@ -119,6 +124,11 @@ def run_processes(workers: int, requests: int) -> Arm:
         # Pool creation and interpreter start-up are deployment costs, not
         # planning costs: warm up first, then time only the work.
         pool.map(run_batch, [(0, 1)])
+        # Pool._pool is the list of live worker processes. Their PIDs are a
+        # deterministic, machine-independent proof that the multi-process path
+        # really started N interpreters. A lightweight "which pid ran this
+        # probe" map is NOT reliable: tiny jobs can all land on one worker.
+        arm.pids = tuple(sorted({p.pid for p in pool._pool if p.pid}))
         started = time.perf_counter()
         done = list(pool.map(run_batch, jobs))
     arm.wall_s = time.perf_counter() - started
@@ -126,23 +136,38 @@ def run_processes(workers: int, requests: int) -> Arm:
     return arm
 
 
-def check(arms: list[Arm], cpu_count: int) -> list[str]:
+def check(arms: list[Arm]) -> list[str]:
+    """Machine-independent contracts only; never assert a speed ranking."""
     problems: list[str] = []
     for arm in arms:
         if arm.errors:
             problems.append(f"{arm.mode}@{arm.workers}: {arm.errors} failed run(s)")
-    if cpu_count < 2:
-        return problems
-    threads = [a for a in arms if a.mode == "threads"]
-    procs = [a for a in arms if a.mode == "processes"]
-    best_thread = max((a.requests / a.wall_s for a in threads), default=0.0)
-    best_proc = max((a.requests / a.wall_s for a in procs), default=0.0)
-    if best_thread and best_proc < best_thread * 0.9:
-        problems.append(
-            f"processes ({best_proc:.0f}/s) slower than threads ({best_thread:.0f}/s): "
-            "suspect serialisation outside the GIL"
-        )
+        if arm.wall_s <= 0:
+            problems.append(
+                f"{arm.mode}@{arm.workers}: no elapsed time recorded; "
+                "the measurement did not run"
+            )
+        if arm.mode == "processes" and arm.workers > 1 and len(arm.pids) < 2:
+            problems.append(
+                f"processes@{arm.workers} used {len(arm.pids)} worker pid(s): "
+                "parallelism was not actually exercised"
+            )
     return problems
+
+
+def speed_note(arms: list[Arm]) -> str | None:
+    """Informational comparison for the console and the report, not a gate."""
+    threads = [a for a in arms if a.mode == "threads" and a.wall_s > 0]
+    procs = [a for a in arms if a.mode == "processes" and a.wall_s > 0]
+    if not threads or not procs:
+        return None
+    best_thread = max(a.requests / a.wall_s for a in threads)
+    best_proc = max(a.requests / a.wall_s for a in procs)
+    relation = "faster" if best_proc >= best_thread else "slower"
+    return (
+        f"note: best processes {best_proc:.0f}/s is {relation} than threads "
+        f"{best_thread:.0f}/s on this run; speed is informational, not a gate"
+    )
 
 
 def build_report(arms: list[Arm], cpu_count: int) -> str:
@@ -197,7 +222,8 @@ def build_report(arms: list[Arm], cpu_count: int) -> str:
             "",
             "- 单机测量，未包含反向代理、网络与容器开销；真实部署的 QPS 会低于这里的流水线吞吐",
             "- `spawn` 平台的进程启动开销计入 wall time，进程数越多越吃亏（Linux 用 `fork` 会更快）",
-            "- 门禁只判「没有失败」与「进程不比线程慢」，绝对吞吐不做断言",
+            "- 门禁只判「没有失败」「有耗时」「多 worker 进程跑在多个 PID 上」；速度排序不做断言",
+            "- 小 workload 下 IPC 开销可能盖过并行收益，进程慢于线程是测量尺度问题而非结论反转",
         ]
     )
 
@@ -237,7 +263,10 @@ def main(argv: list[str] | None = None) -> int:
             f"{m['mode']:<10} workers={m['workers']} {m['rps']:<8}/s "
             f"speedup={m['speedup']:.2f}x errors={m['errors']}"
         )
-    problems = check(arms, cpu_count) if args.check else []
+    note = speed_note(arms)
+    if note:
+        print(note)
+    problems = check(arms) if args.check else []
     if problems:
         print("SCALING GATE FAILED:")
         for problem in problems:

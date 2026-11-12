@@ -18,7 +18,7 @@ python -m evals.run_eval --write-report
 2. 在 `src/shotplan/agents/validator.py` 实现检查，使用已有 code，区分 `hard` / `soft`。
 3. 在 `tests/test_validator.py` 加**一个反例测试**：构造一份违反该规则的 plan，断言对应 code 出现。
 4. 若影响评分，同步调整 `SCORE_WEIGHTS`（总和必须为 1）。
-5. 跑 `python -m pytest`、`python -m evals.run_eval --write-report` 和 `python -m evals.mutation_lab --check`，看哪些用例分数变化，并在 PR 里说明。
+5. 跑 `python -m pytest`、`python -m evals.run_eval --write-report`、`python -m evals.mutation_lab --check` 和 `python -m evals.case_miner --check`，看哪些用例分数变化、哪些未见组合的判定变了，并在 PR 里说明。
 
 不要为了让评测全绿而调低阈值。分数下降如果是合理的（例如新规则暴露了真实缺陷），应该在 PR 里解释，而不是掩盖。改了校验器或对照组 `naive` 的输出时，还要同步 `evals.scorers.CONTROL_RULE_MIN_COUNTS` 并新增一个变异体——门禁依赖这份「已知缺陷清单」，清单变了门禁必须跟着变（ADR 0009）。
 

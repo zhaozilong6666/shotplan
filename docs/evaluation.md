@@ -71,9 +71,17 @@ brief (jsonl)
 
 因为 preflight 在生成之前且不确定于 provider，两个 provider 在这 11 个用例上必然同分。这不是评测漏洞，而是设计结果：**能力差异应由生成质量体现，不应由「会不会做算术」体现**。
 
+## 主集与盲测挑战集的分工
+
+`evals/cases/` 的 80 个用例是**纵向回归基线**：`v1..v6-naive.json` 六个时代的快照之所以能放一起看，是因为主集变动缓慢且每次都有记录。往里面批量塞自动生成的用例，会让分数变化分不清「实现变好了」还是「题目变简单了」。
+
+`evals/challenge/` 是**横向泛化检验**：由 `evals/case_miner.py` 从失败案例库与知识库交叉出 225 个候选 brief，筛掉 25 个不可满足的负向对照后留下 200 个主集从未见过的组合。挖掘器不读取任何用例的期望输出，只读取 brief 指纹用于去重；`run_eval` 不读这个目录。两者跑同一条流水线、同一个校验器、同一对 provider，只是用途不同。详见 [case-mining.md](case-mining.md) 与 [ADR 0010](adr/0010-holdout-challenge-set.md)。
+
+改动校验器、知识库或 provider 后，除了 `run_eval`，还要跑 `python -m evals.case_miner --check`：它会重新挖掘并逐字节比对三份产物，任何组合被判错都会让门禁失败，而不是悄悄把用例删掉。
+
 ## 如何新增用例
 
-在 `evals/cases/` 下任意 `.jsonl` 文件加一行：
+在 `evals/cases/` 下任意 `.jsonl` 文件加一行（批量生成用 `case_miner`，不要手工抄进主集）：
 
 ```json
 {"id":"C37","group":"conflict","description":"...","request":{"hours":4,"budget_cny":600,"styles":["tang"]},"expect_hard_pass":true,"expect_min_score":0.65}

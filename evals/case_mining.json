@@ -1,0 +1,210 @@
+{
+  "accepted": 200,
+  "candidate_count": 225,
+  "code_city_counts": {
+    "BUDGET_EXCEEDED|hangzhou": 9,
+    "BUDGET_EXCEEDED|luoyang": 12,
+    "BUDGET_EXCEEDED|nanjing": 9,
+    "BUDGET_EXCEEDED|suzhou": 9,
+    "BUDGET_EXCEEDED|xian": 30,
+    "TIME_OVERRUN|hangzhou": 8,
+    "TIME_OVERRUN|luoyang": 11,
+    "TIME_OVERRUN|nanjing": 8,
+    "TIME_OVERRUN|suzhou": 8,
+    "TIME_OVERRUN|xian": 29,
+    "TRANSFER_BUFFER|hangzhou": 27,
+    "TRANSFER_BUFFER|luoyang": 36,
+    "TRANSFER_BUFFER|nanjing": 27,
+    "TRANSFER_BUFFER|suzhou": 27,
+    "TRANSFER_BUFFER|xian": 81,
+    "UNKNOWN_LOCATION|hangzhou": 36,
+    "UNKNOWN_LOCATION|luoyang": 48,
+    "UNKNOWN_LOCATION|nanjing": 36,
+    "UNKNOWN_LOCATION|suzhou": 36,
+    "UNKNOWN_LOCATION|xian": 30
+  },
+  "coverage_after": 25,
+  "coverage_before": 19,
+  "coverage_total": 25,
+  "failure_codes": [
+    "BUDGET_EXCEEDED",
+    "TIME_OVERRUN",
+    "TRANSFER_BUFFER",
+    "UNKNOWN_LOCATION"
+  ],
+  "failure_records": 517,
+  "good": {
+    "avg_score": 0.9881,
+    "cases": 200,
+    "hard_pass_rate": 1.0,
+    "min_score": 0.9587
+  },
+  "grid": {
+    "cities": 5,
+    "city_ids": [
+      "hangzhou",
+      "luoyang",
+      "nanjing",
+      "suzhou",
+      "xian"
+    ],
+    "pressures": 9,
+    "seasons": 4,
+    "styles": 5
+  },
+  "min_gap": 0.7687,
+  "min_gap_required": 0.3,
+  "naive": {
+    "avg_score": 0.19,
+    "cases": 200,
+    "hard_pass_rate": 0.0
+  },
+  "new_style_cells": 6,
+  "quality_floor": 0.7,
+  "regression_cases": 80,
+  "reject_reasons": {
+    "good hard constraints failed: INFEASIBLE": 25,
+    "good score 0.0 below 0.7": 25,
+    "good status=infeasible": 25,
+    "good/naive gap 0.0 below 0.3": 25,
+    "no comparable pair of plans (a provider refused)": 25
+  },
+  "rejected": 25,
+  "rejected_examples": [
+    {
+      "city": "hangzhou",
+      "good_score": 0.0,
+      "naive_score": 0.0,
+      "pressure": "conflicting",
+      "reasons": [
+        "good status=infeasible",
+        "good hard constraints failed: INFEASIBLE",
+        "good score 0.0 below 0.7",
+        "no comparable pair of plans (a provider refused)",
+        "good/naive gap 0.0 below 0.3"
+      ],
+      "style": "tang"
+    },
+    {
+      "city": "hangzhou",
+      "good_score": 0.0,
+      "naive_score": 0.0,
+      "pressure": "conflicting",
+      "reasons": [
+        "good status=infeasible",
+        "good hard constraints failed: INFEASIBLE",
+        "good score 0.0 below 0.7",
+        "no comparable pair of plans (a provider refused)",
+        "good/naive gap 0.0 below 0.3"
+      ],
+      "style": "song"
+    },
+    {
+      "city": "hangzhou",
+      "good_score": 0.0,
+      "naive_score": 0.0,
+      "pressure": "conflicting",
+      "reasons": [
+        "good status=infeasible",
+        "good hard constraints failed: INFEASIBLE",
+        "good score 0.0 below 0.7",
+        "no comparable pair of plans (a provider refused)",
+        "good/naive gap 0.0 below 0.3"
+      ],
+      "style": "ming"
+    },
+    {
+      "city": "hangzhou",
+      "good_score": 0.0,
+      "naive_score": 0.0,
+      "pressure": "conflicting",
+      "reasons": [
+        "good status=infeasible",
+        "good hard constraints failed: INFEASIBLE",
+        "good score 0.0 below 0.7",
+        "no comparable pair of plans (a provider refused)",
+        "good/naive gap 0.0 below 0.3"
+      ],
+      "style": "weijin"
+    },
+    {
+      "city": "hangzhou",
+      "good_score": 0.0,
+      "naive_score": 0.0,
+      "pressure": "conflicting",
+      "reasons": [
+        "good status=infeasible",
+        "good hard constraints failed: INFEASIBLE",
+        "good score 0.0 below 0.7",
+        "no comparable pair of plans (a provider refused)",
+        "good/naive gap 0.0 below 0.3"
+      ],
+      "style": "republic"
+    },
+    {
+      "city": "luoyang",
+      "good_score": 0.0,
+      "naive_score": 0.0,
+      "pressure": "conflicting",
+      "reasons": [
+        "good status=infeasible",
+        "good hard constraints failed: INFEASIBLE",
+        "good score 0.0 below 0.7",
+        "no comparable pair of plans (a provider refused)",
+        "good/naive gap 0.0 below 0.3"
+      ],
+      "style": "tang"
+    },
+    {
+      "city": "luoyang",
+      "good_score": 0.0,
+      "naive_score": 0.0,
+      "pressure": "conflicting",
+      "reasons": [
+        "good status=infeasible",
+        "good hard constraints failed: INFEASIBLE",
+        "good score 0.0 below 0.7",
+        "no comparable pair of plans (a provider refused)",
+        "good/naive gap 0.0 below 0.3"
+      ],
+      "style": "song"
+    },
+    {
+      "city": "luoyang",
+      "good_score": 0.0,
+      "naive_score": 0.0,
+      "pressure": "conflicting",
+      "reasons": [
+        "good status=infeasible",
+        "good hard constraints failed: INFEASIBLE",
+        "good score 0.0 below 0.7",
+        "no comparable pair of plans (a provider refused)",
+        "good/naive gap 0.0 below 0.3"
+      ],
+      "style": "ming"
+    }
+  ],
+  "style_cells_before": {
+    "hangzhou|ming": 1,
+    "hangzhou|republic": 3,
+    "hangzhou|song": 6,
+    "luoyang|ming": 3,
+    "luoyang|republic": 2,
+    "luoyang|song": 2,
+    "luoyang|tang": 5,
+    "luoyang|weijin": 1,
+    "nanjing|ming": 6,
+    "nanjing|republic": 2,
+    "nanjing|song": 2,
+    "suzhou|ming": 5,
+    "suzhou|republic": 3,
+    "suzhou|song": 2,
+    "xian|ming": 7,
+    "xian|republic": 2,
+    "xian|song": 7,
+    "xian|tang": 14,
+    "xian|weijin": 4
+  },
+  "unseen_briefs": 200,
+  "version": 1
+}

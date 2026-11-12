@@ -18,12 +18,14 @@
 | 重刷变异报告与快照 | `python -m evals.mutation_lab --write` |
 | 跑修复循环实验 | `python -m evals.repair_lab --write-report` |
 | 采集失败案例库 | `python -m evals.collect_failures --write-report` |
+| 验证盲测挑战集 | `python -m evals.case_miner --check` |
+| 重刷盲测挑战集与报告 | `python -m evals.case_miner --write` |
 | 看运行统计 | `python -m shotplan.cli stats --limit 50` |
 | 静态检查 | `python -m ruff check src tests evals` |
 | 启动 Web | `python -m shotplan.cli serve --port 8000` |
 | 一条命令全验证 | `make smoke` |
 
-没有 `make` 的 Windows 环境，直接按顺序跑 `python -m pytest`、`python -m evals.run_eval --write-report`、`python -m shotplan.cli plan`。
+没有 `make` 的 Windows 环境，直接按顺序跑 `python -m pytest`、`python -m evals.run_eval --write-report`、`python -m evals.case_miner --check`、`python -m shotplan.cli plan`。
 
 ## 常见故障
 
@@ -53,6 +55,9 @@
 
 **`MUTATION GATE FAILED`**
 两种可能：出现了存活变异（注入的故障没被门禁拦住，说明门禁被削弱），或 `docs/mutation-report.md` / `evals/mutation.json` 过期。前者要修门禁，不要改变异体；后者执行 `python -m evals.mutation_lab --write` 重刷，再跑一次 `python -m evals.run_eval --write-report`（评测报告会引用变异快照）。
+
+**`CASE-MINING GATE FAILED`**
+先看是「artifact is stale」还是不变量失败。前者说明改了校验器 / 知识库 / provider 却没重刷产物，执行 `python -m evals.case_miner --write` 后重新提交三份文件；后者要读具体原因：「negative controls disappeared」表示生成前可行性判定被削弱，25 个矛盾输入不再被挡下；「accepted challenge cases」或「min good/naive gap」表示候选区分度退化；「challenge set contains briefs copied」表示去重逻辑失效。不要通过调低阈值绕过——挑战集变少本身就是回归信号。
 
 **`--compare` 显示巨大差值**
 先确认基线是不是同一批用例。`v1-naive.json` 是 12 用例时代的历史快照，当前 80 用例必须比 `v6-naive.json`。新增用例后要重刷基线，否则用例集变化会被误读成质量变化。
@@ -87,7 +92,8 @@ python scripts/push_via_api.py             # 推送当前 HEAD 到 origin 当前
 1. `python -m pytest`（规则、可行性与边界没被改坏）
 2. `python -m evals.run_eval --write-report`（质量没退化，用例没失效）
 3. `python -m evals.mutation_lab --check`（门禁本身仍有效，且产物未过期）
-4. `python -m ruff check src tests evals scripts`（风格）
-5. `make gates` 跑完 CI 的全部质量门禁（含覆盖率、模糊测试、并发、扩展性与展示页一致性）
-6. `python -m shotplan.cli plan` 与 `python -m shotplan.cli plan --budget 100`（正常路径 + 拒绝路径冒烟）
-7. `git status` 确认没有把 `.env` / `.db` / `evals/out/` 加进去
+4. `python -m evals.case_miner --check`（未见组合上的判定链仍一致，且产物未过期）
+5. `python -m ruff check src tests evals scripts`（风格）
+6. `make gates` 跑完 CI 的全部 12 道质量门禁（含覆盖率、模糊测试、盲测、并发、扩展性与展示页一致性）
+7. `python -m shotplan.cli plan` 与 `python -m shotplan.cli plan --budget 100`（正常路径 + 拒绝路径冒烟）
+8. `git status` 确认没有把 `.env` / `.db` / `evals/out/` 加进去

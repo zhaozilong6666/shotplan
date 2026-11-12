@@ -11,6 +11,7 @@ Run after regenerating the eval artifacts:
     python -m evals.run_eval --write-report
     python -m evals.repair_lab --write-report
     python -m evals.collect_failures --write-report
+    python -m evals.case_miner --write
     python -m evals.cost_latency --write-report
     python -m evals.benchmark --out evals/benchmark.json --write-report
     python scripts/build_showcase.py
@@ -76,7 +77,7 @@ def metrics_block(good: dict, naive: dict) -> str:
 GROUP_ORDER = ["normal", "conflict", "edge", "infeasible"]
 
 
-def hero_note_block(good: dict, lab: dict) -> str:
+def hero_note_block(good: dict, lab: dict, challenge: dict) -> str:
     cases = good["case_count"]
     mutants = lab["mutant_count"]
     return (
@@ -84,8 +85,36 @@ def hero_note_block(good: dict, lab: dict) -> str:
         "      核心不是调模型，而是让质量可被测量：生成前先判定需求是否可满足，"
         "生成后用一层<strong>不经过模型</strong>的硬约束校验器判定，"
         f"并以带<strong>对照组</strong>的 {cases} 个用例守住回归；"
-        f"再用 {mutants} 处受控变异验证门禁本身有效。\n"
+        f"再用 {mutants} 处受控变异验证门禁本身有效，"
+        f"用 {challenge['accepted']} 个盲测 brief 检验没见过的组合。\n"
         "      技术栈 Python / FastAPI / SQLite；核心引擎仅标准库，无 API key 也能完整跑通。\n"
+        "    </p>"
+    )
+
+
+def challenge_block(mining: dict) -> str:
+    return (
+        '<div class="metrics challenge">\n'
+        f'      <div class="metric good"><b>{mining["unseen_briefs"]}</b>'
+        "<span>与主集不重复的盲测 brief</span></div>\n"
+        f'      <div class="metric good"><b>{mining["coverage_before"]} → '
+        f'{mining["coverage_after"]} / {mining["coverage_total"]}</b>'
+        "<span>城市 × 风格覆盖格子</span></div>\n"
+        f'      <div class="metric good"><b>{_pct(mining["good"]["hard_pass_rate"])}</b>'
+        "<span>盲测集 good 硬约束通过率</span></div>\n"
+        f'      <div class="metric bad"><b>{_pct(mining["naive"]["hard_pass_rate"])}</b>'
+        "<span>盲测集 naive 硬约束通过率</span></div>\n"
+        "    </div>"
+    )
+
+
+def challenge_note_block(mining: dict) -> str:
+    return (
+        '<p class="section-note challenge-note">\n'
+        f'      {mining["candidate_count"]} 个候选中 {mining["rejected"]} 个「同一地点既指定又排除」'
+        "被生成前可行性判定挡下；其余全部与主集不重复。"
+        f'good 均分 {mining["good"]["avg_score"]}、naive {mining["naive"]["avg_score"]}，'
+        f'最小差值 {mining["min_gap"]}。挑战集独立存放，不影响 v1–v6 基线的可比性。\n'
         "    </p>"
     )
 
@@ -237,6 +266,7 @@ def main() -> int:
     repair = _load(OUT / "repair-experiment.json")
     cost = _load(OUT / "cost-latency.json")
     mutation = _load(ROOT / "evals" / "mutation.json")
+    challenge = _load(ROOT / "evals" / "case_mining.json")
     # Benchmark numbers are machine-specific and cannot be regenerated identically
     # in CI, so the page reads a committed snapshot instead of evals/out/.
     # Refresh it with: python -m evals.benchmark --out evals/benchmark.json
@@ -255,7 +285,7 @@ def main() -> int:
     html = replace_block(
         html,
         r'<p class="sub">.*?</p>',
-        lambda m: hero_note_block(latest["good"], mutation),
+        lambda m: hero_note_block(latest["good"], mutation, challenge),
         "hero note",
     )
     html = replace_block(
@@ -305,6 +335,13 @@ def main() -> int:
         r'(<h2>失败案例库.*?)\s*<ul class="clean">.*?</ul>',
         lambda m: m.group(1).rstrip() + "\n" + failures_block(failures),
         "failures",
+    )
+    html = replace_block(
+        html,
+        r'<div class="metrics challenge">.*?</div>\s*'
+        r'<p class="section-note challenge-note">.*?</p>',
+        challenge_block(challenge) + "\n    " + challenge_note_block(challenge),
+        "challenge",
     )
     html = replace_block(
         html,

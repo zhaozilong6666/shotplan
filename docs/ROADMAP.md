@@ -20,7 +20,7 @@
 - [x] SQLite 运行历史与聚合摘要
 - [x] 可选 FastAPI 层与原生单页界面（五种视图）
 - [x] 版本化 prompt、真实模型 provider（urllib + 重试 + 降级）
-- [x] 180 个单元测试，逐条覆盖规则、可行性与边界
+- [x] 191 个单元测试，逐条覆盖规则、可行性与边界
 
 验收：`python -m pytest` 全绿；`python -m shotplan.cli serve` 后界面能切换 good/naive 并看到问题清单。
 
@@ -36,9 +36,10 @@
 - [x] 线程 vs 进程扩展性：线程约 1.04×、进程约 1.72×，证明瓶颈在 GIL（见 [scaling.md](scaling.md)）
 - [x] 真实输出示例：四份由代码生成、可 `--check` 比对的结果（见 [examples.md](examples.md)）
 - [x] **门禁有效性**：8 处受控变异注入 + 回滚比对，旧门禁只拦住 4/8，补齐对照组规则覆盖后 8/8（见 [mutation-report.md](mutation-report.md)、[ADR 0009](adr/0009-gate-sensitivity.md)）
-- [x] GitHub Actions：测试 + lint + **11 道质量门禁**（Python 3.10–3.13 四版本矩阵）
+- [x] **盲测挑战集**：从 517 条失败记录聚类出 225 个候选、纳入 200 个未见 brief，城市 × 风格覆盖 19/25 → 25/25；独立存放不污染 v1–v6 基线（见 [case-mining.md](case-mining.md)、[ADR 0010](adr/0010-holdout-challenge-set.md)）
+- [x] GitHub Actions：测试 + lint + **12 道质量门禁**（Python 3.10–3.13 四版本矩阵）
 
-验收：`python -m evals.run_eval --write-report` 退出码 0；实测 80/80 通过、均分 0.9788、对照组 0.3014；`python -m evals.mutation_lab --check` 退出码 0 且 0 处变异存活。
+验收：`python -m evals.run_eval --write-report` 退出码 0；实测 80/80 通过、均分 0.9788、对照组 0.3014；`python -m evals.mutation_lab --check` 退出码 0 且 0 处变异存活；`python -m evals.case_miner --check` 退出码 0 且 200 个盲测 brief 全部与主集不重复。
 
 ## 阶段 4 · 接真实模型，让评测真正承压 ⏳
 
@@ -52,6 +53,7 @@
 - [ ] 记录 v1 / v2 prompt 在真实模型上的硬约束通过率差异，写进 `PROMPT_CHANGELOG`
 - [x] 修复循环实验（离线）：一次修复成功率 100%（69/69）、69 次更差修复全被拦截，见 [repair-experiment.md](repair-experiment.md)
 - [x] 失败案例库框架 + 离线对照组 517 条记录；真实模型典型错误待补，见 [failure-gallery.md](failure-gallery.md)
+- [x] 失败案例库不再只是展示材料：它驱动盲测挑战集挖掘，见 [case-mining.md](case-mining.md)
 - [x] `docs/eval-report.md` 记录至少一次「改动导致分数下降并回滚」的实例（由变异测试自动生成，离线数据即可复核）
 - [ ] 用真实模型数据填满成本/延迟对比表
 

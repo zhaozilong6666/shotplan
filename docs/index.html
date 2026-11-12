@@ -100,7 +100,7 @@
     <h1>shotplan</h1>
     <p class="lede">把一句模糊的「想去西安拍汉服」，变成<strong>能执行、能核对、能追溯</strong>的小时级方案。</p>
     <p class="sub">
-      核心不是调模型，而是让质量可被测量：生成前先判定需求是否可满足，生成后用一层<strong>不经过模型</strong>的硬约束校验器判定，并以带<strong>对照组</strong>的 80 个用例守住回归；再用 8 处受控变异验证门禁本身有效。
+      核心不是调模型，而是让质量可被测量：生成前先判定需求是否可满足，生成后用一层<strong>不经过模型</strong>的硬约束校验器判定，并以带<strong>对照组</strong>的 80 个用例守住回归；再用 8 处受控变异验证门禁本身有效，用 200 个盲测 brief 检验没见过的组合。
       技术栈 Python / FastAPI / SQLite；核心引擎仅标准库，无 API key 也能完整跑通。
     </p>
     <div class="links">
@@ -111,6 +111,7 @@
       <a class="btn" href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/examples.md">真实输出示例</a>
       <a class="btn" href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/loadtest.md">并发负载</a>
       <a class="btn" href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/mutation-report.md">门禁有效性</a>
+      <a class="btn" href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/case-mining.md">盲测挑战集</a>
       <a class="btn" href="https://github.com/zhaozilong6666/shotplan/blob/main/README.en.md">English</a>
     </div>
     <div class="metrics">
@@ -245,6 +246,20 @@
   </section>
 
   <section>
+    <h2>盲测挑战集：没见过的题</h2>
+    <p class="section-note">80 个回归用例是手写的主集；这一层从失败案例库与知识库交叉出全新组合，检验规则是不是只对着那 80 道题调出来的。挖掘过程不读取任何用例的期望输出，挑战集独立存放，不改动 v1–v6 基线的纵向可比性。</p>
+    <div class="metrics challenge">
+      <div class="metric good"><b>200</b><span>与主集不重复的盲测 brief</span></div>
+      <div class="metric good"><b>19 → 25 / 25</b><span>城市 × 风格覆盖格子</span></div>
+      <div class="metric good"><b>100%</b><span>盲测集 good 硬约束通过率</span></div>
+      <div class="metric bad"><b>0%</b><span>盲测集 naive 硬约束通过率</span></div>
+    </div>
+    <p class="section-note challenge-note">
+      225 个候选中 25 个「同一地点既指定又排除」被生成前可行性判定挡下；其余全部与主集不重复。good 均分 0.9881、naive 0.19，最小差值 0.7687。挑战集独立存放，不影响 v1–v6 基线的可比性。
+    </p>
+  </section>
+
+  <section>
     <h2>工程与决策记录</h2>
     <div class="split">
       <div class="card">
@@ -256,9 +271,10 @@
           python -m evals.repair_lab --check<br>
           python -m evals.mutation_lab --check<br>
           python -m evals.collect_failures --check<br>
+          python -m evals.case_miner --check<br>
           python -m shotplan.cli stats
         </p>
-        <p style="margin-top:10px">单元测试与 11 道质量门禁；CI 覆盖 Python 3.10 / 3.11 / 3.12 / 3.13。</p>
+        <p style="margin-top:10px">单元测试与 12 道质量门禁；CI 覆盖 Python 3.10 / 3.11 / 3.12 / 3.13。</p>
       </div>
       <div class="card">
         <h3>决策记录（ADR）</h3>
@@ -267,6 +283,7 @@
           <li><a href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/adr/0006-scoring-determinism.md">0006 评分跨版本逐位一致</a></li>
           <li><a href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/adr/0007-feasibility-before-generation.md">0007 可行性判定在生成之前</a></li>
           <li><a href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/adr/0009-gate-sensitivity.md">0009 门禁自身的有效性</a></li>
+          <li><a href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/adr/0010-holdout-challenge-set.md">0010 盲测挑战集独立存放</a></li>
           <li><a href="https://github.com/zhaozilong6666/shotplan/tree/main/docs/adr">全部 ADR →</a></li>
         </ul>
       </div>
@@ -279,7 +296,7 @@
   <div class="wrap">
     <p><strong>shotplan</strong> · 可评测的旅拍方案 Agent · MIT</p>
     <p>本页是静态快照，数据来自仓库内由代码生成的评测报告、修复实验与失败案例库；交互式界面需本地运行 <code>python -m shotplan.cli serve</code>。</p>
-    <p class="mono">离线规则 provider 的 0.9788 是当前规则下的上限参考，不代表真实模型效果。</p>
+    <p class="mono">离线规则 provider 的 0.9788 是当前规则下的上限参考，不代表真实模型效果；盲测挑战集同理，只证明判定链在未见组合上一致。</p>
   </div>
 </footer>
 

@@ -21,8 +21,9 @@ Hanfu travel photography was chosen because its constraints are real: golden-hou
 | Quality | Try another prompt | 12 deterministic rules + dimension scores |
 | Impossible brief | Fabricate a plan anyway | Pre-generation check returns reasons, gaps, suggestions and theoretical minimums |
 | Failure handling | Regenerate once | Validation report becomes a repair hint; **worse drafts are rejected** |
-| Evidence | Screenshots | 80 eval cases + deliberately flawed control group + 11 CI gates |
+| Evidence | Screenshots | 80 regression cases + 200 mined holdout briefs + control group + 12 CI gates |
 | Gate validity | "CI is green" | 8 injected mutations must all be caught by the real gate |
+| Unseen inputs | One hand-written suite | 200 mined holdout briefs, kept separate so baselines stay comparable |
 | Grounding | None | Every location id must exist in the knowledge base |
 | Run records | None | Full trace, latency, tokens and estimated cost per run |
 | Barrier to entry | Needs an API key | Core is standard-library only; runs right after `git clone` |
@@ -86,9 +87,16 @@ Cases: `normal` 30, `conflict` 23, `edge` 16, `infeasible` 11. The last group de
 python -m evals.run_eval --write-report
 python -m evals.run_eval --compare evals/baselines/v6-naive.json
 python -m evals.mutation_lab --check
+python -m evals.case_miner --check
 ```
 
 The generated [eval report](docs/eval-report.md) is committed, so a reviewer can see the conclusion without running anything — including a concrete "change → score drop → gate rejects → rollback restores" example. See [evaluation methodology](docs/evaluation.md) and [problem & metrics](docs/problem-and-metrics.md).
+
+## Holdout challenge set (unseen briefs)
+
+80/80 green can also mean the rules were tuned against those exact 80 briefs. So the [failure library](docs/failure-gallery.md) and the knowledge base drive a deterministic grid of **225 candidate briefs** (5 cities x 5 styles x 9 pressure profiles x 4 rotating seasons). The miner **never reads any case's expected output**; it only sees brief fingerprints for deduplication. 25 deliberately contradictory briefs are rejected by the pre-generation feasibility check, leaving **200 unseen holdout cases**; city x style coverage goes from 19/25 to **25/25**, good hard-pass 100%, naive 0%, minimum score gap 0.7687. See the [mining report](docs/case-mining.md) and [ADR 0010](docs/adr/0010-holdout-challenge-set.md).
+
+The holdout lives in `evals/challenge/` and is **not** read by `run_eval`: the main suite stays a stable regression baseline so v1-v6 snapshots remain comparable. `python -m evals.case_miner --check` is CI gate #12.
 
 ## More verifiable evidence
 
@@ -97,6 +105,8 @@ The generated [eval report](docs/eval-report.md) is committed, so a reviewer can
 3. **[Observability dashboard](docs/observability.md)** — `python -m shotplan.cli stats`, `GET /api/stats` and a Web tab aggregate stored runs by provider / prompt version: pass rate, average score, P50/P95 latency, cost, repairs and structured refusals. Data comes from the full SQLite payloads, with no second metrics table.
 4. **[Gate-sensitivity lab](docs/mutation-report.md)** — 8 controlled mutations (3 on generation, 5 on validation) are injected in-process, run through the same 80 cases and the real gate, and must all be rejected; every one is rolled back and compared field-by-field. The previous gate caught only **4/8**; the fixed gate catches **8/8**.
 5. **Engineering evidence** — [fuzzing](docs/fuzz-report.md) (1000 mutated inputs, 0 crashes), [benchmark](docs/benchmark.md) (p50 ≈0.2 ms), [load test](docs/loadtest.md) (600 concurrent requests, 0 errors / 0 lost writes), [real output examples](docs/examples.md) and [threads vs processes](docs/scaling.md) (1.04× vs 1.72×).
+
+6. **[Holdout challenge set](docs/case-mining.md)** — 225 mined candidates, 200 unseen briefs accepted, 25 infeasible negative controls rejected, coverage 19/25 -> 25/25. Independent of the regression suite so historical baselines stay comparable.
 
 ## Architecture and layout
 
@@ -113,9 +123,9 @@ shotplan/
 │   ├── api.py         # Optional FastAPI layer
 │   └── cli.py         # CLI entry point
 ├── web/               # Dependency-free single-page UI (5 tabs)
-├── evals/             # 80 cases, scorers, mutation lab, repair lab, failure library
-├── tests/             # 180 unit tests
-└── docs/              # Architecture, metrics, 9 ADRs, ops, interview notes
+├── evals/             # 80 cases + 200 holdout briefs, scorers, mutation/case-mining labs
+├── tests/             # 191 unit tests
+└── docs/              # Architecture, metrics, 10 ADRs, ops, interview notes
 ```
 
 The core uses only the Python standard library; FastAPI / pytest / ruff are optional layers. This makes "runs with no credentials" a design decision, not a compromise.
@@ -133,6 +143,7 @@ The core uses only the Python standard library; FastAPI / pytest / ruff are opti
 | [0007](docs/adr/0007-feasibility-before-generation.md) | Feasibility before generation | "Can this be done?" is arithmetic, not a model task |
 | [0008](docs/adr/0008-fuzz-and-benchmark-gates.md) | Fuzzing and benchmarks as gates | "Never crashes" and "never slow" must be testable, not reviewed by hand |
 | [0009](docs/adr/0009-gate-sensitivity.md) | Test the gates themselves with mutations | A green CI run does not prove the checks work |
+| [0010](docs/adr/0010-holdout-challenge-set.md) | Keep the holdout challenge set separate | Regression baselines must stay comparable across versions |
 
 ## Optional: real model, UI, deployment
 
@@ -149,7 +160,7 @@ Any OpenAI-compatible endpoint works (OpenAI, DeepSeek, local Ollama / vLLM). Wi
 ## Roadmap
 
 - [x] Phases 1–3: domain, knowledge base, validator, pipeline, tracing, API/Web, eval suite, CI gates
-- [x] Phase 4 offline work: 80 cases, `INFEASIBLE` branch, repair lab, failure library, prompt v1/v2 framework, cost/latency reporting, gate-sensitivity lab
+- [x] Phase 4 offline work: 80 cases, `INFEASIBLE` branch, repair lab, failure library, prompt v1/v2 framework, cost/latency reporting, gate-sensitivity lab, 200-brief holdout challenge set
 - [ ] Phase 4 remaining: real-model comparison experiments (needs an API key)
 - [ ] Phase 5: public online demo, bilingual polish, final resume materials
 
@@ -161,12 +172,13 @@ Any OpenAI-compatible endpoint works (OpenAI, DeepSeek, local Ollama / vLLM). Wi
 - Estimated cost is 0 in offline mode; real-model cost/latency comparisons are not yet measured.
 - Real booking/payment, authentication and concurrent writes are out of scope. The knowledge base covers five cities (Xi'an, Luoyang, Hangzhou, Suzhou, Nanjing); adding a city means adding data, cases and a baseline together.
 - The 8 mutations are hand-picked and prove those specific regressions are caught, not that the gate is infallible.
+- The 200 holdout briefs come from a fixed grid (combination diversity, not real customer distribution); they show the judgement chain generalises, not that a real model would score well.
 - Performance and concurrency numbers come from a single machine (concurrency 1/4/8, threads vs processes), not production QPS; the pipeline is synchronous and the API moves it off the event loop with a thread pool.
 - Fuzzing proves "any input returns a structured result", not "any input gets a good plan" — quality is still the eval suite's job.
 
 ## For interviews
 
-> "I built an evaluable planning agent. The point wasn't calling a model — it was writing 'executable' as 12 testable hard constraints, checking satisfiability *before* generation, grading outputs with a validator that never uses a model, feeding the report back as a repair hint, and refusing worse rewrites. To make quality comparable I built 80 eval cases across five cities plus a deliberately broken control provider. I didn't stop at '80/80 green': I mutation-tested the gate itself with 8 injected faults and found the old gate missed 4 cases where a single validation rule was silently deleted — the control plan is so broken that losing one issue barely moves its score. After adding rule-level coverage, all 8 are caught. A deterministic fuzzer also guarantees no malformed brief can crash the service."
+> "I built an evaluable planning agent. The point wasn't calling a model — it was writing 'executable' as 12 testable hard constraints, checking satisfiability *before* generation, grading outputs with a validator that never uses a model, feeding the report back as a repair hint, and refusing worse rewrites. To make quality comparable I built 80 eval cases across five cities plus a deliberately broken control provider. I didn't stop at '80/80 green': I mutation-tested the gate itself with 8 injected faults and found the old gate missed 4 cases where a single validation rule was silently deleted — the control plan is so broken that losing one issue barely moves its score. After adding rule-level coverage, all 8 are caught. I also mined 200 briefs the main suite had never seen, kept in a separate holdout so the historical baselines stay comparable. A deterministic fuzzer also guarantees no malformed brief can crash the service."
 
 Detailed Q&A: [docs/interview-notes.md](docs/interview-notes.md).
 

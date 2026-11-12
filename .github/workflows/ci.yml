@@ -43,6 +43,9 @@ jobs:
       - name: Failure-library gate
         run: python -m evals.collect_failures --check
 
+      - name: Case-mining gate (holdout challenge set)
+        run: python -m evals.case_miner --check
+
       - name: Fuzz gate
         run: python -m evals.fuzz --check --iterations 500
 

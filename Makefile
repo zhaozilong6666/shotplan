@@ -1,4 +1,4 @@
-.PHONY: help install test lint eval mutation report fuzz bench load scale examples gates showcase serve plan smoke clean
+.PHONY: help install test lint eval mutation mine report fuzz bench load scale examples gates showcase serve plan smoke clean
 
 PYTHON ?= python
 
@@ -9,6 +9,7 @@ help:
 	@echo "  lint      ruff 静态检查"
 	@echo "  eval      运行评测集并生成报告"
 	@echo "  mutation  变异测试：注入受控故障验证门禁有效，并刷新报告"
+	@echo "  mine      从失败案例库挖掘盲测挑战集并刷新报告"
 	@echo "  report    评测 + 与当前基线对比"
 	@echo "  fuzz      确定性模糊测试（1000 次变异，生成报告）"
 	@echo "  bench     性能基准（P50/P95、吞吐、堆峰值）"
@@ -37,6 +38,10 @@ mutation:
 	$(PYTHON) -m evals.mutation_lab --write
 	$(PYTHON) -m evals.run_eval --write-report
 
+mine:
+	$(PYTHON) -m evals.case_miner --write
+	$(PYTHON) -m evals.case_miner --check
+
 report:
 	$(PYTHON) -m evals.run_eval --write-report --compare evals/baselines/v6-naive.json
 
@@ -51,6 +56,7 @@ gates:
 	$(PYTHON) -m evals.mutation_lab --check
 	$(PYTHON) -m evals.repair_lab --check
 	$(PYTHON) -m evals.collect_failures --check
+	$(PYTHON) -m evals.case_miner --check
 	$(PYTHON) -m evals.fuzz --check --iterations 500
 	$(PYTHON) -m evals.benchmark --check
 	$(PYTHON) -m evals.loadtest --check
