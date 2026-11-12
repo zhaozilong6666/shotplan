@@ -14,6 +14,9 @@
 | 跑评测并出报告 | `python -m evals.run_eval --write-report` |
 | 与当前基线对比 | `python -m evals.run_eval --compare evals/baselines/v2-naive.json` |
 | 记录指定 prompt 版本 | `python -m evals.run_eval --prompt-version planner-v1 --write-report` |
+| 跑修复循环实验 | `python -m evals.repair_lab --write-report` |
+| 采集失败案例库 | `python -m evals.collect_failures --write-report` |
+| 看运行统计 | `python -m shotplan.cli stats --limit 50` |
 | 静态检查 | `python -m ruff check src tests evals` |
 | 启动 Web | `python -m shotplan.cli serve --port 8000` |
 | 一条命令全验证 | `make smoke` |

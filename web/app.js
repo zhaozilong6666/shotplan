@@ -2,7 +2,7 @@
 (function () {
   "use strict";
 
-  var state = { result: null, tab: "plan" };
+  var state = { result: null, tab: "plan", stats: null, statsLoading: false };
   var el = function (id) { return document.getElementById(id); };
   var esc = function (value) {
     return String(value == null ? "" : value).replace(/[&<>"']/g, function (c) {
@@ -153,10 +153,71 @@
     return html;
   }
 
+  async function loadStats() {
+    if (state.statsLoading) return;
+    state.statsLoading = true;
+    try {
+      var response = await fetch("/api/stats");
+      if (!response.ok) throw new Error("HTTP " + response.status);
+      state.stats = await response.json();
+    } catch (error) {
+      state.stats = { error: error.message };
+    } finally {
+      state.statsLoading = false;
+      if (state.tab === "stats") render();
+    }
+  }
+
+  function renderStats() {
+    if (!state.stats) {
+      loadStats();
+      return '<div class="empty"><p>正在读取运行统计…</p></div>';
+    }
+    var d = state.stats;
+    if (d.error) {
+      return '<div class="issue hard"><code>无法读取 /api/stats</code><p>' +
+        esc(d.error) + '</p></div>';
+    }
+    var o = d.overall || {};
+    var html = '<div class="summary">' +
+      '<div class="stat"><b>' + esc(d.total_runs) + '</b><span>运行数（窗口 ' +
+        esc(d.window) + '）</span></div>' +
+      '<div class="stat ' + (o.hard_pass_rate >= 0.9 ? "ok" : "fail") + '"><b>' +
+        esc(((o.hard_pass_rate || 0) * 100).toFixed(1)) + '%</b><span>硬约束通过率</span></div>' +
+      '<div class="stat"><b>' + esc(o.avg_score || 0) + '</b><span>平均得分</span></div>' +
+      '<div class="stat"><b>' + esc(o.p95_duration_ms || 0) + ' ms</b><span>P95 耗时</span></div>' +
+      '</div>';
+    var statuses = d.by_status || {};
+    html += '<div class="alternatives"><h4>结果状态</h4><ul>';
+    Object.keys(statuses).forEach(function (k) {
+      html += '<li>' + esc(k) + '：' + esc(statuses[k]) + ' 次</li>';
+    });
+    html += '</ul></div>';
+    html += "<h4 style='margin:22px 0 12px;font-size:13px'>按 provider / prompt 版本</h4>";
+    html += "<table><thead><tr><th>provider</th><th>prompt</th><th class='num'>运行</th>" +
+      "<th class='num'>通过率</th><th class='num'>均分</th><th class='num'>P50/P95 ms</th>" +
+      "<th class='num'>修复</th><th class='num'>不可行</th></tr></thead><tbody>";
+    (d.groups || []).forEach(function (g) {
+      html += "<tr><td>" + esc(g.provider) + "</td><td>" + esc(g.prompt_version) + "</td>" +
+        "<td class='num'>" + esc(g.runs) + "</td>" +
+        "<td class='num'>" + esc(((g.hard_pass_rate || 0) * 100).toFixed(1)) + "%</td>" +
+        "<td class='num'>" + esc(g.avg_score || 0) + "</td>" +
+        "<td class='num'>" + esc(g.p50_duration_ms || 0) + " / " +
+        esc(g.p95_duration_ms || 0) + "</td>" +
+        "<td class='num'>" + esc(g.total_repairs || 0) + "</td>" +
+        "<td class='num'>" + esc(g.infeasible || 0) + "</td></tr>";
+    });
+    html += "</tbody></table>";
+    html += '<p class="hint small">数据来自本机 SQLite 运行历史；' +
+      'infeasible 运行按硬约束失败计入，离线 provider 估算成本为 0。</p>';
+    return html;
+  }
+
   function render() {
     var r = state.result;
-    if (!r) return;
     var view = el("view");
+    if (state.tab === "stats") { view.innerHTML = renderStats(); return; }
+    if (!r) return;
     if (state.tab === "plan") view.innerHTML = renderPlan(r);
     else if (state.tab === "validation") view.innerHTML = renderValidation(r);
     else if (state.tab === "trace") view.innerHTML = renderTrace(r);

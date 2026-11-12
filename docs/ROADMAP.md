@@ -20,7 +20,7 @@
 - [x] SQLite 运行历史与聚合摘要
 - [x] 可选 FastAPI 层与原生单页界面（四种视图）
 - [x] 版本化 prompt、真实模型 provider（urllib + 重试 + 降级）
-- [x] 90 个单元测试，逐条覆盖规则、可行性与边界
+- [x] 102 个单元测试，逐条覆盖规则、可行性与边界
 
 验收：`python -m pytest` 全绿；`python -m shotplan.cli serve` 后界面能切换 good/naive 并看到问题清单。
 
@@ -44,8 +44,8 @@
 - [x] 成本/延迟报告：P50/P95、token 汇总、估算成本、修复轮次（离线成本恒 0，格式已验证）
 - [ ] 用真实 OpenAI 兼容端点跑通 `SHOTPLAN_PROVIDER=openai_compatible`
 - [ ] 记录 v1 / v2 prompt 在真实模型上的硬约束通过率差异，写进 `PROMPT_CHANGELOG`
-- [ ] 修复循环实验：统计「一次修复成功率」与「修复后质量下降被拦截的次数」
-- [ ] 失败案例库：把真实模型的典型错误沉淀成新规则与新用例
+- [x] 修复循环实验（离线）：一次修复成功率 100%（30/30）、30 次更差修复全被拦截，见 [repair-experiment.md](repair-experiment.md)
+- [x] 失败案例库框架 + 离线对照组 170 条记录；真实模型典型错误待补，见 [failure-gallery.md](failure-gallery.md)
 - [ ] 用真实模型数据填满成本/延迟对比表
 
 验收：报告里出现真实模型的一行数据，且能与基线做 `--compare`；`docs/eval-report.md` 记录至少一次「改动导致分数下降并回滚」的实例。
@@ -56,8 +56,8 @@
 
 - [ ] 在线 Demo 部署（默认 `mock` 模式，避免公开课暴露密钥）
 - [ ] README 顶部放 Demo 链接与 30 秒演示动图
-- [ ] 可观测面板：按 provider / prompt 版本聚合通过率与成本
-- [ ] 中文 + 英文 README（投外企时切换）
+- [x] 可观测面板：按 provider / prompt 版本聚合通过率、延迟与成本（CLI / API / Web）
+- [x] 中文 + 英文 README 互链（投外企时切换）
 - [ ] 简历 3 条 bullets 与 10 分钟讲稿定稿
 - [ ] 按目标 JD 调整 README 关键词顺序
 

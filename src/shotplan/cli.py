@@ -128,6 +128,14 @@ def cmd_eval(args: argparse.Namespace) -> int:
     )
 
 
+def cmd_stats(args: argparse.Namespace) -> int:
+    from .observability import build_dashboard
+
+    store = RunStore(get_settings().db_path)
+    print(json.dumps(build_dashboard(store, args.limit), ensure_ascii=False, indent=2))
+    return 0
+
+
 def cmd_serve(args: argparse.Namespace) -> int:
     try:
         import uvicorn
@@ -173,6 +181,10 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("eval", help="运行评测集")
     p.add_argument("--write-report", action="store_true")
     p.set_defaults(func=cmd_eval)
+
+    p = sub.add_parser("stats", help="按 provider / prompt 版本聚合运行质量")
+    p.add_argument("--limit", type=int, default=200)
+    p.set_defaults(func=cmd_stats)
 
     p = sub.add_parser("serve", help="启动 Web / API")
     p.add_argument("--host", default="127.0.0.1")

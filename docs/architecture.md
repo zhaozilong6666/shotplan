@@ -93,6 +93,7 @@ flowchart TB
 - **新规则**：在 `constraints.py` 加 `RULES` 条目 + 常量，在 `validator.py` 加检查，补一条单元测试，评测集自动生效。
 - **新城市**：往 `knowledge/data/locations.json` 加一个 city 对象，`KnowledgeTools` 无需改代码；可行性下限会自动按新知识库重算。
 - **新指标**：在 `constraints.py` 的 `SCORE_WEIGHTS` 加维度（总和必须为 1，`test_validator.py` 会检查）。
+- **运行统计**：`observability.py` 直接读 `RunStore.recent_payloads()` 的完整记录做聚合；新增维度只需改 `_flatten()` 与 `_summarise()`，不需要额外埋点表。
 - **新不可行条件**：在 `feasibility.py` 加一条 `FeasibilityIssue`，补测试与一个 `infeasible` 组用例。
 
 ## 明确不做的事

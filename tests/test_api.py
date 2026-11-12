@@ -63,6 +63,16 @@ def test_index_page_is_served(client):
     assert "shotplan" in response.text
 
 
+def test_stats_endpoint_reports_provider_groups(client):
+    client.post("/api/plan", json={"mock_mode": "good"})
+    client.post("/api/plan", json={"hours": 1, "budget_cny": 0, "mock_mode": "good"})
+    data = client.get("/api/stats").json()
+    assert data["total_runs"] == 2
+    assert data["by_status"]["infeasible"] == 1
+    assert data["groups"]
+    assert "p95_duration_ms" in data["overall"]
+
+
 def test_plan_endpoint_reports_infeasible_brief(client):
     response = client.post("/api/plan", json={"hours": 1, "budget_cny": 0,
                                               "mock_mode": "good"})

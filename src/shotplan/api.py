@@ -98,6 +98,13 @@ def summary() -> dict[str, Any]:
     return _store().summary()
 
 
+@app.get("/api/stats")
+def stats(limit: int = 200) -> dict[str, Any]:
+    from .observability import build_dashboard
+
+    return build_dashboard(_store(), min(max(limit, 1), 1000))
+
+
 @app.get("/")
 def index() -> FileResponse:
     page = WEB_DIR / "index.html"

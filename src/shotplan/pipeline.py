@@ -152,6 +152,10 @@ def run_plan(
         except ShotplanError as exc:
             collector.record(f"repair_{repairs}", tick, outcome="error", reason=str(exc)[:120])
             break
+        # Never accept a regression: keep the better of the two drafts.
+        accepted = (candidate_report.hard_pass, candidate_report.score) > (
+            report.hard_pass, report.score
+        )
         collector.record(
             f"repair_{repairs}", tick,
             tokens_in=fixed.tokens_in,
@@ -159,11 +163,9 @@ def run_plan(
             cost_cny=fixed.cost_cny,
             hard_issues_before=len(report.hard_issues),
             hard_issues_after=len(candidate_report.hard_issues),
+            accepted=accepted,
         )
-        # Never accept a regression: keep the better of the two drafts.
-        if (candidate_report.hard_pass, candidate_report.score) > (
-            report.hard_pass, report.score
-        ):
+        if accepted:
             plan, report = candidate, candidate_report
         if report.hard_pass:
             break

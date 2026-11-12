@@ -3,7 +3,7 @@
 > 把一句模糊的「想去西安拍汉服」，变成一份**能执行、能核对、能追溯**的小时级方案。
 > 这是一个可评测的 Agent 系统，不是又一个聊天框。
 
-![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![CI](https://github.com/zhaozilong6666/shotplan/actions/workflows/ci.yml/badge.svg)
+[English README](README.en.md) · ![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![CI](https://github.com/zhaozilong6666/shotplan/actions/workflows/ci.yml/badge.svg)
 
 ---
 
@@ -123,6 +123,14 @@ python -m evals.run_eval --min-score 0.85                         # 提高回归
 
 报告由代码生成并随仓库提交（[docs/eval-report.md](docs/eval-report.md)），包含分组结果、逐用例明细、不可满足需求识别、成本/延迟（P50/P95、token）与阈值结论——招聘方不用跑代码就能看到结论。方法论见 [docs/evaluation.md](docs/evaluation.md)。
 
+## 三份额外证据
+
+光有评测分数还不够，这个仓库另外提供三块可核查的材料：
+
+1. **[修复循环实验](docs/repair-experiment.md)** —— 三种刻意构造的 provider 跑同一批 30 个可满足 brief：`repairable` 一次修复把硬约束通过率从 0% 拉到 100%（30/30）；忽略修复提示的 `naive` 有 30 次候选被拒绝；「越修越差」的 `regressing` 30 次全被单调保护拦下，均分不降。每次接受/拒绝都读 trace 里的 `accepted` 字段，不靠推断。
+2. **[失败案例库](docs/failure-gallery.md)** —— 170 条结构化记录、4 类硬约束违规，每条包含输入 brief、观察到的输出片段、期望规则与修复建议。新增规则之前先在这里找证据；接真实模型后按同样格式追加新错误。
+3. **[运行统计面板](docs/observability.md)** —— `python -m shotplan.cli stats`、`GET /api/stats` 与 Web「运行统计」标签页，按 provider / prompt 版本聚合通过率、均分、P50/P95 延迟、成本、修复轮次与不可行数量。数据直接来自 SQLite 里每次运行的完整 payload，不维护第二份指标表。
+
 ## 架构与目录
 
 ```
@@ -134,12 +142,13 @@ shotplan/
 │   ├── pipeline.py    # 编排：可行性 → 检索 → 生成 → 解析 → 校验 → 修复
 │   ├── tracing.py     # 耗时 / token / 成本 / 事件
 │   ├── storage.py     # SQLite 运行历史
+│   ├── observability.py # 按 provider / prompt 版本聚合运行质量
 │   ├── api.py         # 可选 FastAPI 层
 │   └── cli.py         # 命令行入口
-├── web/               # 无构建步骤的原生单页界面
-├── evals/             # 36 个用例、打分器、报告生成、基线
-├── tests/             # 90 个单元测试，逐条覆盖规则与边界
-└── docs/              # 架构、指标、ADR、运维、面试笔记
+├── web/               # 无构建步骤的原生单页界面（5 个视图）
+├── evals/             # 36 个用例、打分器、报告、基线、修复实验、失败案例库
+├── tests/             # 102 个单元测试，逐条覆盖规则与边界
+└── docs/              # 架构、指标、7 份 ADR、运维、面试笔记
 ```
 
 核心引擎只用 Python 标准库；FastAPI / pytest / ruff 都是可选层。这个分层让「没有 key 也能完整跑通」成为设计，而不是妥协。
@@ -182,8 +191,8 @@ docker compose up --build          # http://127.0.0.1:8000
 - [x] 阶段 1：领域模型、知识库、校验器、离线 provider、CLI
 - [x] 阶段 2：pipeline、trace、SQLite、API、Web 界面
 - [x] 阶段 3：评测集、对照基线、自动报告、CI 阈值
-- [ ] 阶段 4：离线部分已完成（36 用例、`INFEASIBLE` 分支、prompt v1/v2 框架、成本/延迟报告），待接真实模型做对比实验
-- [ ] 阶段 5：在线 Demo 部署、可观测面板、简历与面试材料
+- [ ] 阶段 4：离线部分已完成（36 用例、`INFEASIBLE`、prompt v1/v2、成本/延迟、修复实验、失败案例库），待接真实模型做对比实验
+- [ ] 阶段 5：可观测面板与英文 README 已完成；待在线 Demo 部署、简历与面试材料定稿
 
 ## 已知限制（写在前面，不藏）
 

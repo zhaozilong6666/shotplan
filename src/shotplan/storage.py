@@ -93,6 +93,19 @@ class RunStore:
         )
         return [dict(zip(keys, row, strict=False)) for row in rows]
 
+    def recent_payloads(self, limit: int = 200) -> list[dict[str, Any]]:
+        """Full stored results, newest first. Used by the observability dashboard."""
+        capped = min(max(limit, 1), 1000)
+        try:
+            with self._connect() as conn:
+                rows = conn.execute(
+                    "SELECT payload FROM runs ORDER BY created_at DESC LIMIT ?",
+                    (capped,),
+                ).fetchall()
+        except sqlite3.Error as exc:
+            raise StorageError(f"cannot read recent payloads: {exc}") from exc
+        return [json.loads(row[0]) for row in rows]
+
     def get(self, run_id: str) -> dict[str, Any] | None:
         try:
             with self._connect() as conn:
