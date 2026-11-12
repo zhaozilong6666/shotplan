@@ -34,17 +34,17 @@ jobs:
       - name: Evaluation gate
         run: python -m evals.run_eval --write-report
 
-      - name: Showcase is up to date
-        run: |
-          python -m evals.cost_latency
-          python scripts/build_showcase.py
-          git diff --exit-code docs/index.html
-
       - name: Repair-loop gate
         run: python -m evals.repair_lab --check
 
       - name: Failure-library gate
         run: python -m evals.collect_failures --check
+
+      - name: Showcase is up to date
+        run: |
+          python -m evals.cost_latency
+          python scripts/build_showcase.py
+          git diff --exit-code docs/index.html
 
       - name: Upload eval artifacts
         if: always()
