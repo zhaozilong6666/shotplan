@@ -111,10 +111,10 @@
       <a class="btn" href="https://github.com/zhaozilong6666/shotplan/blob/main/README.en.md">English</a>
     </div>
     <div class="metrics">
-      <div class="metric good"><b>70 / 70</b><span>评测用例通过</span></div>
-      <div class="metric good"><b>0.9778</b><span>规则 Agent 均分</span></div>
+      <div class="metric good"><b>80 / 80</b><span>评测用例通过</span></div>
+      <div class="metric good"><b>0.9788</b><span>规则 Agent 均分</span></div>
       <div class="metric good"><b>100%</b><span>硬约束通过率</span></div>
-      <div class="metric bad"><b>0.6721</b><span>与对照组的差值</span></div>
+      <div class="metric bad"><b>0.6774</b><span>与对照组的差值</span></div>
     </div>
   </header>
 
@@ -150,37 +150,37 @@
         <tr><th>分组</th><th class="num">用例</th><th class="num">硬约束通过率</th><th class="num">平均分</th><th class="num">通过</th></tr>
       </thead>
       <tbody>
-        <tr><td>normal</td><td class="num">26</td><td class="num pass">100%</td><td class="num">0.9903</td><td class="num">26 / 26</td></tr>
-        <tr><td>conflict</td><td class="num">20</td><td class="num pass">100%</td><td class="num">0.9670</td><td class="num">20 / 20</td></tr>
-        <tr><td>edge</td><td class="num">14</td><td class="num pass">100%</td><td class="num">0.9542</td><td class="num">14 / 14</td></tr>
-        <tr><td>infeasible</td><td class="num">10</td><td class="num pass">100%</td><td class="num">1.0000</td><td class="num">10 / 10</td></tr>
-        <tr><td><strong>合计</strong></td><td class="num"><strong>70</strong></td><td class="num pass"><strong>100%</strong></td><td class="num"><strong>0.9778</strong></td><td class="num"><strong>70 / 70</strong></td></tr>
+        <tr><td>normal</td><td class="num">30</td><td class="num pass">100%</td><td class="num">0.9900</td><td class="num">30 / 30</td></tr>
+        <tr><td>conflict</td><td class="num">23</td><td class="num pass">100%</td><td class="num">0.9693</td><td class="num">23 / 23</td></tr>
+        <tr><td>edge</td><td class="num">16</td><td class="num pass">100%</td><td class="num">0.9569</td><td class="num">16 / 16</td></tr>
+        <tr><td>infeasible</td><td class="num">11</td><td class="num pass">100%</td><td class="num">1.0000</td><td class="num">11 / 11</td></tr>
+        <tr><td><strong>合计</strong></td><td class="num"><strong>80</strong></td><td class="num pass"><strong>100%</strong></td><td class="num"><strong>0.9788</strong></td><td class="num"><strong>80 / 80</strong></td></tr>
       </tbody>
     </table>
     <p class="section-note" style="margin-top:14px">
-      对照基线 <code>naive</code>：硬约束通过率 14.3%、均分 0.3057。差值 0.6721。
-      10 个 infeasible 用例因共享生成前判定而两组同分，区分度由其余 60 个用例提供——这一点在报告里如实写明。
+      对照基线 <code>naive</code>：硬约束通过率 13.8%、均分 0.3014。差值 0.6774。
+      11 个 infeasible 用例因共享生成前判定而两组同分，区分度由其余 69 个用例提供——这一点在报告里如实写明。
     </p>
   </section>
 
   <section>
     <h2>修复循环：从「有这个功能」到「有数据」</h2>
-    <p class="section-note">三种刻意构造的 provider，在同一批 60 个可满足 brief 上跑「允许修复一轮」。每次接受/拒绝都读 trace 里的 <code>accepted</code> 字段，不靠推断。</p>
+    <p class="section-note">三种刻意构造的 provider，在同一批 69 个可满足 brief 上跑「允许修复一轮」。每次接受/拒绝都读 trace 里的 <code>accepted</code> 字段，不靠推断。</p>
     <div class="cards">
       <div class="card">
         <span class="tag good">有效</span>
         <h3>repairable</h3>
-        <p>首轮 0% → 修复后 100%，一次修复成功率 <strong>60/60</strong>。说明校验报告作为修复提示是有效的。</p>
+        <p>首轮 0% → 修复后 100%，一次修复成功率 <strong>69/69</strong>。说明校验报告作为修复提示是有效的。</p>
       </div>
       <div class="card">
         <span class="tag warn">无效</span>
         <h3>naive</h3>
-        <p>忽略修复提示，<strong>60 次</strong>候选全部被拒绝，通过率不升。修复效果取决于 provider 是否真的使用报告。</p>
+        <p>忽略修复提示，<strong>69 次</strong>候选全部被拒绝，通过率不升。修复效果取决于 provider 是否真的使用报告。</p>
       </div>
       <div class="card">
         <span class="tag">被拦截</span>
         <h3>regressing</h3>
-        <p>「越修越差」的 <strong>60 次</strong>候选全被单调保护拦下，均分不降。有修复循环不等于质量会变好。</p>
+        <p>「越修越差」的 <strong>69 次</strong>候选全被单调保护拦下，均分不降。有修复循环不等于质量会变好。</p>
       </div>
     </div>
   </section>
@@ -193,9 +193,9 @@
         <tr><th>模型</th><th class="num">单次成本</th><th class="num">P50 / P95</th><th class="num">每天 100 次</th></tr>
       </thead>
       <tbody>
-        <tr><td><code>gpt-4o-mini</code></td><td class="num">0.002334 元</td><td class="num">800 / 800 ms</td><td class="num">0.23 元</td></tr>
-        <tr><td><code>deepseek-chat</code></td><td class="num">0.004311 元</td><td class="num">1200 / 1200 ms</td><td class="num">0.43 元</td></tr>
-        <tr><td><code>gpt-4o</code></td><td class="num">0.038796 元</td><td class="num">2500 / 2500 ms</td><td class="num">3.88 元</td></tr>
+        <tr><td><code>gpt-4o-mini</code></td><td class="num">0.002335 元</td><td class="num">800 / 800 ms</td><td class="num">0.23 元</td></tr>
+        <tr><td><code>deepseek-chat</code></td><td class="num">0.004314 元</td><td class="num">1200 / 1200 ms</td><td class="num">0.43 元</td></tr>
+        <tr><td><code>gpt-4o</code></td><td class="num">0.038822 元</td><td class="num">2500 / 2500 ms</td><td class="num">3.88 元</td></tr>
       </tbody>
     </table>
   </section>
@@ -204,10 +204,10 @@
     <h2>性能基准（离线 provider）</h2>
     <p class="section-note">不含模型延迟：测的是检索、解析、校验、修复循环与 trace 的常数成本。用 <code>tracemalloc</code> 单独一轮统计 Python 堆峰值，避免把内存开销算成延迟。</p>
     <div class="metrics perf">
-      <div class="metric good"><b>0.62 ms</b><span>P95 延迟</span></div>
-      <div class="metric good"><b>0.23 ms</b><span>P50 延迟</span></div>
-      <div class="metric good"><b>2947 /s</b><span>单核吞吐</span></div>
-      <div class="metric good"><b>0.02 MB</b><span>堆峰值（70 用例扫一遍 0.02s）</span></div>
+      <div class="metric good"><b>0.37 ms</b><span>P95 延迟</span></div>
+      <div class="metric good"><b>0.22 ms</b><span>P50 延迟</span></div>
+      <div class="metric good"><b>4106 /s</b><span>单核吞吐</span></div>
+      <div class="metric good"><b>0.02 MB</b><span>堆峰值（80 用例扫一遍 0.02s）</span></div>
     </div>
   </section>
 
@@ -217,10 +217,10 @@
       <div>
         <p class="section-note">结构化记录，来自对照组的真实输出；每条包含输入 brief、输出片段、期望规则与修复建议。新增规则前先在这里找证据。</p>
         <ul class="clean">
-          <li><code>TRANSFER_BUFFER</code><span>171 次 · 跨景点没留转场</span></li>
-          <li><code>UNKNOWN_LOCATION</code><span>150 次 · 编造不存在的地点</span></li>
-          <li><code>BUDGET_EXCEEDED</code><span>60 次 · 总花费超预算</span></li>
-          <li><code>TIME_OVERRUN</code><span>56 次 · 时间轴超出预约时长</span></li>
+          <li><code>TRANSFER_BUFFER</code><span>198 次 · 跨景点没留转场</span></li>
+          <li><code>UNKNOWN_LOCATION</code><span>186 次 · 编造不存在的地点</span></li>
+          <li><code>BUDGET_EXCEEDED</code><span>69 次 · 总花费超预算</span></li>
+          <li><code>TIME_OVERRUN</code><span>64 次 · 时间轴超出预约时长</span></li>
         </ul>
       </div>
       <div class="quote">
@@ -263,7 +263,7 @@
   <div class="wrap">
     <p><strong>shotplan</strong> · 可评测的旅拍方案 Agent · MIT</p>
     <p>本页是静态快照，数据来自仓库内由代码生成的评测报告、修复实验与失败案例库；交互式界面需本地运行 <code>python -m shotplan.cli serve</code>。</p>
-    <p class="mono">离线规则 provider 的 0.9778 是当前规则下的上限参考，不代表真实模型效果。</p>
+    <p class="mono">离线规则 provider 的 0.9788 是当前规则下的上限参考，不代表真实模型效果。</p>
   </div>
 </footer>
 

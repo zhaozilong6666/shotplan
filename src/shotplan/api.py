@@ -12,6 +12,7 @@ from typing import Any
 try:
     from fastapi import FastAPI, HTTPException, Request
     from fastapi.responses import FileResponse, JSONResponse
+    from starlette.concurrency import run_in_threadpool
 except ImportError as exc:  # pragma: no cover
     raise ImportError(
         "FastAPI is an optional dependency. Install with: "
@@ -69,12 +70,17 @@ async def create_plan(request: Request) -> JSONResponse:
             else build_provider()
         )
         cfg = get_settings()
-        result = run_plan(
-            brief,
-            provider=provider,
-            store=_store(),
-            settings=cfg,
-            max_repairs=cfg.max_repairs,
+        # The pipeline is synchronous CPU work (and, with a real provider, blocking
+        # network I/O). Calling it directly from an async endpoint would block the
+        # event loop and serialise every request. Hand it to the threadpool.
+        result = await run_in_threadpool(
+            lambda: run_plan(
+                brief,
+                provider=provider,
+                store=_store(),
+                settings=cfg,
+                max_repairs=cfg.max_repairs,
+            )
         )
         return JSONResponse(result.to_dict())
     except (ShotplanError, ValueError, TypeError) as exc:

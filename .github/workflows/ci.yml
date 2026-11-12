@@ -46,6 +46,9 @@ jobs:
       - name: Benchmark gate
         run: python -m evals.benchmark --check
 
+      - name: Concurrency gate
+        run: python -m evals.loadtest --check --requests 30
+
       - name: Showcase is up to date
         run: |
           python -m evals.cost_latency

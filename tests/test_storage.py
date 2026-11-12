@@ -53,3 +53,24 @@ def test_invalid_path_raises_storage_error(tmp_path):
     bad_file.write_text("x", encoding="utf-8")
     with pytest.raises(StorageError):
         RunStore(bad_file / "child" / "runs.db")
+
+
+def test_concurrent_writes_are_all_stored(tmp_path):
+    """Regression: per-request RunStore() raced on WAL init and lost writes.
+
+    Before the process-level init/write locks, 8 threads could produce
+    "attempt to write a readonly database" (surfacing as HTTP 422) or simply
+    drop rows. Every accepted run must be stored.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+
+    store = RunStore(tmp_path / "concurrent.db")
+    results = [run_plan(PlanRequest(hours=4 + i % 5),
+                        provider=MockProvider("good"), max_repairs=0) for i in range(24)]
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        run_ids = list(pool.map(store.save, results))
+
+    assert len(set(run_ids)) == 24
+    assert store.summary()["total_runs"] == 24
+    assert all(store.get(run_id) is not None for run_id in run_ids)

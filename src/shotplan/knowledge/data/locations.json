@@ -534,6 +534,187 @@
           "notes": "雨天兜底，光线完全可控"
         }
       ]
+    },
+    "nanjing": {
+      "name": "南京",
+      "center": "新街口",
+      "locations": [
+        {
+          "id": "zhonghua_gate",
+          "name": "中华门瓮城",
+          "district": "qinhuai",
+          "tags": [
+            "ming",
+            "architecture",
+            "open",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning",
+            "golden"
+          ],
+          "indoor": false,
+          "min_minutes": 90,
+          "travel_min_from_center": 20,
+          "cost_cny": 50,
+          "crowd": "medium",
+          "weather_risk": "medium",
+          "notes": "明代城门与马道，砖石肌理强，适合明制"
+        },
+        {
+          "id": "laomendong",
+          "name": "老门东",
+          "district": "qinhuai",
+          "tags": [
+            "ming",
+            "republic",
+            "street",
+            "human",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning",
+            "night"
+          ],
+          "indoor": false,
+          "min_minutes": 75,
+          "travel_min_from_center": 20,
+          "cost_cny": 0,
+          "crowd": "high",
+          "weather_risk": "medium",
+          "notes": "青砖马头墙与巷弄纵深，夜间灯笼亦可拍"
+        },
+        {
+          "id": "qinhuai_river",
+          "name": "秦淮河夫子庙",
+          "district": "qinhuai",
+          "tags": [
+            "song",
+            "republic",
+            "street",
+            "night",
+            "outdoor"
+          ],
+          "best_light": [
+            "golden",
+            "night"
+          ],
+          "indoor": false,
+          "min_minutes": 60,
+          "travel_min_from_center": 15,
+          "cost_cny": 0,
+          "crowd": "high",
+          "weather_risk": "medium",
+          "notes": "画舫与灯影倒映水面，节假日人流极大"
+        },
+        {
+          "id": "sun_yat_sen_mausoleum",
+          "name": "中山陵",
+          "district": "xuanwu",
+          "tags": [
+            "republic",
+            "open",
+            "architecture",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning"
+          ],
+          "indoor": false,
+          "min_minutes": 120,
+          "travel_min_from_center": 35,
+          "cost_cny": 0,
+          "crowd": "high",
+          "weather_risk": "high",
+          "notes": "长阶与蓝瓦，气势开阔；需预约，台阶耗时"
+        },
+        {
+          "id": "nanjing_museum",
+          "name": "南京博物院",
+          "district": "xuanwu",
+          "tags": [
+            "ming",
+            "indoor",
+            "controlled",
+            "human"
+          ],
+          "best_light": [
+            "any"
+          ],
+          "indoor": true,
+          "min_minutes": 90,
+          "travel_min_from_center": 20,
+          "cost_cny": 0,
+          "crowd": "medium",
+          "weather_risk": "low",
+          "notes": "免费需预约，民国馆场景完整"
+        },
+        {
+          "id": "xuanwu_lake",
+          "name": "玄武湖",
+          "district": "xuanwu",
+          "tags": [
+            "song",
+            "garden",
+            "open",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning",
+            "golden"
+          ],
+          "indoor": false,
+          "min_minutes": 90,
+          "travel_min_from_center": 20,
+          "cost_cny": 0,
+          "crowd": "medium",
+          "weather_risk": "high",
+          "notes": "湖面与城墙同框，风大时体感明显"
+        },
+        {
+          "id": "jiming_temple",
+          "name": "鸡鸣寺",
+          "district": "xuanwu",
+          "tags": [
+            "ming",
+            "tang",
+            "architecture",
+            "quiet",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning",
+            "golden"
+          ],
+          "indoor": false,
+          "min_minutes": 75,
+          "travel_min_from_center": 20,
+          "cost_cny": 20,
+          "crowd": "medium",
+          "weather_risk": "medium",
+          "notes": "黄墙与药师塔，樱花季人流激增；注意拍摄许可"
+        },
+        {
+          "id": "indoor_studio_nanjing",
+          "name": "南京室内影棚",
+          "district": "gulou",
+          "tags": [
+            "indoor",
+            "minimal",
+            "controlled"
+          ],
+          "best_light": [
+            "any"
+          ],
+          "indoor": true,
+          "min_minutes": 90,
+          "travel_min_from_center": 25,
+          "cost_cny": 400,
+          "crowd": "low",
+          "weather_risk": "low",
+          "notes": "雨天兜底，光线完全可控"
+        }
+      ]
     }
   }
 }
