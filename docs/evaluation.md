@@ -128,4 +128,6 @@ python -m pytest tests/test_scorers.py -q
 - [输入模糊测试](fuzz-report.md)：任意输入不崩的契约与可复现种子。
 - [性能基准](benchmark.md)：延迟分位、吞吐与内存画像。
 - [并发负载测试](loadtest.md)：并发下的错误数、丢写与饱和点。
+- [线程 vs 进程](scaling.md)：同一 workload 两种并行方式，说明瓶颈在 GIL。
+- [真实输出示例](examples.md)：四份由代码生成、可比对的结果，含一次结构化拒绝。
 - [可观测性说明](observability.md)：评测报告是实验，运行统计是实际使用记录，两者不能互相替代。

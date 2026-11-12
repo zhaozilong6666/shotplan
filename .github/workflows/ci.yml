@@ -49,6 +49,12 @@ jobs:
       - name: Concurrency gate
         run: python -m evals.loadtest --check --requests 30
 
+      - name: Scaling gate
+        run: python -m evals.scaling --check --requests 300 --workers 1 2
+
+      - name: Examples are up to date
+        run: python -m evals.examples --check
+
       - name: Showcase is up to date
         run: |
           python -m evals.cost_latency

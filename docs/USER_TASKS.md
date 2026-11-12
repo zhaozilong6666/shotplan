@@ -59,7 +59,7 @@ git ls-files | grep -E "\.env$|\.db$|evals/out/" || echo "没有敏感文件被�
 
 | 检查 | 结果 |
 | --- | --- |
-| `pytest` | 155 passed（本机 Python 3.13），覆盖率 89% |
+| `pytest` | 166 passed（本机 Python 3.13），覆盖率 89% |
 | `ruff check src tests evals scripts` | All checks passed |
 | `evals.run_eval --compare v6` | 80/80，均分 0.9788，对照组 0.3014，差值 0.6774，退出码 0 |
 | 不可满足需求 | 11/11 正确结构化拒绝 |
@@ -192,4 +192,4 @@ curl https://你的地址/api/health
 
 ## 我这边已经做完、你不用管的
 
-仓库结构与全部源码、155 个单元测试、80 个评测用例与六代对照基线、自动生成的评测报告、架构文档与 8 份 ADR、CI 工作流（含评测阈值、修复实验、失败案例库、模糊测试、性能基准、并发负载、覆盖率与展示页一致性八道门禁）、Docker 配置、Web 界面（含运行统计视图）、中英文 README、GitHub Pages 静态展示页、路线图、面试讲稿、排错手册、GitHub 建仓与推送、仓库描述与 topics、CI 跨版本浮点问题修复、代理受限时的 API 推送脚本、生成前可行性判定、prompt v1/v2 对比框架、成本/延迟报告与模拟 provider、修复循环实验、结构化失败案例库、按 provider / prompt 版本聚合的运行统计面板。本地已验证：测试全绿、评测退出码 0、CLI 与 API 端到端可用；GitHub Actions 4 个 Python 版本全部通过。
+仓库结构与全部源码、166 个单元测试、80 个评测用例与六代对照基线、自动生成的评测报告、架构文档与 8 份 ADR、CI 工作流（含评测阈值、修复实验、失败案例库、模糊测试、性能基准、并发负载、扩展性、示例一致性、覆盖率与展示页一致性十道门禁）、Docker 配置、Web 界面（含运行统计视图）、中英文 README、GitHub Pages 静态展示页、路线图、面试讲稿、排错手册、GitHub 建仓与推送、仓库描述与 topics、CI 跨版本浮点问题修复、代理受限时的 API 推送脚本、生成前可行性判定、prompt v1/v2 对比框架、成本/延迟报告与模拟 provider、修复循环实验、结构化失败案例库、按 provider / prompt 版本聚合的运行统计面板。本地已验证：测试全绿、评测退出码 0、CLI 与 API 端到端可用；GitHub Actions 4 个 Python 版本全部通过。

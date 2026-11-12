@@ -1,4 +1,4 @@
-.PHONY: help install test lint eval report fuzz bench load gates showcase serve plan smoke clean
+.PHONY: help install test lint eval report fuzz bench load scale examples gates showcase serve plan smoke clean
 
 PYTHON ?= python
 
@@ -12,6 +12,8 @@ help:
 	@echo "  fuzz      确定性模糊测试（1000 次变异，生成报告）"
 	@echo "  bench     性能基准（P50/P95、吞吐、堆峰值）"
 	@echo "  load      并发负载测试（错误数、丢写、饱和点）"
+	@echo "  scale     线程 vs 进程扩展性对比"
+	@echo "  examples  重新生成 docs/examples.md 真实输出示例"
 	@echo "  gates     本地跑一遍 CI 的全部质量门禁"
 	@echo "  showcase  重新生成展示页数据块"
 	@echo "  plan      用离线 mock 生成一份示例方案"
@@ -46,6 +48,8 @@ gates:
 	$(PYTHON) -m evals.fuzz --check --iterations 500
 	$(PYTHON) -m evals.benchmark --check
 	$(PYTHON) -m evals.loadtest --check
+	$(PYTHON) -m evals.scaling --check --requests 300
+	$(PYTHON) -m evals.examples --check
 
 showcase:
 	$(PYTHON) -m evals.cost_latency --write-report

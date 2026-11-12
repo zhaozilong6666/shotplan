@@ -20,7 +20,7 @@
 - [x] SQLite 运行历史与聚合摘要
 - [x] 可选 FastAPI 层与原生单页界面（五种视图）
 - [x] 版本化 prompt、真实模型 provider（urllib + 重试 + 降级）
-- [x] 155 个单元测试，逐条覆盖规则、可行性与边界
+- [x] 166 个单元测试，逐条覆盖规则、可行性与边界
 
 验收：`python -m pytest` 全绿；`python -m shotplan.cli serve` 后界面能切换 good/naive 并看到问题清单。
 
@@ -33,6 +33,8 @@
 - [x] 输入模糊测试：1000 个变异 brief、可复现种子、0 未捕获异常（见 [fuzz-report.md](fuzz-report.md)）
 - [x] 性能基准：P50/P95、吞吐、堆峰值，延迟与内存分轮测量（见 [benchmark.md](benchmark.md)）
 - [x] 并发负载测试：并发 1/4/8 下 0 错误、0 丢写，并记录饱和点（见 [loadtest.md](loadtest.md)）
+- [x] 线程 vs 进程扩展性：线程约 1.04×、进程约 1.72×，证明瓶颈在 GIL（见 [scaling.md](scaling.md)）
+- [x] 真实输出示例：四份由代码生成、可 `--check` 比对的结果（见 [examples.md](examples.md)）
 - [x] GitHub Actions：测试 + lint + 评测门禁（Python 3.10–3.13 四版本矩阵）
 
 验收：`python -m evals.run_eval --write-report` 退出码 0；实测 80/80 通过、均分 0.9788、对照组 0.3014。
