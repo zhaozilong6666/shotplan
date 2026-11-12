@@ -150,7 +150,7 @@ shotplan/
 ├── web/               # 无构建步骤的原生单页界面（5 个视图）
 ├── evals/             # 70 个用例、打分器、修复实验、模糊测试、基准、基线
 ├── tests/             # 148 个单元测试，逐条覆盖规则、健壮性与边界
-└── docs/              # 架构、指标、7 份 ADR、运维、面试笔记
+└── docs/              # 架构、指标、8 份 ADR、运维、面试笔记
 ```
 
 核心引擎只用 Python 标准库；FastAPI / pytest / ruff 都是可选层。这个分层让「没有 key 也能完整跑通」成为设计，而不是妥协。
@@ -166,6 +166,7 @@ shotplan/
 | [0005](docs/adr/0005-no-frontend-framework.md) | 前端不用 React / 无构建步骤 | 把复杂度预算留给 Agent 逻辑 |
 | [0006](docs/adr/0006-scoring-determinism.md) | 评分固定精度 + 精确求和 | 同一输入在 3.10–3.13 上必须逐位一致 |
 | [0007](docs/adr/0007-feasibility-before-generation.md) | 可行性判定在生成之前 | 「能不能做」是算术问题，不该交给模型 |
+| [0008](docs/adr/0008-fuzz-and-benchmark-gates.md) | 模糊测试与性能基准作为门禁 | 「不崩」和「不慢」必须是可判定的，不能靠人工 review |
 
 ## 可选：接真实模型、启动界面、部署
 

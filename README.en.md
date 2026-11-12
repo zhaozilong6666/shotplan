@@ -127,6 +127,7 @@ The core uses only the Python standard library; FastAPI / pytest / ruff are opti
 | [0005](docs/adr/0005-no-frontend-framework.md) | No frontend framework / build step | Spend the complexity budget on agent logic |
 | [0006](docs/adr/0006-scoring-determinism.md) | Fixed-precision scores with exact summation | Identical inputs must produce bit-identical scores on Python 3.10–3.13 |
 | [0007](docs/adr/0007-feasibility-before-generation.md) | Feasibility before generation | "Can this be done?" is arithmetic, not a model task |
+| [0008](docs/adr/0008-fuzz-and-benchmark-gates.md) | Fuzzing and benchmarks as gates | "Never crashes" and "never slow" must be testable, not reviewed by hand |
 
 ## Optional: real model, UI, deployment
 

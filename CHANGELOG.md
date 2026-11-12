@@ -19,6 +19,7 @@
 - **`DATE_INVALID` 预检原因**：非法日期（如 `2026-02-30`）在生成前结构化拒绝，而不是让 `light_window` 抛 `KnowledgeError`。
 - 新增两个 CI 门禁：`evals.fuzz --check`、`evals.benchmark --check`；展示页新增性能块，并把两处手写计数改为脚本生成。
 - `Makefile` 新增 `fuzz`、`bench`、`gates`、`showcase` 目标，`report` 的基线修正为 `v5`。
+- [ADR 0008](docs/adr/0008-fuzz-and-benchmark-gates.md)：记录两项门禁的决策、测量偏差（`tracemalloc` 污染延迟）与备选方案（Hypothesis、pytest-benchmark）被拒的理由。
 
 ### Fixed
 
