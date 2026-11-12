@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from evals.repair_lab import (
+    ArmResult,
     RegressingProvider,
     RepairableProvider,
     build_report,
+    check_arms,
     run_arm,
 )
 
@@ -76,3 +78,33 @@ def test_report_is_renderable():
     assert "修复循环实验报告" in text
     assert "单调保护" in text
     assert "repairable/repairs=1" in text
+
+
+def test_check_arms_passes_on_constructed_metrics():
+    cases = [{"id": "X1", "request": {"hours": 6}}]
+    arms = [
+        run_arm(cases, name, repairs)
+        for name in ("naive", "repairable", "regressing")
+        for repairs in (0, 1)
+    ]
+    assert check_arms(arms) == []
+
+
+def test_check_arms_flags_a_broken_guard():
+    broken = [
+        ArmResult(
+            arm="repairable/repairs=1", provider="repairable", max_repairs=1,
+            cases=1, repairable_cases=1, repaired_successfully=0,
+        ),
+        ArmResult(
+            arm="regressing/repairs=1", provider="regressing", max_repairs=1,
+            cases=1, accepted=1,
+        ),
+        ArmResult(
+            arm="naive/repairs=1", provider="naive", max_repairs=1,
+            cases=1, accepted=1,
+        ),
+    ]
+    problems = check_arms(broken)
+    assert len(problems) == 3
+    assert any("monotonic guard" in problem for problem in problems)

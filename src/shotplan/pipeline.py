@@ -118,6 +118,7 @@ def run_plan(
     generation = agent.generate(req, context)
     collector.record(
         "generate", tick,
+        duration_ms=generation.duration_ms,
         tokens_in=generation.tokens_in,
         tokens_out=generation.tokens_out,
         cost_cny=generation.cost_cny,
@@ -158,6 +159,7 @@ def run_plan(
         )
         collector.record(
             f"repair_{repairs}", tick,
+            duration_ms=fixed.duration_ms,
             tokens_in=fixed.tokens_in,
             tokens_out=fixed.tokens_out,
             cost_cny=fixed.cost_cny,

@@ -110,7 +110,7 @@ shotplan/
 │   └── cli.py         # CLI entry point
 ├── web/               # Dependency-free single-page UI (5 tabs)
 ├── evals/             # 36 cases, scorers, report generator, repair lab, failure library
-├── tests/             # 102 unit tests
+├── tests/             # 109 unit tests
 └── docs/              # Architecture, metrics, 7 ADRs, ops, interview notes
 ```
 

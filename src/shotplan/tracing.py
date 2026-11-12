@@ -23,12 +23,15 @@ class TraceCollector:
         name: str,
         started: float,
         *,
+        duration_ms: float | None = None,
         tokens_in: int = 0,
         tokens_out: int = 0,
         cost_cny: float = 0.0,
         **detail: Any,
     ) -> None:
-        duration = (time.perf_counter() - started) * 1000
+        # Providers measure their own round-trip; prefer that over the
+        # orchestrator's timer when it is available (network, retries, simulated latency).
+        duration = duration_ms if duration_ms is not None else (time.perf_counter() - started) * 1000
         self.trace.events.append(
             TraceEvent(
                 step=len(self.trace.events) + 1,

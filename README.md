@@ -3,7 +3,7 @@
 > 把一句模糊的「想去西安拍汉服」，变成一份**能执行、能核对、能追溯**的小时级方案。
 > 这是一个可评测的 Agent 系统，不是又一个聊天框。
 
-[English README](README.en.md) · ![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![CI](https://github.com/zhaozilong6666/shotplan/actions/workflows/ci.yml/badge.svg)
+[English README](README.en.md) · [在线展示](https://zhaozilong6666.github.io/shotplan/) · ![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![CI](https://github.com/zhaozilong6666/shotplan/actions/workflows/ci.yml/badge.svg)
 
 ---
 
@@ -147,7 +147,7 @@ shotplan/
 │   └── cli.py         # 命令行入口
 ├── web/               # 无构建步骤的原生单页界面（5 个视图）
 ├── evals/             # 36 个用例、打分器、报告、基线、修复实验、失败案例库
-├── tests/             # 102 个单元测试，逐条覆盖规则与边界
+├── tests/             # 109 个单元测试，逐条覆盖规则与边界
 └── docs/              # 架构、指标、7 份 ADR、运维、面试笔记
 ```
 

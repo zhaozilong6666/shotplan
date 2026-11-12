@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from evals.collect_failures import build_gallery, collect_failures
+from evals.collect_failures import build_gallery, check_records, collect_failures
 
 
 def test_failure_records_are_complete():
@@ -30,3 +30,14 @@ def test_gallery_documents_every_code():
     for code in {r["code"] for r in records}:
         assert f"`{code}`" in text
     assert "真实模型" in text
+
+
+def test_check_records_passes_on_current_library():
+    assert check_records(collect_failures()) == []
+
+
+def test_check_records_flags_thin_or_incomplete_library():
+    assert check_records([], min_records=1)
+    thin = [{"case_id": "X", "code": "A", "expected": "", "suggestion": ""}]
+    problems = check_records(thin, min_records=1, min_codes=1)
+    assert any("missing expected/suggestion" in problem for problem in problems)

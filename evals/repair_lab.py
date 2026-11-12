@@ -174,6 +174,29 @@ def run_arm(
     return arm
 
 
+def check_arms(
+    arms: list[ArmResult], min_one_shot_repair_rate: float = 0.90
+) -> list[str]:
+    """CI gate: the repair loop must work, and must refuse worse drafts."""
+    problems: list[str] = []
+    by_arm = {a.arm: a.metrics() for a in arms}
+    repairable = by_arm.get("repairable/repairs=1", {})
+    rate = repairable.get("one_shot_repair_rate", 0.0)
+    if rate < min_one_shot_repair_rate:
+        problems.append(
+            f"one-shot repair rate {rate} is below {min_one_shot_repair_rate}: "
+            "the repair hint is not being used"
+        )
+    for arm_name in ("regressing/repairs=1", "naive/repairs=1"):
+        accepted = by_arm.get(arm_name, {}).get("accepted", 0)
+        if accepted:
+            problems.append(
+                f"{arm_name} accepted {accepted} non-improving draft(s); "
+                "the monotonic guard is broken"
+            )
+    return problems
+
+
 def build_report(arms: list[ArmResult], case_count: int) -> str:
     rows = []
     for arm in arms:
@@ -242,6 +265,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--write-report", action="store_true")
     parser.add_argument("--report-path", type=Path, default=DEFAULT_REPORT)
     parser.add_argument("--out", type=Path, default=OUT_DIR / "repair-experiment.json")
+    parser.add_argument("--check", action="store_true", help="CI gate on repair metrics")
+    parser.add_argument("--min-one-shot-repair-rate", type=float, default=0.90)
     args = parser.parse_args(argv)
 
     cases = _satisfiable_cases()
@@ -266,10 +291,17 @@ def main(argv: list[str] | None = None) -> int:
         m = arm.metrics()
         print(f"  {m['arm']:<24} first={m['first_pass_rate']:<6} after={m['after_pass_rate']:<6} "
               f"one-shot={m['one_shot_repair_rate']:<6} accepted/rejected={m['accepted']}/{m['rejected']}")
+    problems = check_arms(arms, args.min_one_shot_repair_rate) if args.check else []
+    if problems:
+        print("REPAIR GATE FAILED:")
+        for problem in problems:
+            print(f"  - {problem}")
+    elif args.check:
+        print("repair gate: OK")
     if args.write_report:
         print(f"report: {args.report_path}")
     print(f"raw: {args.out}")
-    return 0
+    return 1 if problems else 0
 
 
 if __name__ == "__main__":

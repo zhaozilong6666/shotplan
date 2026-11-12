@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shotplan · 可评测的旅拍方案 Agent</title>
+<meta name="description" content="一个把「可执行」写成可测试规则、并用对照组评测证明质量可测量的 AI Agent 项目。">
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --surface: #ffffff;
+    --ink: #14181f;
+    --muted: #5c6673;
+    --line: #e3e7ec;
+    --brand: #2f5bd7;
+    --brand-soft: #e9eefc;
+    --good: #157a4a;
+    --good-soft: #e7f5ee;
+    --warn: #a35a00;
+    --warn-soft: #fdf1e0;
+    --bad: #b42318;
+    --bad-soft: #fdeceb;
+    --radius: 14px;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { width: min(1080px, calc(100% - 40px)); margin: 0 auto; }
+  a { color: var(--brand); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code { font-family: var(--mono); font-size: .92em; background: #eef1f5; padding: 1px 5px; border-radius: 5px; }
+
+  .hero { background: linear-gradient(180deg, #ffffff 0%, #f9fafc 100%); border-bottom: 1px solid var(--line); padding: 56px 0 40px; }
+  .eyebrow { font-size: 12px; letter-spacing: .14em; color: var(--muted); text-transform: uppercase; margin-bottom: 14px; }
+  h1 { font-size: clamp(38px, 6vw, 58px); line-height: 1.05; margin: 0 0 12px; letter-spacing: -.02em; }
+  .lede { font-size: clamp(18px, 2.2vw, 22px); margin: 0 0 14px; max-width: 760px; }
+  .sub { color: var(--muted); max-width: 820px; margin: 0 0 24px; }
+  .links { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 34px; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 15px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 14px; }
+  .btn.primary { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .btn:hover { text-decoration: none; border-color: #c9d0d9; }
+  .btn.primary:hover { background: #000; }
+
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+  .metric { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
+  .metric b { display: block; font-size: 30px; line-height: 1.15; letter-spacing: -.02em; }
+  .metric span { color: var(--muted); font-size: 13px; }
+  .metric.good b { color: var(--good); }
+  .metric.bad b { color: var(--bad); }
+
+  main { padding: 44px 0 20px; }
+  section { margin-bottom: 46px; }
+  h2 { font-size: 22px; margin: 0 0 6px; letter-spacing: -.01em; }
+  .section-note { color: var(--muted); margin: 0 0 20px; max-width: 820px; }
+  h3 { font-size: 15px; margin: 0 0 6px; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
+  .card p { color: var(--muted); margin: 0; font-size: 14px; }
+  .tag { display: inline-block; font-size: 12px; padding: 2px 9px; border-radius: 999px; background: var(--brand-soft); color: var(--brand); margin-bottom: 10px; }
+  .tag.good { background: var(--good-soft); color: var(--good); }
+  .tag.warn { background: var(--warn-soft); color: var(--warn); }
+
+  table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; font-size: 14px; }
+  th, td { padding: 11px 14px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: #fbfcfd; font-weight: 600; color: var(--muted); font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+  tr:last-child td { border-bottom: none; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .pass { color: var(--good); font-weight: 600; }
+  .fail { color: var(--bad); font-weight: 600; }
+
+  .split { display: grid; grid-template-columns: 1.15fr .85fr; gap: 16px; }
+  @media (max-width: 820px) { .split { grid-template-columns: 1fr; } }
+
+  .quote { border-left: 3px solid var(--brand); background: var(--surface); border-radius: 0 var(--radius) var(--radius) 0; padding: 16px 18px; color: var(--muted); }
+  .quote strong { color: var(--ink); }
+
+  ul.clean { list-style: none; padding: 0; margin: 0; }
+  ul.clean li { padding: 10px 0; border-bottom: 1px solid var(--line); display: flex; gap: 10px; justify-content: space-between; font-size: 14px; }
+  ul.clean li:last-child { border-bottom: none; }
+  ul.clean span { color: var(--muted); }
+
+  footer { border-top: 1px solid var(--line); padding: 26px 0 44px; color: var(--muted); font-size: 13px; }
+  footer p { margin: 6px 0; }
+  .mono { font-family: var(--mono); font-size: 12px; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Case study · AI agent · Evaluation</div>
+    <h1>shotplan</h1>
+    <p class="lede">把一句模糊的「想去西安拍汉服」，变成<strong>能执行、能核对、能追溯</strong>的小时级方案。</p>
+    <p class="sub">
+      核心不是调模型，而是让质量可被测量：生成前先判定需求是否可满足，生成后用一层<strong>不经过模型</strong>的硬约束校验器判定，并以带<strong>对照组</strong>的 36 个用例守住回归。
+      技术栈 Python / FastAPI / SQLite；核心引擎仅标准库，无 API key 也能完整跑通。
+    </p>
+    <div class="links">
+      <a class="btn primary" href="https://github.com/zhaozilong6666/shotplan">GitHub 仓库</a>
+      <a class="btn" href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/eval-report.md">评测报告</a>
+      <a class="btn" href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/repair-experiment.md">修复实验</a>
+      <a class="btn" href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/failure-gallery.md">失败案例库</a>
+      <a class="btn" href="https://github.com/zhaozilong6666/shotplan/blob/main/README.en.md">English</a>
+    </div>
+    <div class="metrics">
+      <div class="metric good"><b>36 / 36</b><span>评测用例通过</span></div>
+      <div class="metric good"><b>0.9811</b><span>规则 Agent 均分</span></div>
+      <div class="metric good"><b>100%</b><span>硬约束通过率</span></div>
+      <div class="metric bad"><b>0.6561</b><span>与对照组的差值</span></div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section>
+    <h2>三件不交给模型的事</h2>
+    <p class="section-note">「AI 系统里哪些判断必须由确定性代码负责」，是这个项目最想回答的问题。</p>
+    <div class="cards">
+      <div class="card">
+        <span class="tag">生成前</span>
+        <h3>需求是否可满足</h3>
+        <p>预算低于 350 元、时长短于 1.5 小时、城市不在知识库、必去与排除冲突时，直接返回原因、缺口、建议与理论下限，不生成硬凑方案。CLI 退出码 3，API 返回 <code>status=infeasible</code>。</p>
+      </div>
+      <div class="card">
+        <span class="tag">生成后</span>
+        <h3>方案是否可执行</h3>
+        <p>时间不重叠、妆造先于拍摄、跨景点至少 20 分钟转场、预算不超、地点必须在白名单。12 条规则单一定义源，校验器、打分器、文档与 API 共用同一份定义。</p>
+      </div>
+      <div class="card">
+        <span class="tag">评测</span>
+        <h3>测量本身是否有效</h3>
+        <p>同一批 brief 上同时跑规则 Agent 与故意犯错的对照组。若对照组均分追上正式方案，CI 判定「测量失效」并失败——先证明尺子是准的，再谈分数。</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>评测结果</h2>
+    <p class="section-note">36 个用例：normal 13、conflict 10、edge 7、infeasible 6。最后一组描述数学上无法满足的 brief，正确行为是结构化拒绝而非硬凑方案。</p>
+    <table>
+      <thead>
+        <tr><th>分组</th><th class="num">用例</th><th class="num">硬约束通过率</th><th class="num">平均分</th><th class="num">通过</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>normal</td><td class="num">13</td><td class="num pass">100%</td><td class="num">0.9892</td><td class="num">13 / 13</td></tr>
+        <tr><td>conflict</td><td class="num">10</td><td class="num pass">100%</td><td class="num">0.9680</td><td class="num">10 / 10</td></tr>
+        <tr><td>edge</td><td class="num">7</td><td class="num pass">100%</td><td class="num">0.9688</td><td class="num">7 / 7</td></tr>
+        <tr><td>infeasible</td><td class="num">6</td><td class="num pass">100%</td><td class="num">1.0000</td><td class="num">6 / 6</td></tr>
+        <tr><td><strong>合计</strong></td><td class="num"><strong>36</strong></td><td class="num pass"><strong>100%</strong></td><td class="num"><strong>0.9811</strong></td><td class="num"><strong>36 / 36</strong></td></tr>
+      </tbody>
+    </table>
+    <p class="section-note" style="margin-top:14px">
+      对照基线 <code>naive</code>：硬约束通过率 16.7%、均分 0.3250。差值 0.6561。
+      6 个 infeasible 用例因共享生成前判定而两组同分，区分度由其余 30 个用例提供——这一点在报告里如实写明。
+    </p>
+  </section>
+
+  <section>
+    <h2>修复循环：从「有这个功能」到「有数据」</h2>
+    <p class="section-note">三种刻意构造的 provider，在同一批 30 个可满足 brief 上跑「允许修复一轮」。每次接受/拒绝都读 trace 里的 <code>accepted</code> 字段，不靠推断。</p>
+    <div class="cards">
+      <div class="card">
+        <span class="tag good">有效</span>
+        <h3>repairable</h3>
+        <p>首轮 0% → 修复后 100%，一次修复成功率 <strong>30/30</strong>。说明校验报告作为修复提示是有效的。</p>
+      </div>
+      <div class="card">
+        <span class="tag warn">无效</span>
+        <h3>naive</h3>
+        <p>忽略修复提示，<strong>30 次</strong>候选全部被拒绝，通过率不升。修复效果取决于 provider 是否真的使用报告。</p>
+      </div>
+      <div class="card">
+        <span class="tag">被拦截</span>
+        <h3>regressing</h3>
+        <p>「越修越差」的 <strong>30 次</strong>候选全被单调保护拦下，均分不降。有修复循环不等于质量会变好。</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>成本与延迟（模拟，非实测）</h2>
+    <p class="section-note">用可配置价格卡在离线 provider 上跑同一批 36 个用例，验证从 token → trace → 报告 → 预算换算的链路。数字是模拟值，接入真实模型后应替换为实测。</p>
+    <table>
+      <thead>
+        <tr><th>模型</th><th class="num">单次成本</th><th class="num">P50 / P95</th><th class="num">每天 100 次</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>gpt-4o-mini</code></td><td class="num">0.002339 元</td><td class="num">800 / 800 ms</td><td class="num">0.23 元</td></tr>
+        <tr><td><code>deepseek-chat</code></td><td class="num">0.004322 元</td><td class="num">1200 / 1200 ms</td><td class="num">0.43 元</td></tr>
+        <tr><td><code>gpt-4o</code></td><td class="num">0.038894 元</td><td class="num">2500 / 2500 ms</td><td class="num">3.89 元</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>失败案例库</h2>
+    <div class="split">
+      <div>
+        <p class="section-note">170 条结构化记录，来自对照组的真实输出；每条包含输入 brief、输出片段、期望规则与修复建议。新增规则前先在这里找证据。</p>
+        <ul class="clean">
+          <li><code>TRANSFER_BUFFER</code><span>81 次 · 跨景点没留转场</span></li>
+          <li><code>BUDGET_EXCEEDED</code><span>30 次 · 总花费超预算</span></li>
+          <li><code>UNKNOWN_LOCATION</code><span>30 次 · 编造不存在的地点</span></li>
+          <li><code>TIME_OVERRUN</code><span>29 次 · 时间轴超出预约时长</span></li>
+        </ul>
+      </div>
+      <div class="quote">
+        <p><strong>为什么值得看：</strong>每条规则都能追溯到一个真实失败，而不是拍脑袋加条款。接真实模型后，新错误按同样格式追加，再补规则与用例。</p>
+        <p class="mono">python -m evals.collect_failures --write-report</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>工程与决策记录</h2>
+    <div class="split">
+      <div class="card">
+        <h3>可复现的入口</h3>
+        <p class="mono" style="color:var(--ink); line-height:1.9">
+          python -m shotplan.cli plan<br>
+          python -m shotplan.cli plan --budget 100<br>
+          python -m evals.run_eval --write-report<br>
+          python -m evals.repair_lab --check<br>
+          python -m evals.collect_failures --check<br>
+          python -m shotplan.cli stats
+        </p>
+        <p style="margin-top:10px">102 个单元测试；CI 覆盖 Python 3.10 / 3.11 / 3.12 / 3.13。</p>
+      </div>
+      <div class="card">
+        <h3>7 份 ADR</h3>
+        <ul class="clean">
+          <li><a href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/adr/0002-validator-outside-model.md">0002 校验器不经过模型</a></li>
+          <li><a href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/adr/0006-scoring-determinism.md">0006 评分跨版本逐位一致</a></li>
+          <li><a href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/adr/0007-feasibility-before-generation.md">0007 可行性判定在生成之前</a></li>
+          <li><a href="https://github.com/zhaozilong6666/shotplan/tree/main/docs/adr">全部 ADR →</a></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><strong>shotplan</strong> · 可评测的旅拍方案 Agent · MIT</p>
+    <p>本页是静态快照，数据来自仓库内由代码生成的评测报告、修复实验与失败案例库；交互式界面需本地运行 <code>python -m shotplan.cli serve</code>。</p>
+    <p class="mono">离线规则 provider 的 0.9811 是当前规则下的上限参考，不代表真实模型效果。</p>
+  </div>
+</footer>
+
+</body>
+</html>

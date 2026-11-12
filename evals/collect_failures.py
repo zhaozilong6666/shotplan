@@ -74,6 +74,33 @@ def collect_failures() -> list[dict[str, Any]]:
     return records
 
 
+def check_records(
+    records: list[dict[str, Any]], min_records: int = 100, min_codes: int = 4
+) -> list[str]:
+    """CI gate: the failure library must stay populated and actionable."""
+    problems: list[str] = []
+    if len(records) < min_records:
+        problems.append(
+            f"only {len(records)} failure records, expected >= {min_records}"
+        )
+    codes = {record["code"] for record in records}
+    if len(codes) < min_codes:
+        problems.append(
+            f"only {len(codes)} distinct codes, expected >= {min_codes}: {sorted(codes)}"
+        )
+    incomplete = [
+        record["case_id"]
+        for record in records
+        if not record["expected"] or not record["suggestion"]
+    ]
+    if incomplete:
+        problems.append(
+            f"{len(incomplete)} record(s) missing expected/suggestion, "
+            f"e.g. {sorted(set(incomplete))[:3]}"
+        )
+    return problems
+
+
 def build_gallery(records: list[dict[str, Any]]) -> str:
     counts = Counter(r["code"] for r in records)
     grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
@@ -158,6 +185,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--write-report", action="store_true")
     parser.add_argument("--cases-path", type=Path, default=DEFAULT_CASES)
     parser.add_argument("--report-path", type=Path, default=DEFAULT_GALLERY)
+    parser.add_argument("--check", action="store_true", help="CI gate on library coverage")
     args = parser.parse_args(argv)
 
     records = collect_failures()
@@ -174,10 +202,17 @@ def main(argv: list[str] | None = None) -> int:
     print(f"failures: {len(records)} records, {len(counts)} distinct codes")
     for code, count in counts.most_common():
         print(f"  {code}: {count}")
+    problems = check_records(records) if args.check else []
+    if problems:
+        print("FAILURE GATE FAILED:")
+        for problem in problems:
+            print(f"  - {problem}")
+    elif args.check:
+        print("failure gate: OK")
     if args.write_report:
         print(f"gallery: {args.report_path}")
     print(f"cases: {args.cases_path}")
-    return 0
+    return 1 if problems else 0
 
 
 if __name__ == "__main__":
