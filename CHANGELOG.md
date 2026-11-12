@@ -45,3 +45,4 @@
 ### Changed
 
 - 首次推送 GitHub 并接入 CI 后补齐仓库描述、topics 与真实徽章链接；`docs/USER_TASKS.md` 改为按当前状态记录已完成/待办事项。
+- 新增 `scripts/push_via_api.py`：代理只放行 `api.github.com` 时，通过 Git Data API 完成等价推送（逐对象校验 SHA、密钥不落盘），并在排错手册记录故障处置。

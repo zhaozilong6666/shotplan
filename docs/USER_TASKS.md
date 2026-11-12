@@ -7,13 +7,13 @@
 
 ## 现在还需要你本人做的，只有这三件
 
-| # | 事项 | 时机 | 为什么只能你做 |
+| # | 事项 | 时机 | 为什么只能我/你做 |
 | --- | --- | --- | --- |
-| 1 | 把 3 条 bullets 贴进简历 | 现在 | 简历是你本人的 |
+| 1 | 把 3 条 bullets 贴进简历 | 现在 | 简历是你本人的，只有你能改 |
 | 2 | 申请一个 API key（可选） | 阶段 4 | 需要注册并实名/付款的服务 |
 | 3 | 注册部署平台账号（可选） | 阶段 5 | 需要你的账号授权 |
 
-其余全部已完成或由我继续推进。
+其余全部已完成或由我继续推进。需要你配合时，我会给「一步一条命令 + 验证方法」，不会让你自己去查。
 
 ---
 
@@ -25,10 +25,13 @@
 2. 网页上已经建好了空的 `shotplan` 仓库，但本地目录还不是 git 仓库（`git init` 没执行），所以推送命令必然报错。
 3. `README.md` 里还有 `YOUR_NAME` 占位符，直接推上去 CI 徽章会是死链。
 4. 手册里的 `grep`、`python -c "..."` 在 PowerShell 下容易因引号和命令不存在而报错，需要 Git Bash 或等价写法。
+5. 本机代理只放行 `api.github.com`，`github.com` 的 CONNECT 隧道返回 502，第二次 `git push` 因此失败。
 
-**已完成的操作**：替换占位符 → 仓库级配置提交身份 → `git init` → 提交全部文件 → 设置 `origin` → 推送 `main` → 通过 API 补齐仓库描述与 topics → 检查 CI 首次运行结论。提交身份只写在**本仓库**，没有改动你的全局 git 配置。
+**已完成的操作**：替换占位符 → 仓库级配置提交身份 → `git init` → 提交全部文件 → 设置 `origin` → 推送 `main` → 通过 API 补齐仓库描述与 topics → 修复 CI 首轮暴露的问题 → 复跑 4 个 Python 版本全部通过。提交身份只写在**本仓库**，没有改动你的全局 git 配置。
 
-**CI 顺带抓到并修掉的一个真问题**：首次运行在 Python 3.10 / 3.11 上失败、3.12 / 3.13 通过 —— 3.12 起内置 `sum()` 改用补偿求和，导致同一份满分方案在旧版本上算出 `1.0000000000000002`。已把评分改为 `math.fsum` + 固定 6 位精度，评测聚合同步处理，并加了契约测试与 [ADR 0006](adr/0006-scoring-determinism.md)。这类跨解释器差异本地单版本跑不出来，只有推上 CI 才暴露，所以这一步不能省。
+**CI 顺带抓到并修掉的一个真问题**：首次运行在 Python 3.10 / 3.11 上失败、3.12 / 3.13 通过 —— 3.12 起内置 `sum()` 改用补偿求和，导致同一份满分方案在旧版本上算出 `1.0000000000000002`。已把评分改为 `math.fsum` + 固定 6 位精度，评测聚合同步处理，并加了契约测试与 [ADR 0006](adr/0006-scoring-determinism.md)。这类跨解释器差异本地单版本跑不出来，只有推上 CI 才暴露。
+
+**网络后患也处理了**：`git push` 走不通时不必换网络，仓库里有 `scripts/push_via_api.py`，通过 GitHub Git Data API 完成等价推送并逐对象校验 SHA（详见 [runbook.md](runbook.md)）。密钥仍从系统凭证读取，不落盘。
 
 **你想自己复核，在 Git Bash 里执行**（只读，安全）：
 
@@ -36,12 +39,12 @@
 cd "C:/Users/34877/WorkBuddy/2026-11-12-14-29-42/shotplan"
 
 git remote -v                 # origin 应指向 https://github.com/zhaozilong6666/shotplan.git
-git status                    # working tree clean
-git log --oneline -3          # 首次提交 + 修复提交
+git status                    # working tree clean，且与 origin/main 同步
+git log --oneline -3
 git ls-files | grep -E "\.env$|\.db$|evals/out/" || echo "没有敏感文件被提交"
 ```
 
-浏览器打开 <https://github.com/zhaozilong6666/shotplan> 看 README，点 **Actions** 看 CI 结果。
+浏览器打开 <https://github.com/zhaozilong6666/shotplan> 看 README，点 **Actions** 看 CI 绿色记录。
 
 > PowerShell 用户：`grep` 换成 `Select-String`，或直接用上面的 Git Bash 命令。
 
@@ -53,11 +56,11 @@ git ls-files | grep -E "\.env$|\.db$|evals/out/" || echo "没有敏感文件被�
 
 | 检查 | 结果 |
 | --- | --- |
-| `pytest` | 77 passed |
+| `pytest` | 77 passed（本机 Python 3.13） |
 | `ruff check src tests evals` | All checks passed |
 | `evals.run_eval --compare` | 12/12，均分 0.9734，对照组 0.1900，退出码 0 |
 | 真实启动服务 | `/api/health`、首页、`/api/plan` 全部正常 |
-| CI 矩阵 | Python 3.10 / 3.11 / 3.12 / 3.13，见仓库 Actions |
+| CI 矩阵 | Python 3.10 / 3.11 / 3.12 / 3.13 **4/4 全部通过** |
 
 你想自己再跑一遍（Git Bash）：
 
@@ -170,10 +173,11 @@ curl https://你的地址/api/health
 | 加评测用例 | 在 `evals/cases/*.jsonl` 加一行，格式见 [evaluation.md](evaluation.md) |
 | 改一条规则 | 改 `src/shotplan/domain/constraints.py` 的常量，补一条 `tests/test_validator.py` 测试 |
 | 看某次运行到底发生了什么 | `python -m shotplan.cli history`，或访问 `/api/runs/<run_id>` |
+| `git push` 被代理挡住 | `python scripts/push_via_api.py`，见 [runbook.md](runbook.md) |
 | 每次改完代码 | 按 [runbook.md](runbook.md) 的 5 步自检 |
 
 ---
 
 ## 我这边已经做完、你不用管的
 
-仓库结构与全部源码、77 个单元测试、12 个评测用例与对照基线、自动生成的评测报告、架构文档与 6 份 ADR、CI 工作流、Docker 配置、Web 界面、README、路线图、面试讲稿、排错手册、GitHub 建仓与推送、仓库描述与 topics、CI 跨版本浮点问题修复。本地已验证：测试全绿、评测退出码 0、CLI 与 API 端到端可用。
+仓库结构与全部源码、77 个单元测试、12 个评测用例与对照基线、自动生成的评测报告、架构文档与 6 份 ADR、CI 工作流、Docker 配置、Web 界面、README、路线图、面试讲稿、排错手册、GitHub 建仓与推送、仓库描述与 topics、CI 跨版本浮点问题修复、代理受限时的 API 推送脚本。本地已验证：测试全绿、评测退出码 0、CLI 与 API 端到端可用；GitHub Actions 4 个 Python 版本全部通过。

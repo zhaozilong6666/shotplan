@@ -46,6 +46,16 @@
 **`docs/eval-report.md` 被改动**
 这个文件由代码生成，但**会随仓库提交**（招聘方不必跑代码就能看到结论）。要改内容请改 `evals/run_eval.py::build_report` 后重跑 `--write-report`，再把更新后的报告一起提交。`evals/out/latest.json` 才是被忽略的原始产物。
 
+**`git push` 报 `CONNECT tunnel failed, response 502` 或 `schannel: missing close_notify`**
+本机网络只放行 `api.github.com`，`github.com` 的 CONNECT 隧道被代理拒绝（`curl https://github.com` 也会超时），但 REST API 正常。先试 `git -c http.version=HTTP/1.1 push`；仍失败就换网络或关闭代理。无法改网络时，用仓库自带的等价通道：
+
+```bash
+python scripts/push_via_api.py --dry-run   # 只看计划，不写远程
+python scripts/push_via_api.py             # 推送当前 HEAD 到 origin 当前分支
+```
+
+脚本只用标准库，通过 Git Data API 重建 commit：blob / tree / commit 的 SHA 会与本地逐一校验一致，因此远程与本地不会分叉；token 从 `git credential fill` 读取，不打印、不落盘。它要求远程 HEAD 正好是本地 HEAD 的父提交（fast-forward），否则会拒绝执行。
+
 ## 数据位置
 
 - 运行历史：`data/shotplan.db`（SQLite，已在 `.gitignore`）
