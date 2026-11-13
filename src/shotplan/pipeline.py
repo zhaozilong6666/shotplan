@@ -282,6 +282,9 @@ def run_plan(
         max_repairs=retries,
         pipeline_budget_s=cfg.pipeline_budget_s,
         llm_model=None if cfg.provider == "mock" else cfg.llm_model,
+        llm_max_tokens=None if cfg.provider == "mock" else cfg.llm_max_tokens,
+        llm_temperature=None if cfg.provider == "mock" else cfg.llm_temperature,
+        llm_reasoning_effort=None if cfg.provider == "mock" else cfg.llm_reasoning_effort,
         persist_mode=cfg.persist_mode,
         request_id=request_id,
     )

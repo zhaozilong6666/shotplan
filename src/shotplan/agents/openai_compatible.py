@@ -88,9 +88,18 @@ class OpenAICompatibleProvider:
         body: dict[str, Any] = {
             "model": self.settings.llm_model,
             "messages": messages,
-            "temperature": 0.2,
+            "temperature": self.settings.llm_temperature,
             "response_format": {"type": "json_object"},
         }
+        # Cost levers, off by default. A plan is ~700-900 tokens of JSON, so an
+        # endpoint emitting 4-5k output tokens is spending most of the budget on
+        # reasoning we never read. Capping it is a trade, not a free win: it can
+        # truncate a valid answer, which is why the eval measures both cost and
+        # parse failures instead of assuming the cap is harmless.
+        if self.settings.llm_max_tokens > 0:
+            body["max_tokens"] = self.settings.llm_max_tokens
+        if self.settings.llm_reasoning_effort:
+            body["reasoning_effort"] = self.settings.llm_reasoning_effort
         started = time.perf_counter()
         last_error: ProviderError | None = None
         data: dict[str, Any] | None = None
@@ -105,6 +114,14 @@ class OpenAICompatibleProvider:
                 # Some compatible endpoints reject response_format. Drop it once.
                 if "response_format" in message and "response_format" in body:
                     body.pop("response_format", None)
+                    continue
+                # Same for the cost levers: an endpoint that does not know them
+                # should cost us one retry, not the whole request.
+                if "reasoning_effort" in message and "reasoning_effort" in body:
+                    body.pop("reasoning_effort", None)
+                    continue
+                if "max_tokens" in message and "max_tokens" in body:
+                    body.pop("max_tokens", None)
                     continue
                 if not any(f"HTTP {code}" in message for code in _RETRYABLE_STATUS):
                     if "network failure" not in message:

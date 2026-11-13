@@ -37,6 +37,15 @@ ROOT = Path(__file__).resolve().parents[1]
 SNAPSHOT = ROOT / "evals" / "real-model.json"
 REPORT = ROOT / "docs" / "real-model.md"
 
+# Spending tiers. The full 3-repeat suite is a milestone measurement, not an
+# edit loop: one run costs hours and real money, while most changes only need
+# to know "did this break something obvious?".
+PROFILES: dict[str, dict[str, int]] = {
+    "smoke": {"limit": 8, "repeat": 1, "concurrency": 3},
+    "iterate": {"limit": 30, "repeat": 1, "concurrency": 4},
+    "full": {"limit": 0, "repeat": 3, "concurrency": 4},
+}
+
 # Cases that never reach the model: feasibility rejects them before generation.
 # They are still run, because "the preflight works with a real provider wired
 # in" is worth knowing, but they must not be counted as model successes.
@@ -484,12 +493,18 @@ def offline_baseline() -> dict[str, Any] | None:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="real-model evaluation lab")
-    parser.add_argument("--limit", type=int, default=0, help="run only the first N cases")
-    parser.add_argument("--concurrency", type=int, default=4)
+    parser.add_argument("--limit", type=int, default=None, help="run only the first N cases")
+    parser.add_argument("--concurrency", type=int, default=None)
+    parser.add_argument(
+        "--profile",
+        choices=sorted(PROFILES),
+        default=None,
+        help="spending tier: smoke (8×1), iterate (30×1), full (80×3)",
+    )
     parser.add_argument(
         "--repeat",
         type=int,
-        default=1,
+        default=None,
         help="run each case N times (N>1 turns on run-to-run spread reporting)",
     )
     parser.add_argument(
@@ -550,18 +565,25 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     cases = load_cases()
-    if args.limit:
-        cases = cases[: args.limit]
-    repeat = max(1, args.repeat)
+    profile = PROFILES.get(args.profile or "", {})
+    limit = args.limit if args.limit is not None else profile.get("limit", 0)
+    repeat = max(1, args.repeat if args.repeat is not None else profile.get("repeat", 1))
+    concurrency = max(
+        1, args.concurrency if args.concurrency is not None else profile.get("concurrency", 4)
+    )
+    if limit:
+        cases = cases[:limit]
+    calls = len(cases) * repeat
     print(
-        f"running {len(cases)} cases × {repeat} repeat(s) against {settings.llm_model} …",
+        f"running {len(cases)} cases × {repeat} repeat(s) = {calls} calls "
+        f"(concurrency {concurrency}) against {settings.llm_model} …",
         file=sys.stderr,
     )
     started = time.perf_counter()
     jobs = [(case, index) for case in cases for index in range(repeat)]
     raw: list[tuple[str, int, CaseOutcome]] = []
     aborted_reason = ""
-    with ThreadPoolExecutor(max_workers=max(1, args.concurrency)) as pool:
+    with ThreadPoolExecutor(max_workers=concurrency) as pool:
         futures = [
             pool.submit(lambda job: (job[0]["id"], job[1], _run_one(job[0], settings)), job)
             for job in jobs
@@ -612,7 +634,7 @@ def main(argv: list[str] | None = None) -> int:
         if repeat > 1
         else summarise([outcome for _, _, outcome in raw], settings)
     )
-    snapshot["concurrency"] = max(1, args.concurrency)
+    snapshot["concurrency"] = concurrency
     snapshot["wall_seconds"] = round(elapsed, 1)
 
     print(

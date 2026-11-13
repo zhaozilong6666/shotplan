@@ -128,7 +128,7 @@ python -m evals.run_eval --prompt-version planner-v1              # 记录 promp
 python -m evals.run_eval --min-score 0.85                         # 提高回归门槛
 ```
 
-报告由代码生成并随仓库提交（[docs/eval-report.md](docs/eval-report.md)），包含分组结果、逐用例明细、不可满足需求识别、成本/延迟（P50/P95、token）、对照组规则覆盖，以及一处可复核的「改动 → 分数下降 → 门禁拦截 → 回滚复原」实例——招聘方不用跑代码就能看到结论。方法论见 [docs/evaluation.md](docs/evaluation.md)；统计与样本量规则（区间、配对、可检测下限）见 [docs/measurement.md](docs/measurement.md)。
+报告由代码生成并随仓库提交（[docs/eval-report.md](docs/eval-report.md)），包含分组结果、逐用例明细、不可满足需求识别、成本/延迟（P50/P95、token）、对照组规则覆盖，以及一处可复核的「改动 → 分数下降 → 门禁拦截 → 回滚复原」实例——招聘方不用跑代码就能看到结论。方法论见 [docs/evaluation.md](docs/evaluation.md)；统计与样本量规则（区间、配对、可检测下限）见 [docs/measurement.md](docs/measurement.md)；成本结构与降本杠杆见 [docs/cost.md](docs/cost.md)。
 
 ## 十四份可核查的材料
 

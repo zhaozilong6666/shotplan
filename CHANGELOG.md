@@ -6,6 +6,7 @@
 
 ### Added
 
+- **成本杠杆与分档跑法**：新增 `SHOTPLAN_LLM_MAX_TOKENS` / `SHOTPLAN_LLM_TEMPERATURE` / `SHOTPLAN_LLM_REASONING_EFFORT`（默认关闭，端点不支持时自动丢弃字段并重试一次，设置写入 `trace.config`）；评测新增 `--profile smoke|iterate|full`（8×1 / 30×1 / 80×3）。实测账单显示输出 token 占九成，详见 [docs/cost.md](docs/cost.md)。
 - **重复测量与可检测下限**：`real_model_lab --repeat N` 每例跑 N 轮，报告同时给「用例级 95% CI」与「轮次间极差」两类不确定性；新增 `evals/power.py` 计算样本量（69 例只能检测 8–11pp，检测 3pp 需 492–984 例）与 `evals/pair_compare.py` 做配对比较（区间跨 0 即拒绝下结论，退出码可直接当门禁）。方法见 [docs/measurement.md](docs/measurement.md)。
 - **解析失败的一次有界修复**：`parse_plan` 抛错时不再直接返回 `error`，而是消耗一次修复预算、带着 schema 约束重生成（`repair_parse`，最多一次，仍失败才降级）。单元测试覆盖“修好”“预算为 0 不尝试”“一直坏也只试一次”三种路径。注意：三个真实 error 复跑未复现，说明它们是采样长尾，不能据此声称通过率提升——见 `docs/failure-taxonomy.md`。
 - **报告自带不确定性**：真实模型报告对通过率与平均分输出 95% 自助法区间（固定种子，可复现）。n=69 时通过率区间约 ±5 个百分点，比多数人想声称的模型差异还宽。

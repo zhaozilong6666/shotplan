@@ -63,6 +63,11 @@ class Settings:
     llm_api_key: str = ""
     llm_model: str = "gpt-4o-mini"
     llm_timeout: int = 30
+    # Cost levers. All default to "unset" so behaviour is unchanged unless a
+    # deployment opts in; the eval suite sets them explicitly when measuring.
+    llm_max_tokens: int = 0  # 0 = let the provider decide
+    llm_temperature: float = 0.2
+    llm_reasoning_effort: str = ""  # "", low | medium | high (provider-dependent)
     db_path: Path = field(default_factory=_default_db_path)
     max_repairs: int = 1
     eval_min_score: float = 0.80
@@ -106,12 +111,21 @@ class Settings:
             raise ConfigError(
                 f"SHOTPLAN_PERSIST_MODE must be one of {PERSIST_MODES}, got {raw_mode!r}"
             )
+        effort = _env("SHOTPLAN_LLM_REASONING_EFFORT", "").lower()
+        if effort not in ("", "low", "medium", "high"):
+            raise ConfigError(
+                "SHOTPLAN_LLM_REASONING_EFFORT must be empty, low, medium or high, "
+                f"got {effort!r}"
+            )
         return cls(
             provider=provider,
             llm_base_url=_env("SHOTPLAN_LLM_BASE_URL", "https://api.openai.com/v1").rstrip("/"),
             llm_api_key=_env("SHOTPLAN_LLM_API_KEY", ""),
             llm_model=_env("SHOTPLAN_LLM_MODEL", "gpt-4o-mini"),
             llm_timeout=_env_int("SHOTPLAN_LLM_TIMEOUT", 30),
+            llm_max_tokens=max(0, _env_int("SHOTPLAN_LLM_MAX_TOKENS", 0)),
+            llm_temperature=_env_float("SHOTPLAN_LLM_TEMPERATURE", 0.2),
+            llm_reasoning_effort=effort,
             db_path=Path(raw_db) if Path(raw_db).is_absolute() else ROOT / raw_db,
             max_repairs=max(0, _env_int("SHOTPLAN_MAX_REPAIRS", 1)),
             eval_min_score=_env_float("SHOTPLAN_EVAL_MIN_SCORE", 0.80),
