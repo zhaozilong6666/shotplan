@@ -19,13 +19,15 @@
 | 跑修复循环实验 | `python -m evals.repair_lab --write-report` |
 | 采集失败案例库 | `python -m evals.collect_failures --write-report` |
 | 验证盲测挑战集 | `python -m evals.case_miner --check` |
+| 真实 HTTP 服务压测门禁 | `python -m evals.http_load --check` |
+| 重刷 HTTP 压测矩阵与报告 | `python -m evals.http_load --write` |
 | 重刷盲测挑战集与报告 | `python -m evals.case_miner --write` |
 | 看运行统计 | `python -m shotplan.cli stats --limit 50` |
 | 静态检查 | `python -m ruff check src tests evals` |
 | 启动 Web | `python -m shotplan.cli serve --port 8000` |
 | 一条命令全验证 | `make smoke` |
 
-没有 `make` 的 Windows 环境，直接按顺序跑 `python -m pytest`、`python -m evals.run_eval --write-report`、`python -m evals.case_miner --check`、`python -m shotplan.cli plan`。
+没有 `make` 的 Windows 环境，直接按顺序跑 `python -m pytest`、`python -m evals.run_eval --write-report`、`python -m evals.case_miner --check`、`python -m evals.http_load --check`、`python -m shotplan.cli plan`。
 
 ## 常见故障
 
@@ -58,6 +60,9 @@
 
 **`CASE-MINING GATE FAILED`**
 先看是「artifact is stale」还是不变量失败。前者说明改了校验器 / 知识库 / provider 却没重刷产物，执行 `python -m evals.case_miner --write` 后重新提交三份文件；后者要读具体原因：「negative controls disappeared」表示生成前可行性判定被削弱，25 个矛盾输入不再被挡下；「accepted challenge cases」或「min good/naive gap」表示候选区分度退化；「challenge set contains briefs copied」表示去重逻辑失效。不要通过调低阈值绕过——挑战集变少本身就是回归信号。
+
+**`HTTP-LOAD GATE FAILED`**
+若提示 `could not run the service`，先看本机 `HTTP_PROXY` / `HTTPS_PROXY`：代理会把 loopback 请求改写成绝对路径（`GET http%3A//127.0.0.1...`），除了 `/api/health` 所有端点都会 404。压测客户端已经设了 `trust_env=False`，如果有人删掉它就会复现这个现象。若提示 `not persisted`，说明并发下 SQLite 丢写；若提示 `exceeds the loose ceiling`，说明服务挂住而不是「机器慢」——3000ms 只是防挂阈值，不要调它来掩盖真实性能问题。
 
 **`--compare` 显示巨大差值**
 先确认基线是不是同一批用例。`v1-naive.json` 是 12 用例时代的历史快照，当前 80 用例必须比 `v6-naive.json`。新增用例后要重刷基线，否则用例集变化会被误读成质量变化。
@@ -93,7 +98,8 @@ python scripts/push_via_api.py             # 推送当前 HEAD 到 origin 当前
 2. `python -m evals.run_eval --write-report`（质量没退化，用例没失效）
 3. `python -m evals.mutation_lab --check`（门禁本身仍有效，且产物未过期）
 4. `python -m evals.case_miner --check`（未见组合上的判定链仍一致，且产物未过期）
-5. `python -m ruff check src tests evals scripts`（风格）
-6. `make gates` 跑完 CI 的全部 12 道质量门禁（含覆盖率、模糊测试、盲测、并发、扩展性与展示页一致性）
-7. `python -m shotplan.cli plan` 与 `python -m shotplan.cli plan --budget 100`（正常路径 + 拒绝路径冒烟）
-8. `git status` 确认没有把 `.env` / `.db` / `evals/out/` 加进去
+5. `python -m evals.http_load --check`（真实服务 0 错误、0 丢写）
+6. `python -m ruff check src tests evals scripts`（风格）
+7. `make gates` 跑完 CI 的全部 13 道质量门禁（含覆盖率、模糊测试、盲测、真实 HTTP、并发、扩展性与展示页一致性）
+8. `python -m shotplan.cli plan` 与 `python -m shotplan.cli plan --budget 100`（正常路径 + 拒绝路径冒烟）
+9. `git status` 确认没有把 `.env` / `.db` / `evals/out/` 加进去

@@ -21,7 +21,7 @@ Hanfu travel photography was chosen because its constraints are real: golden-hou
 | Quality | Try another prompt | 12 deterministic rules + dimension scores |
 | Impossible brief | Fabricate a plan anyway | Pre-generation check returns reasons, gaps, suggestions and theoretical minimums |
 | Failure handling | Regenerate once | Validation report becomes a repair hint; **worse drafts are rejected** |
-| Evidence | Screenshots | 80 regression cases + 200 mined holdout briefs + control group + 12 CI gates |
+| Evidence | Screenshots | 80 regression cases + 200 holdout briefs + real HTTP load test + control group + 13 CI gates |
 | Gate validity | "CI is green" | 8 injected mutations must all be caught by the real gate |
 | Unseen inputs | One hand-written suite | 200 mined holdout briefs, kept separate so baselines stay comparable |
 | Grounding | None | Every location id must exist in the knowledge base |
@@ -36,6 +36,8 @@ cd shotplan
 python -m shotplan.cli plan
 python -m evals.run_eval --write-report
 python -m evals.mutation_lab --check    # prove the quality gate itself works
+python -m evals.case_miner --check      # holdout set: unseen brief combinations
+python -m evals.http_load --check       # real uvicorn service under HTTP load
 ```
 
 `python -m pip install -e ".[api,dev]"` enables the Web UI and tests; the core engine needs nothing else.
@@ -98,6 +100,12 @@ The generated [eval report](docs/eval-report.md) is committed, so a reviewer can
 
 The holdout lives in `evals/challenge/` and is **not** read by `run_eval`: the main suite stays a stable regression baseline so v1-v6 snapshots remain comparable. `python -m evals.case_miner --check` is CI gate #12.
 
+## Real HTTP load test
+
+Every earlier throughput number came from calling Python functions directly. [http-load.md](docs/http-load.md) starts a real `uvicorn` subprocess with 1 / 2 / 4 workers and sends `POST /api/plan` over loopback with httpx, so HTTP parsing, ASGI middleware, full plan+trace JSON serialisation, the network stack and **several OS processes writing the same SQLite file** are all included. Single worker at concurrency 8 reaches about **251/s** with P95 **39.9 ms**; 1000 real requests produced **0 errors and 0 lost writes**.
+
+The interesting finding: adding workers did **not** scale linearly. Four workers reached only **0.52x** the single-worker throughput, because every request writes one run record and WAL allows just one writer at a time — the bottleneck moved from the GIL to shared state. Throughput and latency are reported, never gated (ADR 0008); `--check` asserts only machine-independent contracts and is CI gate #13.
+
 ## More verifiable evidence
 
 1. **[Repair-loop experiment](docs/repair-experiment.md)** — three constructed providers over the same 69 satisfiable briefs. A repairable provider goes from 0% to 100% hard-pass in one round (69/69); all 69 "repairs" from a provider that ignores hints are rejected; all 69 worse-than-original repairs are blocked by the monotonic guard. Every accept/reject decision is read from the run trace.
@@ -107,6 +115,8 @@ The holdout lives in `evals/challenge/` and is **not** read by `run_eval`: the m
 5. **Engineering evidence** — [fuzzing](docs/fuzz-report.md) (1000 mutated inputs, 0 crashes), [benchmark](docs/benchmark.md) (p50 ≈0.2 ms), [load test](docs/loadtest.md) (600 concurrent requests, 0 errors / 0 lost writes), [real output examples](docs/examples.md) and [threads vs processes](docs/scaling.md) (1.04× vs 1.72×).
 
 6. **[Holdout challenge set](docs/case-mining.md)** — 225 mined candidates, 200 unseen briefs accepted, 25 infeasible negative controls rejected, coverage 19/25 -> 25/25. Independent of the regression suite so historical baselines stay comparable.
+
+7. **[Real HTTP load test](docs/http-load.md)** — 1/2/4 uvicorn workers, ~251/s at concurrency 8, 1000 requests with 0 errors / 0 lost writes; 4 workers are slower than 1 because of the shared SQLite writer lock.
 
 ## Architecture and layout
 
@@ -123,8 +133,8 @@ shotplan/
 │   ├── api.py         # Optional FastAPI layer
 │   └── cli.py         # CLI entry point
 ├── web/               # Dependency-free single-page UI (5 tabs)
-├── evals/             # 80 cases + 200 holdout briefs, scorers, mutation/case-mining labs
-├── tests/             # 191 unit tests
+├── evals/             # 80 cases + 200 holdout briefs, mutation/mining/HTTP-load labs
+├── tests/             # 201 unit tests
 └── docs/              # Architecture, metrics, 10 ADRs, ops, interview notes
 ```
 
@@ -160,7 +170,7 @@ Any OpenAI-compatible endpoint works (OpenAI, DeepSeek, local Ollama / vLLM). Wi
 ## Roadmap
 
 - [x] Phases 1–3: domain, knowledge base, validator, pipeline, tracing, API/Web, eval suite, CI gates
-- [x] Phase 4 offline work: 80 cases, `INFEASIBLE` branch, repair lab, failure library, prompt v1/v2 framework, cost/latency reporting, gate-sensitivity lab, 200-brief holdout challenge set
+- [x] Phase 4 offline work: 80 cases, `INFEASIBLE` branch, repair lab, failure library, prompt v1/v2 framework, cost/latency reporting, gate-sensitivity lab, 200-brief holdout challenge set, real HTTP load test with multiple uvicorn workers
 - [ ] Phase 4 remaining: real-model comparison experiments (needs an API key)
 - [ ] Phase 5: public online demo, bilingual polish, final resume materials
 
@@ -173,12 +183,13 @@ Any OpenAI-compatible endpoint works (OpenAI, DeepSeek, local Ollama / vLLM). Wi
 - Real booking/payment, authentication and concurrent writes are out of scope. The knowledge base covers five cities (Xi'an, Luoyang, Hangzhou, Suzhou, Nanjing); adding a city means adding data, cases and a baseline together.
 - The 8 mutations are hand-picked and prove those specific regressions are caught, not that the gate is infallible.
 - The 200 holdout briefs come from a fixed grid (combination diversity, not real customer distribution); they show the judgement chain generalises, not that a real model would score well.
+- The HTTP load test is a single-machine loopback sample with no TLS, reverse proxy or real-model latency; two runs on the same machine can differ by nearly 2x for 4 workers, so these numbers are a scale reference, not production QPS.
 - Performance and concurrency numbers come from a single machine (concurrency 1/4/8, threads vs processes), not production QPS; the pipeline is synchronous and the API moves it off the event loop with a thread pool.
 - Fuzzing proves "any input returns a structured result", not "any input gets a good plan" — quality is still the eval suite's job.
 
 ## For interviews
 
-> "I built an evaluable planning agent. The point wasn't calling a model — it was writing 'executable' as 12 testable hard constraints, checking satisfiability *before* generation, grading outputs with a validator that never uses a model, feeding the report back as a repair hint, and refusing worse rewrites. To make quality comparable I built 80 eval cases across five cities plus a deliberately broken control provider. I didn't stop at '80/80 green': I mutation-tested the gate itself with 8 injected faults and found the old gate missed 4 cases where a single validation rule was silently deleted — the control plan is so broken that losing one issue barely moves its score. After adding rule-level coverage, all 8 are caught. I also mined 200 briefs the main suite had never seen, kept in a separate holdout so the historical baselines stay comparable. A deterministic fuzzer also guarantees no malformed brief can crash the service."
+> "I built an evaluable planning agent. The point wasn't calling a model — it was writing 'executable' as 12 testable hard constraints, checking satisfiability *before* generation, grading outputs with a validator that never uses a model, feeding the report back as a repair hint, and refusing worse rewrites. To make quality comparable I built 80 eval cases across five cities plus a deliberately broken control provider. I didn't stop at '80/80 green': I mutation-tested the gate itself with 8 injected faults and found the old gate missed 4 cases where a single validation rule was silently deleted — the control plan is so broken that losing one issue barely moves its score. After adding rule-level coverage, all 8 are caught. I also mined 200 briefs the main suite had never seen, kept in a separate holdout so the historical baselines stay comparable. Finally I ran the real service under load and found that adding workers made it slower because they all contend for one SQLite writer — the bottleneck changes with the architecture layer. A deterministic fuzzer also guarantees no malformed brief can crash the service."
 
 Detailed Q&A: [docs/interview-notes.md](docs/interview-notes.md).
 

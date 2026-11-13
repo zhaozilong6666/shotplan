@@ -1,0 +1,116 @@
+{
+  "version": 1,
+  "machine_dependent": true,
+  "note": "single-machine loopback snapshot; throughput is reported, never gated",
+  "python": "3.13.14",
+  "platform": "Windows",
+  "cpu_count": 18,
+  "requests_per_scenario": 200,
+  "scenarios": [
+    {
+      "workers": 1,
+      "concurrency": 1,
+      "requests": 200,
+      "ok": 200,
+      "errors": 0,
+      "error_samples": [],
+      "kinds": {
+        "ok": 200
+      },
+      "wall_s": 1.718,
+      "startup_s": 1.99,
+      "rps": 116.38,
+      "p50_ms": 7.25,
+      "p95_ms": 12.28,
+      "mean_ms": 8.46,
+      "runs_before": 0,
+      "runs_after": 200,
+      "runs_delta": 200,
+      "lost_writes": 0
+    },
+    {
+      "workers": 1,
+      "concurrency": 4,
+      "requests": 200,
+      "ok": 200,
+      "errors": 0,
+      "error_samples": [],
+      "kinds": {
+        "ok": 200
+      },
+      "wall_s": 0.839,
+      "startup_s": 1.84,
+      "rps": 238.27,
+      "p50_ms": 15.4,
+      "p95_ms": 21.62,
+      "mean_ms": 16.47,
+      "runs_before": 0,
+      "runs_after": 200,
+      "runs_delta": 200,
+      "lost_writes": 0
+    },
+    {
+      "workers": 1,
+      "concurrency": 8,
+      "requests": 200,
+      "ok": 200,
+      "errors": 0,
+      "error_samples": [],
+      "kinds": {
+        "ok": 200
+      },
+      "wall_s": 0.798,
+      "startup_s": 1.82,
+      "rps": 250.66,
+      "p50_ms": 29.89,
+      "p95_ms": 39.9,
+      "mean_ms": 31.0,
+      "runs_before": 0,
+      "runs_after": 200,
+      "runs_delta": 200,
+      "lost_writes": 0
+    },
+    {
+      "workers": 2,
+      "concurrency": 8,
+      "requests": 200,
+      "ok": 200,
+      "errors": 0,
+      "error_samples": [],
+      "kinds": {
+        "ok": 200
+      },
+      "wall_s": 0.713,
+      "startup_s": 2.58,
+      "rps": 280.37,
+      "p50_ms": 16.61,
+      "p95_ms": 65.14,
+      "mean_ms": 27.44,
+      "runs_before": 0,
+      "runs_after": 200,
+      "runs_delta": 200,
+      "lost_writes": 0
+    },
+    {
+      "workers": 4,
+      "concurrency": 8,
+      "requests": 200,
+      "ok": 200,
+      "errors": 0,
+      "error_samples": [],
+      "kinds": {
+        "ok": 200
+      },
+      "wall_s": 1.543,
+      "startup_s": 5.61,
+      "rps": 129.62,
+      "p50_ms": 42.28,
+      "p95_ms": 149.53,
+      "mean_ms": 59.52,
+      "runs_before": 0,
+      "runs_after": 200,
+      "runs_delta": 200,
+      "lost_writes": 0
+    }
+  ]
+}

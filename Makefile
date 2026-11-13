@@ -1,4 +1,4 @@
-.PHONY: help install test lint eval mutation mine report fuzz bench load scale examples gates showcase serve plan smoke clean
+.PHONY: help install test lint eval mutation mine report fuzz bench load httpload scale examples gates showcase serve plan smoke clean
 
 PYTHON ?= python
 
@@ -14,6 +14,7 @@ help:
 	@echo "  fuzz      确定性模糊测试（1000 次变异，生成报告）"
 	@echo "  bench     性能基准（P50/P95、吞吐、堆峰值）"
 	@echo "  load      并发负载测试（错误数、丢写、饱和点）"
+	@echo "  httpload  真实 uvicorn 服务 + 多 worker 的 HTTP 压测"
 	@echo "  scale     线程 vs 进程扩展性对比"
 	@echo "  examples  重新生成 docs/examples.md 真实输出示例"
 	@echo "  gates     本地跑一遍 CI 的全部质量门禁"
@@ -51,6 +52,10 @@ fuzz:
 bench:
 	$(PYTHON) -m evals.benchmark --write-report
 
+httpload:
+	$(PYTHON) -m evals.http_load --write
+	$(PYTHON) -m evals.http_load --check
+
 gates:
 	$(PYTHON) -m evals.run_eval --write-report
 	$(PYTHON) -m evals.mutation_lab --check
@@ -60,6 +65,7 @@ gates:
 	$(PYTHON) -m evals.fuzz --check --iterations 500
 	$(PYTHON) -m evals.benchmark --check
 	$(PYTHON) -m evals.loadtest --check
+	$(PYTHON) -m evals.http_load --check
 	$(PYTHON) -m evals.scaling --check --requests 300
 	$(PYTHON) -m evals.examples --check
 

@@ -12,6 +12,7 @@ Run after regenerating the eval artifacts:
     python -m evals.repair_lab --write-report
     python -m evals.collect_failures --write-report
     python -m evals.case_miner --write
+    python -m evals.http_load --write
     python -m evals.cost_latency --write-report
     python -m evals.benchmark --out evals/benchmark.json --write-report
     python scripts/build_showcase.py
@@ -244,6 +245,44 @@ def benchmark_block(bench: dict) -> str:
     )
 
 
+def http_load_block(load: dict) -> str:
+    rows = load["scenarios"]
+    single = next(r for r in rows if r["workers"] == 1 and r["concurrency"] == 8)
+    curve = [r for r in rows if r["concurrency"] == 8]
+    best = max(curve, key=lambda r: r["rps"])
+    total_ok = sum(r["ok"] for r in rows)
+    total_lost = sum(r["lost_writes"] for r in rows)
+    return (
+        '<div class="metrics http-load">\n'
+        f'      <div class="metric good"><b>{single["rps"]:.0f} /s</b>'
+        "<span>真实 HTTP 单 worker 并发 8</span></div>\n"
+        f'      <div class="metric good"><b>{best["workers"]} worker · {best["rps"]:.0f} /s</b>'
+        "<span>本机最佳吞吐</span></div>\n"
+        f'      <div class="metric good"><b>{single["p95_ms"]:.1f} ms</b>'
+        "<span>单 worker P95</span></div>\n"
+        f'      <div class="metric good"><b>{total_ok} / {total_ok - total_lost}</b>'
+        "<span>真实请求 / 成功落库</span></div>\n"
+        "    </div>"
+    )
+
+
+def http_note_block(load: dict) -> str:
+    rows = load["scenarios"]
+    single = next(r for r in rows if r["workers"] == 1 and r["concurrency"] == 8)
+    curve = [r for r in rows if r["concurrency"] == 8]
+    widest = max(curve, key=lambda r: r["workers"])
+    ratio = widest["rps"] / single["rps"] if single["rps"] else 0.0
+    best = max(curve, key=lambda r: r["rps"])
+    return (
+        '<p class="section-note http-note">\n'
+        f'      {widest["workers"]} 个 worker 的吞吐只有单 worker 的 {ratio:.2f}×：'
+        "真实服务里每个请求都要写一条运行记录，多进程抢同一个 SQLite 写锁，"
+        f'瓶颈从 GIL 变成了共享状态。本机最佳是 {best["workers"]} worker。'
+        "吞吐与 P95 只写进报告，不进 CI 门禁；门禁只查 0 错误、0 丢写与服务没挂住。\n"
+        "    </p>"
+    )
+
+
 def failures_block(failures: list[dict]) -> str:
     counts = Counter(record["code"] for record in failures)
     items = []
@@ -267,6 +306,8 @@ def main() -> int:
     cost = _load(OUT / "cost-latency.json")
     mutation = _load(ROOT / "evals" / "mutation.json")
     challenge = _load(ROOT / "evals" / "case_mining.json")
+    # Single-machine loopback snapshot. Throughput is displayed, never gated.
+    http_load = _load(ROOT / "evals" / "http_load.json")
     # Benchmark numbers are machine-specific and cannot be regenerated identically
     # in CI, so the page reads a committed snapshot instead of evals/out/.
     # Refresh it with: python -m evals.benchmark --out evals/benchmark.json
@@ -348,6 +389,13 @@ def main() -> int:
         r'<div class="metrics perf">.*?</div>\s*</section>',
         benchmark_block(bench) + "\n  </section>",
         "benchmark",
+    )
+    html = replace_block(
+        html,
+        r'<div class="metrics http-load">.*?</div>\s*'
+        r'<p class="section-note http-note">.*?</p>',
+        http_load_block(http_load) + "\n    " + http_note_block(http_load),
+        "http load",
     )
     page.write_text(html, encoding="utf-8")
     print(f"wrote {page}")

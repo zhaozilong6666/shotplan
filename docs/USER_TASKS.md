@@ -14,7 +14,7 @@
 | 2 | 申请一个 API key（可选） | 阶段 4 真实模型实验 | 需要注册并实名/付款的服务 |
 | 3 | 注册部署平台账号（可选） | 阶段 5 | 需要你的账号授权 |
 
-其余全部已完成或由我继续推进。阶段 4 里不依赖 key 的部分（80 用例评测集、`INFEASIBLE` 分支、prompt v1/v2 对比框架、成本/延迟报告、修复循环实验、失败案例库、评测报告里的「分数下降→门禁拦截→回滚」实例）以及门禁有效性变异测试、失败案例驱动的盲测挑战集、运行统计面板、英文 README 都已做完并验证。需要你配合时，我会给「一步一条命令 + 验证方法」，不会让你自己去查。
+其余全部已完成或由我继续推进。阶段 4 里不依赖 key 的部分（80 用例评测集、`INFEASIBLE` 分支、prompt v1/v2 对比框架、成本/延迟报告、修复循环实验、失败案例库、评测报告里的「分数下降→门禁拦截→回滚」实例）以及门禁有效性变异测试、失败案例驱动的盲测挑战集、真实 uvicorn 服务的 HTTP 压测、运行统计面板、英文 README 都已做完并验证。需要你配合时，我会给「一步一条命令 + 验证方法」，不会让你自己去查。
 
 ---
 
@@ -59,11 +59,12 @@ git ls-files | grep -E "\.env$|\.db$|evals/out/" || echo "没有敏感文件被�
 
 | 检查 | 结果 |
 | --- | --- |
-| `pytest` | 191 passed（本机 Python 3.13），覆盖率 89% |
+| `pytest` | 201 passed（本机 Python 3.13），覆盖率 89% |
 | `ruff check src tests evals scripts` | All checks passed |
 | `evals.run_eval --compare v6` | 80/80，均分 0.9788，对照组 0.3014，差值 0.6774，退出码 0 |
 | `evals.mutation_lab --check` | 8/8 受控变异被门禁拦截、0 存活、8/8 回滚后与基线一致（旧门禁仅 4/8） |
 | `evals.case_miner --check` | 225 候选 → 200 个未见 brief 纳入、25 个矛盾输入被可行性判定筛掉，覆盖 19/25 → 25/25 |
+| `evals.http_load --check` | 真实 uvicorn 服务：40 次 loopback POST /api/plan，0 错误、40/40 落库 |
 | 不可满足需求 | 11/11 正确结构化拒绝 |
 | 输入模糊测试 | 1000 次变异，0 未捕获异常 |
 | 性能基准 | p95 ≈0.4ms、单核数千次/秒、堆峰值 0.02MB（全部低于门禁上限一个数量级） |
@@ -81,6 +82,7 @@ python -m pytest
 python -m evals.run_eval --write-report --compare evals/baselines/v6-naive.json
 python -m evals.mutation_lab --check
 python -m evals.case_miner --check
+python -m evals.http_load --check
 python -m evals.fuzz --check --iterations 500
 python -m evals.benchmark --check
 python -m evals.loadtest --check --requests 50
@@ -98,7 +100,7 @@ python -m shotplan.cli serve
 
 直接可用的一行描述：
 
-> **shotplan** — 可评测的旅拍方案 Agent（Python / FastAPI / SQLite）：生成前判定需求可满足性，以确定性硬约束校验替代 LLM 自评，校验报告驱动定向修复；建 80 用例主评测集 + 200 个盲测 brief、对照组与门禁有效性变异测试，CI 设 12 道质量门禁。
+> **shotplan** — 可评测的旅拍方案 Agent（Python / FastAPI / SQLite）：生成前判定需求可满足性，以确定性硬约束校验替代 LLM 自评，校验报告驱动定向修复；建 80 用例主评测集 + 200 个盲测 brief、对照组与门禁有效性变异测试，CI 设 13 道质量门禁（含真实 HTTP 服务压测）。
 
 四条 bullets 和 10 分钟讲稿在 [interview-notes.md](interview-notes.md)，挑 2–3 条贴进简历即可。验证方法：找个人用 30 秒讲一遍，对方能复述出「校验不交给模型」这个点就算成功。
 
@@ -196,4 +198,4 @@ curl https://你的地址/api/health
 
 ## 我这边已经做完、你不用管的
 
-仓库结构与全部源码、191 个单元测试、80 个评测用例 + 200 个盲测挑战用例与六代对照基线、自动生成的评测报告、架构文档与 10 份 ADR、CI 工作流（含评测阈值、**门禁有效性变异测试**、**盲测挑战集挖掘**、修复实验、失败案例库、模糊测试、性能基准、并发负载、扩展性、示例一致性、覆盖率与展示页一致性共 12 道门禁）、Docker 配置、Web 界面（含运行统计视图）、中英文 README、GitHub Pages 静态展示页、路线图、面试讲稿、排错手册、GitHub 建仓与推送、仓库描述与 topics、CI 跨版本浮点问题修复、代理受限时的 API 推送脚本、生成前可行性判定、prompt v1/v2 对比框架、成本/延迟报告与模拟 provider、修复循环实验、结构化失败案例库、对照组规则覆盖门禁与可复核的「改动→拦截→回滚」实例、失败案例聚类驱动的盲测挑战集、按 provider / prompt 版本聚合的运行统计面板。本地已验证：测试全绿、评测退出码 0、变异门禁 8/8、盲测门禁 200/200 有区分度、CLI 与 API 端到端可用；GitHub Actions 4 个 Python 版本全部通过。
+仓库结构与全部源码、201 个单元测试、80 个评测用例 + 200 个盲测挑战用例与六代对照基线、自动生成的评测报告、架构文档与 10 份 ADR、CI 工作流（含评测阈值、**门禁有效性变异测试**、**盲测挑战集挖掘**、修复实验、失败案例库、模糊测试、性能基准、并发负载、扩展性、示例一致性、覆盖率与展示页一致性共 13 道门禁）、Docker 配置、Web 界面（含运行统计视图）、中英文 README、GitHub Pages 静态展示页、路线图、面试讲稿、排错手册、GitHub 建仓与推送、仓库描述与 topics、CI 跨版本浮点问题修复、代理受限时的 API 推送脚本、生成前可行性判定、prompt v1/v2 对比框架、成本/延迟报告与模拟 provider、修复循环实验、结构化失败案例库、对照组规则覆盖门禁与可复核的「改动→拦截→回滚」实例、失败案例聚类驱动的盲测挑战集、真实 uvicorn 多 worker 的 HTTP 压测、按 provider / prompt 版本聚合的运行统计面板。本地已验证：测试全绿、评测退出码 0、变异门禁 8/8、盲测门禁 200/200 有区分度、HTTP 压测 0 错误 0 丢写、CLI 与 API 端到端可用；GitHub Actions 4 个 Python 版本全部通过。

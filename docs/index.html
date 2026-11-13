@@ -110,6 +110,7 @@
       <a class="btn" href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/failure-gallery.md">失败案例库</a>
       <a class="btn" href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/examples.md">真实输出示例</a>
       <a class="btn" href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/loadtest.md">并发负载</a>
+      <a class="btn" href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/http-load.md">真实 HTTP 压测</a>
       <a class="btn" href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/mutation-report.md">门禁有效性</a>
       <a class="btn" href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/case-mining.md">盲测挑战集</a>
       <a class="btn" href="https://github.com/zhaozilong6666/shotplan/blob/main/README.en.md">English</a>
@@ -227,6 +228,20 @@
   </section>
 
   <section>
+    <h2>真实 HTTP 服务压测</h2>
+    <p class="section-note">前面的吞吐都是直接调 Python 函数。这一层启动真正的 uvicorn（1 / 2 / 4 worker），用 httpx 走 loopback 发 <code>POST /api/plan</code>，把 HTTP 解析、JSON 序列化、网络栈与多进程同时写 SQLite 的成本一起算进来。</p>
+    <div class="metrics http-load">
+      <div class="metric good"><b>251 /s</b><span>真实 HTTP 单 worker 并发 8</span></div>
+      <div class="metric good"><b>2 worker · 280 /s</b><span>本机最佳吞吐</span></div>
+      <div class="metric good"><b>39.9 ms</b><span>单 worker P95</span></div>
+      <div class="metric good"><b>1000 / 1000</b><span>真实请求 / 成功落库</span></div>
+    </div>
+    <p class="section-note http-note">
+      4 个 worker 的吞吐只有单 worker 的 0.52×：真实服务里每个请求都要写一条运行记录，多进程抢同一个 SQLite 写锁，瓶颈从 GIL 变成了共享状态。本机最佳是 2 worker。吞吐与 P95 只写进报告，不进 CI 门禁；门禁只查 0 错误、0 丢写与服务没挂住。
+    </p>
+  </section>
+
+  <section>
     <h2>失败案例库</h2>
     <div class="split">
       <div>
@@ -272,9 +287,10 @@
           python -m evals.mutation_lab --check<br>
           python -m evals.collect_failures --check<br>
           python -m evals.case_miner --check<br>
+          python -m evals.http_load --check<br>
           python -m shotplan.cli stats
         </p>
-        <p style="margin-top:10px">单元测试与 12 道质量门禁；CI 覆盖 Python 3.10 / 3.11 / 3.12 / 3.13。</p>
+        <p style="margin-top:10px">单元测试与 13 道质量门禁；CI 覆盖 Python 3.10 / 3.11 / 3.12 / 3.13。</p>
       </div>
       <div class="card">
         <h3>决策记录（ADR）</h3>

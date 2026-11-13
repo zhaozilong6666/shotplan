@@ -58,6 +58,9 @@ jobs:
       - name: Scaling gate
         run: python -m evals.scaling --check --requests 300 --workers 1 2
 
+      - name: Real HTTP load gate
+        run: python -m evals.http_load --check
+
       - name: Examples are up to date
         run: python -m evals.examples --check
 

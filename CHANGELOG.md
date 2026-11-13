@@ -6,6 +6,35 @@
 
 阶段 4 剩余项：接真实模型跑 `openai_compatible`、记录 prompt v1/v2 的实测差异、用真实数据填满成本/延迟表。阶段 5 剩余项：可交互的在线 Demo、简历与面试材料定稿。详见 `docs/ROADMAP.md`。
 
+## [0.8.0] - 2026-11-13
+
+**把性能证据从「调函数」推进到「跑服务」**：之前的吞吐全部来自进程内微基准，没有 HTTP 解析、ASGI 中间件、完整 plan + trace 的 JSON 序列化、loopback 网络栈，更没有**多个 OS 进程同时写同一个 SQLite 文件**。
+
+### Added
+
+- **真实 HTTP 压测**（`evals/http_load.py`）：启动真正的 `uvicorn` 子进程（1 / 2 / 4 worker），用 `httpx` 走 `127.0.0.1` 发 `POST /api/plan`，测并发 1 / 4 / 8 的吞吐与 P50/P95，并用 `GET /api/stats` 的 `total_runs` 增量校验每个成功请求都落库。产物 `evals/http_load.json`（明确标注 `machine_dependent`）与 [docs/http-load.md](docs/http-load.md)。
+- `--check` 作为 CI 第 **13** 道门禁：只跑一组稳定场景（1 worker / 并发 4 / 40 请求），断言 0 错误、全部 `status=ok`、**0 丢写**与 P95 < 3000ms 的防挂上限。吞吐、延迟绝对值、worker 加速比**都不做断言**，沿用 [ADR 0008](docs/adr/0008-fuzz-and-benchmark-gates.md) 的原则。
+- 10 个新测试（`tests/test_http_load.py`）：门禁契约（含「高 P95 在非门禁模式不该失败」）、快照标注、报告边界、brief 可执行性，以及一次真实 uvicorn 往返，用来锁住下面的代理回归。
+
+### Measured
+
+- 单 worker 并发 1 / 4 / 8：**116 / 238 / 251 /s**，P95 12 / 22 / 40 ms；1000 次真实请求 **0 错误、1000/1000 落库**。
+- worker 扩展曲线（并发固定 8）：1 → 2 → 4 worker 为 **251 / 280 / 130 /s**，最佳是 2 worker（1.12×），4 worker 反而掉到 **0.52×**、P95 涨到 150 ms。
+- 结论：进程内进程池里 worker 不共享状态，真实服务里每个请求都要写一条 run 记录，WAL 同时只允许一个写者，**瓶颈从 GIL 变成了共享 SQLite 写锁**。要横向扩展得先把共享状态移出关键路径，而不是只加 worker。
+
+### Fixed
+
+- **本机代理改写 loopback 请求**：首次运行时除 `/api/health` 外所有端点都返回 404，uvicorn 日志显示请求行是 `GET http%3A//127.0.0.1.../api/stats`（absolute-form）。原因是 `HTTP_PROXY` 让 httpx 把相对路径拼成完整 URL 发给代理。压测客户端改用 `trust_env=False`，并加真实往返测试防止回归。
+
+### Changed
+
+- CI 新增 Real HTTP load gate；`Makefile` 新增 `httpload` 目标并纳入 `gates`。
+- 展示页新增「真实 HTTP 服务压测」区块（数据来自快照）、复现入口与 ADR 0008 补充说明；中英文 README、路线图、任务手册、评测方法论、排错手册、面试讲稿、贡献指南按 v0.8.0 同步。
+
+### 边界
+
+单机 loopback、无 TLS / 反向代理 / 真实模型延迟；同一台机器两次运行 4 worker 的吞吐能差近一倍，这些数字只是量级参考，不是生产 QPS。主评测集仍 80/80、0.9788 / 0.3014，v1–v6 基线不受影响。
+
 ## [0.7.0] - 2026-11-12
 
 **把失败案例库从展示材料变成新用例的输入**：80/80 全绿也可能只是对着 80 道题调规则。新增一层独立的盲测挑战集，检验判定链在没见过的组合上是否一致。
