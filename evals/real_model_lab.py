@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import random
 import statistics
 import sys
 import time
@@ -69,6 +70,29 @@ def _pct(values: list[float], q: float) -> float:
     ordered = sorted(values)
     index = min(len(ordered) - 1, max(0, round(q * (len(ordered) - 1))))
     return round(ordered[index], 1)
+
+
+def bootstrap_ci(values: list[float], rounds: int = 2000, seed: int = 20261113) -> tuple[float, float]:
+    """Percentile bootstrap over cases, so the report states its own uncertainty.
+
+    With n=69 the 95% interval on a pass rate is roughly ±5pp, which is wider
+    than most differences people want to claim between models. Printing the
+    interval next to the point estimate is the cheapest defence against
+    reading noise as a ranking. Seeded, so regenerating the report is
+    byte-identical.
+    """
+    if len(values) < 2:
+        return (values[0] if values else 0.0, values[0] if values else 0.0)
+    rng = random.Random(seed)
+    n = len(values)
+    means = []
+    for _ in range(rounds):
+        total = 0.0
+        for _ in range(n):
+            total += values[rng.randrange(n)]
+        means.append(total / n)
+    means.sort()
+    return (means[int(0.025 * rounds)], means[int(0.975 * rounds) - 1])
 
 
 def summarise(outcomes: list[CaseOutcome], settings: Any) -> dict[str, Any]:
@@ -164,12 +188,17 @@ def build_report(
             "样本构成与全量不同，不能与全量结果直接比较，也不代表整体通过率。",
             "",
         ]
+    planned_cases = [c for c in snapshot["per_case"] if c["group"] != _PREFLIGHT_ONLY]
+    score_lo, score_hi = bootstrap_ci([float(c["score"]) for c in planned_cases])
+    rate_lo, rate_hi = bootstrap_ci([1.0 if c["hard_pass"] else 0.0 for c in planned_cases])
     lines += [
         "## 结论摘要",
         "",
         f"真实模型在 **{planned} 个需要生成方案的用例**上硬约束通过率 "
-        f"**{snapshot['hard_pass_rate'] * 100:.1f}%**（{snapshot['hard_pass']}/{planned}），"
-        f"平均得分 **{snapshot['mean_score']:.4f}**，最低 {snapshot['min_score']:.4f}。",
+        f"**{snapshot['hard_pass_rate'] * 100:.1f}%**"
+        f"（{snapshot['hard_pass']}/{planned}，95% CI {rate_lo * 100:.1f}–{rate_hi * 100:.1f}%），"
+        f"平均得分 **{snapshot['mean_score']:.4f}**"
+        f"（95% CI {score_lo:.4f}–{score_hi:.4f}），最低 {snapshot['min_score']:.4f}。",
         "",
         f"**首次输出即可用率 {clean_rate * 100:.1f}%**"
         f"（{snapshot['first_attempt_clean']}/{planned} 未触发修复），"
@@ -232,6 +261,9 @@ def build_report(
         "",
         "- 单模型单轮采样：temperature 0.2 仍有随机性，重跑的数字会小幅波动；"
         "要比较两个 prompt，必须用同一批用例、同一模型、连续跑，并把两轮都记下来。",
+        "- 报告里的 95% 区间是对**用例**做自助法重采样得到的（n=69 时通过率区间约 ±5 个百分点），"
+        "它衡量的是「换一批同分布的用例，结论会不会翻」，不是「换个模型还成不成立」。"
+        "两个模型的区间重叠时，不能仅凭点估计宣布谁更好。",
         "- 成本按 `agents/openai_compatible.py` 里的价目表估算，不是账单；只用于相对比较。"
         "价目表未收录的模型会退到默认价，可能与实际计费相差数倍。",
         "- 主集共 80 个用例，覆盖 5 城 × 多风格 × 预算/时段压力；本次实际取样见上方用例数，"

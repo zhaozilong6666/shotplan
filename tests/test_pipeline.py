@@ -1,4 +1,5 @@
 from shotplan.agents import MockProvider
+from shotplan.agents.base import GenerationResult
 from shotplan.domain.errors import StorageError
 from shotplan.domain.models import PlanRequest
 from shotplan.pipeline import as_summary, run_plan
@@ -97,3 +98,70 @@ def test_persistence_failure_does_not_veto_a_valid_plan():
     assert result.status == "ok"
     assert result.validation.hard_pass is True
     assert "PERSISTENCE_FAILED" in {i.code for i in result.validation.issues}
+
+
+class _MalformedThenValid:
+    """Emits a schema-invalid payload once, then behaves like the good planner.
+
+    This is the shape of the real failure we saw in production runs: the model
+    answered, the JSON was readable, but a slot used an activity outside the
+    enum. It used to be an unrecoverable error.
+    """
+
+    name = "flaky"
+    prompt_version = "flaky-v1"
+
+    def __init__(self, always_bad: bool = False) -> None:
+        self.calls = 0
+        self.always_bad = always_bad
+        self._good = MockProvider("good")
+
+    def generate(self, request, context, repair_hint=None):
+        self.calls += 1
+        if self.always_bad or self.calls == 1:
+            base = self._good.generate(request, context)
+            return GenerationResult(
+                payload={
+                    "slots": [
+                        {
+                            "start": "09:00",
+                            "end": "11:00",
+                            "activity": "costume",
+                            "label": "妆造",
+                            "cost_cny": 300,
+                        }
+                    ]
+                },
+                tokens_in=base.tokens_in,
+                tokens_out=base.tokens_out,
+                cost_cny=0.0,
+                duration_ms=0.0,
+                model="flaky",
+                metadata={},
+            )
+        return self._good.generate(request, context, repair_hint=repair_hint)
+
+
+def test_parse_failure_gets_one_bounded_repair():
+    provider = _MalformedThenValid()
+    result = run_plan(PlanRequest(), provider=provider, max_repairs=1)
+    assert provider.calls == 2
+    assert result.status == "ok"
+    assert result.validation.hard_pass is True
+    assert result.trace.repair_count == 1
+    assert "repair_parse" in {e.name for e in result.trace.events}
+
+
+def test_parse_repair_is_skipped_when_budget_is_zero():
+    provider = _MalformedThenValid()
+    result = run_plan(PlanRequest(), provider=provider, max_repairs=0)
+    assert provider.calls == 1
+    assert result.status == "error"
+    assert any(i.code == "PIPELINE_ERROR" for i in result.validation.issues)
+
+
+def test_parse_repair_gives_up_after_one_attempt():
+    provider = _MalformedThenValid(always_bad=True)
+    result = run_plan(PlanRequest(), provider=provider, max_repairs=3)
+    assert provider.calls == 2, "malformed output must not burn the whole budget"
+    assert result.status == "error"

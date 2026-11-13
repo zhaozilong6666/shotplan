@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### Added
+
+- **解析失败的一次有界修复**：`parse_plan` 抛错时不再直接返回 `error`，而是消耗一次修复预算、带着 schema 约束重生成（`repair_parse`，最多一次，仍失败才降级）。单元测试覆盖“修好”“预算为 0 不尝试”“一直坏也只试一次”三种路径。注意：三个真实 error 复跑未复现，说明它们是采样长尾，不能据此声称通过率提升——见 `docs/failure-taxonomy.md`。
+- **报告自带不确定性**：真实模型报告对通过率与平均分输出 95% 自助法区间（固定种子，可复现）。n=69 时通过率区间约 ±5 个百分点，比多数人想声称的模型差异还宽。
+- **[失败模式与测量不确定性](docs/failure-taxonomy.md)**：区分“构造失败”与“真实失败”，量化 527 条记录的规则分布，并对唯一的硬失败与三个 schema error 做根因分析。
+
 ### Changed
 
 - **请求约束闭环**：`must_include` / `avoid` 从检索提示升级为硬规则（`MISSING_REQUIRED_LOCATION` / `AVOIDED_LOCATION`）；不可行判定新增 `UNKNOWN_REQUIRED_LOCATION` 与 `ALL_LOCATIONS_EXCLUDED`；`source_refs` 新增存在性硬规则 `UNKNOWN_SOURCE_REF`；规则 12 → 15（10 硬 + 5 软）。离线 planner 现在会优先安排必去地点，且不再用被排除的室内棚做妆造。见 [ADR 0014](docs/adr/0014-request-constraints-are-hard-rules.md)、[ADR 0016](docs/adr/0016-source-refs-must-resolve.md)。

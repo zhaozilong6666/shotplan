@@ -27,7 +27,7 @@ from typing import Any
 
 from .agents import MockProvider, parse_plan, validate
 from .agents.base import PlanProvider
-from .agents.prompts import build_repair_hint
+from .agents.prompts import build_parse_repair_hint, build_repair_hint
 from .config import Settings
 from .domain.errors import DeadlineExceeded, ShotplanError, StorageError
 from .domain.feasibility import FeasibilityReport, check_feasibility
@@ -102,7 +102,11 @@ STAGES: tuple[Stage, ...] = (
         outputs={"plan": "Plan(slots 已排序, 数值已校验)"},
         on_success="validate",
         on_failure="error",
-        notes="可恢复的格式问题会被修复并记入 trace.notes；无法读出的数字直接 ParseError。",
+        notes=(
+            "可恢复的格式问题会被修复并记入 trace.notes；字段级错误（缺 location_id、"
+            "自造 activity）会先消耗一次修复预算（repair_parse，最多一次），仍失败才 error；"
+            "无法读出的数字直接 ParseError。"
+        ),
     ),
     Stage(
         name="validate",
@@ -338,18 +342,54 @@ def run_plan(
     # four tomorrow, and that trend must be visible before it becomes a 500.
     tick = time.perf_counter()
     parse_notes: list[str] = []
+    parse_error: ShotplanError | None = None
     try:
         plan = parse_plan(
             generation.payload, req, agent.name, agent.prompt_version, notes=parse_notes
         )
     except ShotplanError as exc:
-        result = _error_result(req, agent, collector, tick, exc)
-        _safe_save(store, result)
-        return result
-    collector.record(
-        "parse", tick, slots=len(plan.slots), salvage=bool(parse_notes),
-        notes=parse_notes[:4],
-    )
+        parse_error = exc
+
+    # Repairs used so far. A parse failure consumes one: a field-level mistake
+    # is usually the cheapest thing to fix and the most expensive thing to
+    # discard. Before this, an absent `location_id` turned a nearly usable plan
+    # into a hard error while the same budget happily chased a budget overrun.
+    repairs = 0
+    if parse_error is not None:
+        collector.record("parse", tick, outcome="error", reason=str(parse_error)[:160])
+        if retries <= 0 or expired():
+            result = _error_result(req, agent, collector, tick, parse_error)
+            _safe_save(store, result)
+            return result
+        repairs = 1
+        tick = time.perf_counter()
+        try:
+            fixed = agent.generate(
+                req, context, repair_hint=build_parse_repair_hint(parse_error)
+            )
+            plan = parse_plan(
+                fixed.payload, req, agent.name, agent.prompt_version, notes=parse_notes
+            )
+            collector.record(
+                "repair_parse", tick,
+                duration_ms=fixed.duration_ms,
+                tokens_in=fixed.tokens_in,
+                tokens_out=fixed.tokens_out,
+                cost_cny=fixed.cost_cny,
+                accepted=True,
+            )
+        except ShotplanError as exc:
+            # One attempt only: a second malformed payload means the schema in
+            # the prompt is wrong, which is a code change, not a retry.
+            collector.record("repair_parse", tick, outcome="error", reason=str(exc)[:160])
+            result = _error_result(req, agent, collector, tick, exc)
+            _safe_save(store, result)
+            return result
+    else:
+        collector.record(
+            "parse", tick, slots=len(plan.slots), salvage=bool(parse_notes),
+            notes=parse_notes[:4],
+        )
 
     # 4. Validation --------------------------------------------------------------
     tick = time.perf_counter()
@@ -362,7 +402,6 @@ def run_plan(
     )
 
     # 5. Repair loop -------------------------------------------------------------
-    repairs = 0
     while not report.hard_pass and repairs < retries:
         if expired():
             # Degrade, do not fail: return the best draft we already have and

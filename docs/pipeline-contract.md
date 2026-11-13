@@ -125,7 +125,7 @@ flowchart TD
   "plan": "Plan(slots 已排序, 数值已校验)"
 }
 ```
-- 说明：可恢复的格式问题会被修复并记入 trace.notes；无法读出的数字直接 ParseError。
+- 说明：可恢复的格式问题会被修复并记入 trace.notes；字段级错误（缺 location_id、自造 activity）会先消耗一次修复预算（repair_parse，最多一次），仍失败才 error；无法读出的数字直接 ParseError。
 
 ### `validate` — 硬约束校验（不经过模型）
 

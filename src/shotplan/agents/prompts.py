@@ -114,3 +114,27 @@ def build_repair_hint(report: Any) -> str:
             f"Expected: {issue.expected}. Fix: {issue.suggestion}"
         )
     return "\n".join(lines)
+
+
+# The schema facts a model most often violates when a payload fails to parse.
+# Kept next to the repair hint so the two cannot drift apart.
+_PARSE_SCHEMA_RULES = (
+    "Allowed `activity` values: makeup, travel, shoot — nothing else.\n"
+    "Every slot requires: start, end, activity, location_id, label, cost_cny.\n"
+    "`location_id` must be one of the candidate ids in the brief; never invent one.\n"
+    "Return ONE JSON object, no markdown fences, no commentary."
+)
+
+
+def build_parse_repair_hint(error: Any) -> str:
+    """Turn a parse failure into the same shape as a validation hint.
+
+    The pipeline feeds this through the identical repair path, so a malformed
+    payload gets exactly one bounded second chance instead of a hard error.
+    """
+    message = str(error).strip().splitlines()[0][:300]
+    return (
+        f"- [HARD] PARSE_ERROR: {message}\n"
+        "  The previous payload could not be read into the plan schema.\n"
+        "  " + _PARSE_SCHEMA_RULES.replace("\n", "\n  ")
+    )
