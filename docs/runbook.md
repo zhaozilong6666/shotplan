@@ -69,6 +69,12 @@
 **`WORKER-LAB GATE FAILED`**
 若提示 `switch had no effect`，说明 `SHOTPLAN_PERSIST_RUNS` 没生效或 API 没有把 `store=None` 传下去——对照实验会变成自欺欺人，必须修实现而不是改断言。若提示 `writes were lost`，说明并发下 SQLite 丢写。吞吐与判定文字不在门禁里，波动属正常；重刷产物用 `python -m evals.worker_lab --write`。
 
+**`PERSIST-LAB GATE FAILED`**
+若提示 `stored N of M runs within the drain window`，说明异步模式下队列没有在排空窗口内写完：先看是否有慢磁盘或后台负载（`pending` 会一直大于 0），再确认 `save_many` 没有在事务里做别的事。若提示 `still stored N runs`，说明 `off` 没生效——服务端收到的可能是旧的 `SHOTPLAN_PERSIST_RUNS`。若提示 `the service reported mode=... but the arm was ...`，说明环境变量没传进子进程；这类「开关没生效」必须修实现，不能改断言。吞吐与排空时间不在门禁里，重刷用 `python -m evals.persist_lab --write`。
+
+**`PIPELINE-DOC GATE FAILED`**
+说明改了 `pipeline.py` 的 `STAGES` 却没重新生成文档。执行 `python scripts/build_pipeline_doc.py --write` 并提交 `docs/pipeline-contract.md`。如果你只是改了某个节点的说明文字，同样要重生成——文档是生成物，不手改。
+
 **`--compare` 显示巨大差值**
 先确认基线是不是同一批用例。`v1-naive.json` 是 12 用例时代的历史快照，当前 80 用例必须比 `v6-naive.json`。新增用例后要重刷基线，否则用例集变化会被误读成质量变化。
 
