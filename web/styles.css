@@ -96,6 +96,14 @@ button { font: inherit; cursor: pointer; }
 .stat.ok b { color: var(--good); }
 .stat.fail { background: var(--bad-soft); border-color: #f2cccc; }
 .stat.fail b { color: var(--bad); }
+.stat.warn { background: var(--warn-soft); border-color: #ecd9b6; }
+.stat.warn b { color: var(--warn); }
+.ghost {
+  margin-top: 10px; padding: 5px 12px; font-size: 12px;
+  border: 1px solid var(--line); border-radius: 8px;
+  background: #fff; color: var(--muted);
+}
+.ghost:hover { border-color: var(--accent); color: var(--accent); }
 .timeline { border-left: 2px solid var(--line); margin-left: 8px; padding-left: 18px; }
 .slot {
   position: relative; padding: 10px 14px; margin-bottom: 10px;

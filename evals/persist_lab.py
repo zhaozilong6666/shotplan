@@ -180,7 +180,7 @@ def verdict_text(result: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def honest_limits() -> list[str]:
+def honest_limits(result: dict[str, Any] | None = None) -> list[str]:
     return [
         "- 异步只是把**等待**移出请求路径，并没有减少写库的总工作量：同样的行、同样的 fsync，"
         "只是改成每 32 行一次提交，并由后台线程承担。",
@@ -188,8 +188,12 @@ def honest_limits() -> list[str]:
         "worker 越多，这条争用越明显。真正的多机方案需要独立写服务或消息队列。",
         "- 离线 mock provider 下服务本身很快，写库占比因此被放大；接入真实模型后，"
         "网络延迟会稀释这个收益，比例会下降。",
-        "- **跨批次不可比**：同一台机器上，v0.9.0 那批关掉写库只快 2.48×，本批是 11×；"
-        "用未修改的旧脚本今天重跑得到 7×。差异来自磁盘 / 临时目录 / 后台负载，不是代码。"
+        # The number in this sentence must come from the batch that produced
+        # the report, not from the last time the sentence was edited — a
+        # hand-updated "this batch measured X" went stale once already.
+        f"- **跨批次不可比**：同一台机器上，v0.9.0 那批关掉写库只快 2.48×，本批是 "
+        f"{result['write_cost_1w'] if result else 'N'}×；另一批用未修改的旧脚本重跑得到 7×。"
+        "差异来自磁盘 / 临时目录 / 后台负载，不是代码。"
         "所以本报告只做**同批内**的相对比较，绝对吞吐不进任何结论。",
         "- 异步模式的持久性边界是「进程被 SIGKILL / 断电」：队列里未提交的行会丢。"
         "测试里用 `os._exit` 真实杀进程量过这个窗口（tests/test_write_behind.py），"
@@ -273,13 +277,14 @@ def build_report(
         "",
         "## 边界",
         "",
-        *honest_limits(),
+        *honest_limits(result),
         "",
         "## 复现",
         "",
         "```bash",
         "python -m evals.persist_lab --check   # CI 门禁",
-        "python -m evals.persist_lab --write   # 重跑矩阵并刷新报告",
+        "python -m evals.persist_lab --report  # 只重排报告（读提交的快照，不重测）",
+        "python -m evals.persist_lab --write   # 重跑矩阵并刷新快照与报告",
         "```",
         "",
     ]
@@ -328,10 +333,36 @@ def check_problems(off: Scenario, sync: Scenario, async_: Scenario) -> list[str]
     return problems
 
 
+def cells_from_snapshot(snapshot: dict[str, Any]) -> dict[tuple[str, int], Cell]:
+    """Rebuild the cells from a committed snapshot, without re-running.
+
+    Raw rps/p95 runs are stored per cell, so medians are reproduced exactly;
+    per-run drain times are not stored, only the median, which is all the
+    report prints. This is what makes the report refreshable independently of
+    the (slow, machine-dependent) measurement.
+    """
+    cells: dict[tuple[str, int], Cell] = {}
+    for raw in snapshot["cells"]:
+        cell = Cell(
+            raw["mode"], raw["workers"],
+            rps_values=list(raw["rps_runs"]),
+            p95_values=list(raw["p95_runs"]),
+            drain_values=[raw["median_drain_s"]],
+            errors=raw["errors"],
+            lost_writes=raw["lost_writes"],
+        )
+        cells[(cell.mode, cell.workers)] = cell
+    return cells
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="write-behind persistence experiment")
     parser.add_argument("--write", action="store_true", help="full matrix + snapshot + report")
     parser.add_argument("--check", action="store_true", help="CI gate: three-arm contract")
+    parser.add_argument(
+        "--report", action="store_true",
+        help="rebuild docs/persistence.md from the committed snapshot (no measuring)",
+    )
     parser.add_argument("--requests", type=int, default=REQUESTS)
     parser.add_argument("--repeats", type=int, default=REPEATS)
     parser.add_argument("--out", type=Path, default=OUT_DIR / "persist_lab.json")
@@ -339,6 +370,17 @@ def main(argv: list[str] | None = None) -> int:
 
     cpu_count = os.cpu_count() or 1
     try:
+        if args.report:
+            snapshot = json.loads(SNAPSHOT_PATH.read_text(encoding="utf-8"))
+            cells = cells_from_snapshot(snapshot)
+            result = snapshot["interpretation"]
+            REPORT_PATH.write_text(
+                build_report(cells, result, snapshot.get("cpu_count", cpu_count)),
+                encoding="utf-8",
+            )
+            print(f"report rebuilt from {SNAPSHOT_PATH}: {REPORT_PATH}")
+            return 0
+
         if args.write:
             scenarios: list[Scenario] = []
             for _ in range(max(1, args.repeats)):

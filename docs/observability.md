@@ -39,6 +39,8 @@ curl http://127.0.0.1:8000/api/stats          # 同一份数据
 
 Web 界面的「运行统计」标签页渲染的就是 `/api/stats`：表格按 provider / prompt 版本列出运行数、通过率、均分、P50/P95、成本、修复轮次与不可行数量。
 
+同一页还有一块**持久化面板**（数据来自 `/api/config`）：显示 `persist_mode`；`async` 模式下额外显示写队列的 `pending / written / failed / sync_fallbacks / batches / max_batch`。`pending > 0` 是黄色（正常，几秒内归零），`failed > 0` 是红色（磁盘问题，需要处理），`sync_fallbacks > 0` 表示队列曾满、退化为同步写。每次切到该页都会重新拉取，便于演示时观察积压排空。
+
 ## 边界
 
 - 单进程 SQLite，没有并发写入与用户隔离；这是明确的设计取舍（ADR 0001、README 已知限制）。

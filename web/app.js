@@ -2,7 +2,7 @@
 (function () {
   "use strict";
 
-  var state = { result: null, tab: "plan", stats: null, statsLoading: false };
+  var state = { result: null, tab: "plan", stats: null, config: null, statsLoading: false };
   var el = function (id) { return document.getElementById(id); };
   var esc = function (value) {
     return String(value == null ? "" : value).replace(/[&<>"']/g, function (c) {
@@ -157,15 +157,60 @@
     if (state.statsLoading) return;
     state.statsLoading = true;
     try {
-      var response = await fetch("/api/stats");
-      if (!response.ok) throw new Error("HTTP " + response.status);
-      state.stats = await response.json();
+      var results = await Promise.all([
+        fetch("/api/stats").then(function (r) {
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          return r.json();
+        }),
+        // /api/config carries persist_mode and the write-behind queue stats.
+        // A missing or older config endpoint must not break the stats view.
+        fetch("/api/config").then(function (r) {
+          return r.ok ? r.json() : null;
+        }).catch(function () { return null; })
+      ]);
+      state.stats = results[0];
+      state.config = results[1];
     } catch (error) {
       state.stats = { error: error.message };
     } finally {
       state.statsLoading = false;
       if (state.tab === "stats") render();
     }
+  }
+
+  function renderPersistence(cfg) {
+    if (!cfg) return "";
+    var mode = cfg.persist_mode || "sync";
+    var modeNote = {
+      sync: "同步写入：每个响应返回前已提交，无积压概念。",
+      async: "写后置队列：响应先返回，后台线程批量提交。",
+      off: "写入已关闭：本页统计不会增长。"
+    }[mode] || mode;
+    var html = '<div class="alternatives"><h4>持久化 · <code>' + esc(mode) + '</code></h4>';
+    var w = cfg.writer;
+    if (mode === "async" && w) {
+      // pending is the honest answer to "did my write land yet": non-zero is
+      // normal for a moment after a burst, stuck-at-non-zero is a problem.
+      html += '<div class="summary">' +
+        '<div class="stat ' + (w.pending > 0 ? "warn" : "ok") + '"><b>' + esc(w.pending) +
+        '</b><span>排队中（未落库）</span></div>' +
+        '<div class="stat ok"><b>' + esc(w.written) + '</b><span>已落库</span></div>' +
+        '<div class="stat ' + (w.failed > 0 ? "fail" : "ok") + '"><b>' + esc(w.failed) +
+        '</b><span>写入失败</span></div>' +
+        '<div class="stat ' + (w.sync_fallbacks > 0 ? "warn" : "ok") + '"><b>' +
+        esc(w.sync_fallbacks) + '</b><span>队列满转同步</span></div>' +
+        '<div class="stat"><b>' + esc(w.batches) + '</b><span>批次（最大 ' +
+        esc(w.max_batch) + ' 行）</span></div>' +
+        '</div>';
+      html += '<p class="hint small">队列满时退化为同步写，不丢行；' +
+        '进程被硬杀时未提交的行会丢（窗口已实测，见 docs/persistence.md）。' +
+        'pending 长时间不为 0 说明写线程跟不上。</p>';
+    } else {
+      html += '<p class="hint small">' + esc(modeNote) +
+        ' 设 SHOTPLAN_PERSIST_MODE=async 可在此看到写入积压。</p>';
+    }
+    html += '<button class="ghost" id="refresh-stats">刷新统计</button></div>';
+    return html;
   }
 
   function renderStats() {
@@ -208,6 +253,7 @@
         "<td class='num'>" + esc(g.infeasible || 0) + "</td></tr>";
     });
     html += "</tbody></table>";
+    html += renderPersistence(state.config);
     html += '<p class="hint small">数据来自本机 SQLite 运行历史；' +
       'infeasible 运行按硬约束失败计入，离线 provider 估算成本为 0。</p>';
     return html;
@@ -259,12 +305,17 @@
   }
 
   el("run").addEventListener("click", generate);
+  document.addEventListener("click", function (event) {
+    if (event.target && event.target.id === "refresh-stats") loadStats();
+  });
   document.querySelectorAll(".tab").forEach(function (tab) {
     tab.addEventListener("click", function () {
       document.querySelectorAll(".tab").forEach(function (t) { t.classList.remove("active"); });
       tab.classList.add("active");
       state.tab = tab.dataset.tab;
       render();
+      // Re-fetch on every visit so queue stats are current, not cached.
+      if (state.tab === "stats") loadStats();
     });
   });
   document.querySelectorAll("[data-preset]").forEach(function (button) {

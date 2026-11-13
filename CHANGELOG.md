@@ -4,7 +4,24 @@
 
 ## [Unreleased]
 
-阶段 4 剩余项：接真实模型跑 `openai_compatible`、记录 prompt v1/v2 的实测差异、用真实数据填满成本/延迟表。阶段 5 剩余项：可交互的在线 Demo、简历与面试材料定稿。详见 `docs/ROADMAP.md`。
+阶段 4 剩余项：接真实模型跑 `openai_compatible`、记录 prompt v1/v2 的实测差异。详见 `docs/ROADMAP.md`。
+
+## [0.10.1] - 2026-11-13
+
+**Web 统计页接上写入队列的可视化，并补上 0.10.0 忘记更新的包版本号。**
+
+### Added
+
+- 「运行统计」标签页新增**持久化面板**：显示 `persist_mode`；`async` 模式下显示 `pending / written / failed / sync_fallbacks / batches / max_batch`，`pending > 0` 黄色告警、`failed > 0` 红色；附刷新按钮，每次切到该页自动重取。`/api/config` 缺失或不可达时不影响统计主视图。
+- 演示路径：`SHOTPLAN_PERSIST_MODE=async python -m shotplan.cli serve` → 打开「运行统计」→ 连点几次生成，可看到 `pending` 从非 0 归零。
+- `evals/persist_lab.py --report`：从已提交的快照重排 `docs/persistence.md`，不必重跑矩阵；边界段落里的「本批倍数」改为由快照计算——此前那句话是手改的，重跑矩阵后出现过结论段 5.13× 与边界段 11× 并存的内部矛盾。
+- `evals/persist_lab.py --report`：从已提交的快照重排 `docs/persistence.md`，不必重跑矩阵；边界段落里的「本批倍数」改为由快照计算——此前那句话是手改的，重跑矩阵后出现过结论段 5.13× 与边界段 11× 并存的内部矛盾。
+
+### Fixed
+
+- **`__version__` 仍为 0.9.0**：v0.10.0 的 Release 与 CHANGELOG 都写了 0.10.0，但包版本字符串漏改，`/api/health` 与 `pip` 元数据因此报旧版本。修复并在此记录——发布清单里应该有一行「版本字符串与 tag 一致」。
+
+
 
 ## [0.10.0] - 2026-11-13
 
