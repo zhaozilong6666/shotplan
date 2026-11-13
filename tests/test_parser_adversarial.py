@@ -180,12 +180,32 @@ def test_one_megabyte_of_junk_is_a_parse_error_with_a_bounded_message():
     assert len(str(excinfo.value)) < 400
 
 
-def test_three_thousand_level_nesting_does_not_raise_recursion_error():
-    # 1000 levels parses fine; 3000 trips CPython's recursion limit inside
-    # json.loads. The parser must turn that into ParseError, not leak it.
+def test_deep_nesting_never_escapes_as_recursion_error():
+    """3000 levels is deep enough to trip CPython's limit on some builds.
+
+    Whether json.loads parses it or raises is platform-dependent (the C scanner
+    and the pure-Python one differ), so the assertion must not assume either.
+    What must hold everywhere: the outcome is a dict or a ParseError, never a
+    RecursionError escaping the trust boundary.
+    """
     text = '{"a":' * 3000 + "1" + "}" * 3000
+    try:
+        result = extract_json(text)
+    except ParseError:
+        return
+    assert isinstance(result, dict)
+
+
+def test_a_recursion_error_from_the_scanner_becomes_parse_error(monkeypatch):
+    """Deterministic coverage of the guard, independent of the real limit."""
+    import json as json_module
+
+    def explode(*args, **kwargs):
+        raise RecursionError("maximum recursion depth exceeded")
+
+    monkeypatch.setattr(json_module, "loads", explode)
     with pytest.raises(ParseError):
-        extract_json(text)
+        extract_json('{"slots": []}')
 
 
 def test_empty_bytes_none_and_list_are_rejected_cleanly():
