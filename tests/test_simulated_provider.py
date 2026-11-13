@@ -6,9 +6,21 @@ import time
 
 from evals.cost_latency import build_report
 from evals.simulated_provider import PriceCard, SimulatedProvider
+from scripts.build_showcase import cost_block
 
 from shotplan.domain.models import PlanRequest
 from shotplan.pipeline import run_plan
+
+
+def _row() -> dict:
+    return {
+        "model": "test-model", "price_in_per_1k": 0.001, "price_out_per_1k": 0.002,
+        "configured_latency_ms": 800, "provider_calls": 69,
+        "total_tokens_in": 100, "total_tokens_out": 200,
+        "total_cost_cny": 0.5, "cost_per_call_cny": 0.0072,
+        "p50_duration_ms": 812.91, "p95_duration_ms": 1200.87,
+        "hard_pass_rate": 1.0,
+    }
 
 
 def test_simulated_provider_attaches_cost_and_metadata():
@@ -42,17 +54,26 @@ def test_price_card_is_frozen_and_versioned():
     assert result.trace.prompt_version == "planner-v1"
 
 
-def test_cost_report_latency_is_rounded_to_whole_ms():
-    """0.01 ms of local overhead must not make the committed report drift."""
-    row = {
-        "model": "test-model", "price_in_per_1k": 0.001, "price_out_per_1k": 0.002,
-        "configured_latency_ms": 800, "provider_calls": 69,
-        "total_tokens_in": 100, "total_tokens_out": 200,
-        "total_cost_cny": 0.5, "cost_per_call_cny": 0.0072,
-        "p50_duration_ms": 800.14, "p95_duration_ms": 800.37,
-        "hard_pass_rate": 1.0,
-    }
-    document = build_report([row], 80)
+def test_cost_report_latency_is_the_configured_value():
+    """Measured p50/p95 carry local overhead and must not reach committed docs.
+
+    Regression: round(1200.6) -> 1201 made the committed showcase page drift
+    and the "showcase is up to date" CI gate fail on some runs only.
+    """
+    document = build_report([_row()], 80)
     assert "800 / 800 ms" in document
-    assert "800.14" not in document
-    assert "800.37" not in document
+    assert "812.91" not in document
+    assert "1200.87" not in document
+    noisy = dict(_row(), p50_duration_ms=1200.6, p95_duration_ms=2400.9)
+    assert build_report([noisy], 80) == document
+
+
+def test_showcase_cost_block_ignores_measured_latency():
+    card = _row()
+    first = cost_block({"cards": [card]})
+    noisy = cost_block({
+        "cards": [dict(card, p50_duration_ms=1300.9, p95_duration_ms=1400.9)]
+    })
+    assert first == noisy
+    assert "800 / 800 ms" in first
+    assert "1301" not in first

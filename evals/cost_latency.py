@@ -80,10 +80,11 @@ def build_report(rows: list[dict[str, Any]], case_count: int) -> str:
             f"{row['configured_latency_ms']} ms | {row['provider_calls']} | "
             f"{row['total_tokens_in']} / {row['total_tokens_out']} | "
             f"{row['total_cost_cny']} 元 | {row['cost_per_call_cny']} 元 | "
-            # The fractional part is this machine's pipeline overhead (0.01 ms),
-            # not a meaningful signal. Rounding keeps the generated report
-            # byte-identical across runners (same rationale as ADR 0008).
-            f"{round(row['p50_duration_ms'])} / {round(row['p95_duration_ms'])} ms | "
+            # Latency is a PRICE-CARD CONFIGURATION, not a measurement. Measured
+            # p50/p95 include this machine's pipeline overhead, which can tip
+            # round() from 1200 to 1201 and break the showcase diff. Display the
+            # configured value twice: byte-identical across runners (ADR 0008).
+            f"{row['configured_latency_ms']} / {row['configured_latency_ms']} ms | "
             f"{row['hard_pass_rate']:.0%} |"
         )
 
@@ -111,7 +112,9 @@ def build_report(rows: list[dict[str, Any]], case_count: int) -> str:
         "## 边界（重要）",
         "",
         "- token 数是离线 provider 的字符估算，不是厂商 tokenizer 的结果；真实成本会有偏差。",
-        "- 延迟是配置值，不含网络、排队、限流与重试；P50/P95 取整到毫秒，小数部分只是本机流水线开销，跨机器不可比。",
+        "- 延迟是配置值，不含网络、排队、限流与重试；表格里的 P50/P95 直接显示该配置值，",
+        "不叠加本机流水线开销。实测 p50/p95 仍保留在 `evals/out/cost-latency.json` 用于验证聚合链路，",
+        "但跨机器不可比，也不进展示页一致性门禁。",
         "- 质量列（通过率/均分）来自规则 provider，与成本无关；真实模型的质量通常更低，"
         "这正是 `docs/eval-report.md` 要在接模型后重跑的原因。",
         "- 结论只能用于「量级与链路验证」，不能用于对外宣称某模型性价比。",

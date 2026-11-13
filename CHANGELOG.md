@@ -25,6 +25,7 @@
 ### Fixed
 
 - **本机代理改写 loopback 请求**：首次运行时除 `/api/health` 外所有端点都返回 404，uvicorn 日志显示请求行是 `GET http%3A//127.0.0.1.../api/stats`（absolute-form）。原因是 `HTTP_PROXY` 让 httpx 把相对路径拼成完整 URL 发给代理。压测客户端改用 `trust_env=False`，并加真实往返测试防止回归。
+- **展示页一致性门禁偶发红**：成本模拟的 P50/P95 之前用实测值取整到毫秒，实测值含本机流水线开销，`round(1200.6)` 会在某次运行变成 `1201`，导致 `git diff --exit-code docs/index.html` 无端失败。既然延迟本来就是价格卡配置值，报告与展示页改为直接显示该配置值（两列相同），实测值只留在 `evals/out/cost-latency.json`；新增两个「不同实测开销产生完全相同输出」的确定性回归测试。
 
 ### Changed
 

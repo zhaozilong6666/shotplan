@@ -222,7 +222,11 @@ def cost_block(cost: dict) -> str:
         rows.append(
             f'        <tr><td><code>{card["model"]}</code></td>'
             f'<td class="num">{card["cost_per_call_cny"]:.6f} 元</td>'
-            f'<td class="num">{card["p50_duration_ms"]:.0f} / {card["p95_duration_ms"]:.0f} ms</td>'
+            # Use the configured latency, never the measured one: local pipeline
+            # overhead makes round(1200.6) -> 1201 on some runs, which would
+            # fail the "showcase is up to date" CI gate for no real reason.
+            f'<td class="num">{card["configured_latency_ms"]} / '
+            f'{card["configured_latency_ms"]} ms</td>'
             f'<td class="num">{per_day:.2f} 元</td></tr>'
         )
     return "      <tbody>\n" + "\n".join(rows) + "\n      </tbody>"

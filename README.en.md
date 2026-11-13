@@ -134,7 +134,7 @@ shotplan/
 │   └── cli.py         # CLI entry point
 ├── web/               # Dependency-free single-page UI (5 tabs)
 ├── evals/             # 80 cases + 200 holdout briefs, mutation/mining/HTTP-load labs
-├── tests/             # 201 unit tests
+├── tests/             # 202 unit tests
 └── docs/              # Architecture, metrics, 10 ADRs, ops, interview notes
 ```
 
