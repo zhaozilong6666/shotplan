@@ -6,6 +6,34 @@
 
 阶段 4 剩余项：接真实模型跑 `openai_compatible`、记录 prompt v1/v2 的实测差异、用真实数据填满成本/延迟表。阶段 5 剩余项：可交互的在线 Demo、简历与面试材料定稿。详见 `docs/ROADMAP.md`。
 
+## [0.9.0] - 2026-11-13
+
+**给上一版的性能归因补上对照实验**：v0.8.0 从一次测量推断「4 worker 变慢是共享 SQLite 写锁」，那是机制解释，不是受控实验。这一版加开关、做干预，并允许实验判定「不确定」。
+
+### Added
+
+- **`SHOTPLAN_PERSIST_RUNS`**（`Settings.persist_runs`，默认 `True`）：为 `0` 时 `/api/plan` 把 `store=None` 传给 `run_plan`，跳过运行历史写入；同一份产品代码路径，HTTP / ASGI / JSON / provider / 校验 / 修复全部不变。也有独立产品价值：无状态部署可关掉历史写入。
+- **对照实验**（`evals/worker_lab.py`）：1/2/4 worker × 持久化开/关 × 2 轮、每轮 200 请求，两组在同一批内交替跑，取中位数并列出每轮原始值。产物 [docs/worker-bottleneck.md](docs/worker-bottleneck.md) 与 `evals/worker_lab.json`（标注 `machine_dependent`）。
+- **判定逻辑先检验现象是否复现**：`interpret()` 检查有写入组逐轮 `4w/1w` 比值，可输出 `confirmed` / `partially_confirmed` / `not_reproduced` / `inconclusive` / `refuted`；`relation_text()` 随判定动态生成「与上一版报告的关系」，绝不写死「已证实」或「已证伪」。
+- `--check` 作为 CI 第 **14** 道门禁：只跑 1 worker 开/关各 20 请求，断言 0 错误、**开 = 全部落库**、**关 = 0 落库**（证明开关真的生效）。吞吐与结论文字不进门禁。
+- [ADR 0011 对照实验优先于归因推断](docs/adr/0011-controlled-experiment-over-inference.md)；9 个新测试覆盖 5 种判定、中位数聚合、开关语义与环境变量解析。
+
+### Measured
+
+- 关掉同步写库后 1 worker 吞吐 **2.48×**、2 worker **3.59×**：持久化是关键路径上最大的单项开销，这一条在所有轮次稳定。
+- 有写入组 4w/1w 逐轮 **0.86 / 0.92**（中位数 0.89），关掉写入后 **1.59×**；本批数据**支持** v0.8.0 的写锁归因，不做推翻。
+- **但结论是有条件的**：另一批独立探针里有写入组 4 worker 反而比 1 worker 快 2.42×，「回落」本身没复现，按同一套逻辑会得到 `inconclusive` / `not_reproduced`。因此 `docs/http-load.md`、展示页 note 与中英文 README 都改为标注「归因经对照实验支持但依赖负载稳定复现」，并公开逐轮原始值。
+- 工程建议：把运行历史写入**异步化 / 批量化**移出同步关键路径（不是删掉历史——它是可观测性与回归追溯的基础）；worker 数实测找拐点，不是越多越好。
+
+### Changed
+
+- CI 新增 Worker/persistence gate；Makefile 新增 `workerlab` 目标并纳入 `gates`。
+- 展示页新增「对照实验」区块；中英文 README、路线图、任务手册、排错手册、评测方法论、面试讲稿 Q&A、贡献指南按 v0.9.0 同步；版本 **0.9.0**。
+
+### 边界
+
+单机 loopback、离线 provider、小样本；绝对值跨运行可差数倍，只能看同一批内相对关系。主评测集仍 80/80、0.9788 / 0.3014，v1–v6 基线不受影响，默认持久化行为不变。
+
 ## [0.8.0] - 2026-11-13
 
 **把性能证据从「调函数」推进到「跑服务」**：之前的吞吐全部来自进程内微基准，没有 HTTP 解析、ASGI 中间件、完整 plan + trace 的 JSON 序列化、loopback 网络栈，更没有**多个 OS 进程同时写同一个 SQLite 文件**。

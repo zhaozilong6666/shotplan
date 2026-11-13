@@ -61,6 +61,9 @@ jobs:
       - name: Real HTTP load gate
         run: python -m evals.http_load --check
 
+      - name: Worker/persistence controlled experiment
+        run: python -m evals.worker_lab --check
+
       - name: Examples are up to date
         run: python -m evals.examples --check
 

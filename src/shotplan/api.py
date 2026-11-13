@@ -77,7 +77,7 @@ async def create_plan(request: Request) -> JSONResponse:
             lambda: run_plan(
                 brief,
                 provider=provider,
-                store=_store(),
+                store=_store() if cfg.persist_runs else None,
                 settings=cfg,
                 max_repairs=cfg.max_repairs,
             )

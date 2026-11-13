@@ -88,6 +88,7 @@ class Scenario:
     runs_before: int = 0
     runs_after: int = 0
     startup_s: float = 0.0
+    persist: bool = True
 
     @property
     def latencies(self) -> list[float]:
@@ -107,6 +108,10 @@ class Scenario:
 
     @property
     def lost_writes(self) -> int:
+        # Persistence is deliberately disabled in the control arm of
+        # evals/worker_lab.py; "lost writes" is not meaningful there.
+        if not self.persist:
+            return 0
         return max(0, self.ok_count - self.runs_delta)
 
     def metrics(self) -> dict[str, Any]:
@@ -116,6 +121,7 @@ class Scenario:
             "workers": self.workers,
             "concurrency": self.concurrency,
             "requests": self.requests,
+            "persist": self.persist,
             "ok": self.ok_count,
             "errors": len(self.errors),
             "error_samples": self.errors[:3],
@@ -161,12 +167,15 @@ def _stop(proc: subprocess.Popen) -> None:
 
 
 @contextlib.contextmanager
-def server(workers: int, db_path: Path) -> Iterator[tuple[str, float]]:
+def server(
+    workers: int, db_path: Path, persist: bool = True
+) -> Iterator[tuple[str, float]]:
     """Start real uvicorn in a subprocess; always tear it down."""
     port = free_port()
     env = os.environ.copy()
     env["SHOTPLAN_DB_PATH"] = str(db_path)
     env["SHOTPLAN_PROVIDER"] = "mock"
+    env["SHOTPLAN_PERSIST_RUNS"] = "1" if persist else "0"
     env["PYTHONPATH"] = str(ROOT / "src") + os.pathsep + env.get("PYTHONPATH", "")
     command = [
         sys.executable, "-m", "uvicorn", "shotplan.api:app",
@@ -233,13 +242,15 @@ def one(client: httpx.Client, index: int) -> Result:
         )
 
 
-def run_scenario(workers: int, concurrency: int, requests: int) -> Scenario:
-    scenario = Scenario(workers, concurrency, requests)
+def run_scenario(
+    workers: int, concurrency: int, requests: int, persist: bool = True
+) -> Scenario:
+    scenario = Scenario(workers, concurrency, requests, persist=persist)
     with tempfile.TemporaryDirectory(
         prefix="shotplan-http-", ignore_cleanup_errors=True
     ) as tmp:
         db_path = Path(tmp) / "runs.db"
-        with server(workers, db_path) as (base_url, startup_s):
+        with server(workers, db_path, persist) as (base_url, startup_s):
             scenario.startup_s = startup_s
             limits = httpx.Limits(
                 max_connections=max(8, concurrency * 2),
@@ -376,9 +387,15 @@ def build_report(scenarios: list[Scenario], cpu_count: int) -> str:
             "每个 `/api/plan` 都要写一条 run 记录，4 个 uvicorn worker 抢的是同一个 SQLite 文件，"
             "WAL 同一时刻只允许一个写者，跨进程写锁与进程协调开销会盖过并行收益。",
             "",
-            "换句话说：要真正在多核上扩展，先得把共享 SQLite 从关键路径上移开"
+            "换句话说：在本次负载下，要真正在多核上扩展，先把共享 SQLite 从关键路径上移开"
             "（独立 DB 服务、写队列或按进程分片），再加 worker；只加 worker 只会放大争用。"
             "这条结论只有把服务真正跑起来才看得见，进程内微基准给不了。",
+            "",
+            "**后续（v0.9.0）**：上面这段原本只是**归因推断**。"
+            "[worker-bottleneck.md](worker-bottleneck.md) 用 `SHOTPLAN_PERSIST_RUNS=0` 做了对照实验，"
+            "关掉同步写库后 1 worker 吞吐提升约 2.5×、4 worker 不再回落，本批数据支持写锁归因；"
+            "但另一批独立运行里「回落」现象本身没稳定复现，因此它是**有条件的定性结论**，"
+            "不是普适规律（[ADR 0011](adr/0011-controlled-experiment-over-inference.md)）。",
             "",
             "数据来自本机 loopback 小样本，不外推到容器化或带真实模型延迟的生产环境。",
             "",
@@ -432,7 +449,7 @@ def print_summary(scenario: Scenario) -> None:
     m = scenario.metrics()
     print(
         f"workers={scenario.workers} concurrency={scenario.concurrency} "
-        f"requests={scenario.requests}: rps={m['rps']} "
+        f"persist={int(scenario.persist)} requests={scenario.requests}: rps={m['rps']} "
         f"p50/p95={m['p50_ms']}/{m['p95_ms']}ms "
         f"errors={m['errors']} persisted={scenario.runs_delta}/{scenario.ok_count} "
         f"startup={m['startup_s']}s"

@@ -21,7 +21,7 @@ Hanfu travel photography was chosen because its constraints are real: golden-hou
 | Quality | Try another prompt | 12 deterministic rules + dimension scores |
 | Impossible brief | Fabricate a plan anyway | Pre-generation check returns reasons, gaps, suggestions and theoretical minimums |
 | Failure handling | Regenerate once | Validation report becomes a repair hint; **worse drafts are rejected** |
-| Evidence | Screenshots | 80 regression cases + 200 holdout briefs + real HTTP load test + control group + 13 CI gates |
+| Evidence | Screenshots | 80 regression cases + 200 holdout briefs + real HTTP load test + persistence A/B experiment + 14 CI gates |
 | Gate validity | "CI is green" | 8 injected mutations must all be caught by the real gate |
 | Unseen inputs | One hand-written suite | 200 mined holdout briefs, kept separate so baselines stay comparable |
 | Grounding | None | Every location id must exist in the knowledge base |
@@ -38,6 +38,7 @@ python -m evals.run_eval --write-report
 python -m evals.mutation_lab --check    # prove the quality gate itself works
 python -m evals.case_miner --check      # holdout set: unseen brief combinations
 python -m evals.http_load --check       # real uvicorn service under HTTP load
+python -m evals.worker_lab --check      # controlled experiment on the bottleneck claim
 ```
 
 `python -m pip install -e ".[api,dev]"` enables the Web UI and tests; the core engine needs nothing else.
@@ -106,6 +107,12 @@ Every earlier throughput number came from calling Python functions directly. [ht
 
 The interesting finding: adding workers did **not** scale linearly. Four workers reached only **0.52x** the single-worker throughput, because every request writes one run record and WAL allows just one writer at a time — the bottleneck moved from the GIL to shared state. Throughput and latency are reported, never gated (ADR 0008); `--check` asserts only machine-independent contracts and is CI gate #13.
 
+## Controlled experiment: was it really the write lock?
+
+The HTTP load test *inferred* that several workers contending for one SQLite writer caused the slowdown. [worker-bottleneck.md](docs/worker-bottleneck.md) tests it: `SHOTPLAN_PERSIST_RUNS=0` makes the **same production code** skip the run-history write, and 12 scenarios (1/2/4 workers x on/off x 2 rounds, median) are interleaved in one batch. Disabling persistence lifts 1-worker throughput **2.48x** and 2-worker **3.59x**; the 4w/1w ratio moves from **0.89** to **1.59**, so this batch supports the write-lock attribution.
+
+But the verdict is computed, not hard-coded: another independent run had 4 workers **2.42x faster** than 1, so the fall-off itself did not reproduce and the logic can return `inconclusive`. Only "synchronous persistence is the largest single cost" reproduces reliably. See [ADR 0011](docs/adr/0011-controlled-experiment-over-inference.md). `--check` gates only the switch semantics (on = all persisted, off = 0 persisted), as CI gate #14.
+
 ## More verifiable evidence
 
 1. **[Repair-loop experiment](docs/repair-experiment.md)** — three constructed providers over the same 69 satisfiable briefs. A repairable provider goes from 0% to 100% hard-pass in one round (69/69); all 69 "repairs" from a provider that ignores hints are rejected; all 69 worse-than-original repairs are blocked by the monotonic guard. Every accept/reject decision is read from the run trace.
@@ -116,7 +123,9 @@ The interesting finding: adding workers did **not** scale linearly. Four workers
 
 6. **[Holdout challenge set](docs/case-mining.md)** — 225 mined candidates, 200 unseen briefs accepted, 25 infeasible negative controls rejected, coverage 19/25 -> 25/25. Independent of the regression suite so historical baselines stay comparable.
 
-7. **[Real HTTP load test](docs/http-load.md)** — 1/2/4 uvicorn workers, ~251/s at concurrency 8, 1000 requests with 0 errors / 0 lost writes; 4 workers are slower than 1 because of the shared SQLite writer lock.
+7. **[Real HTTP load test](docs/http-load.md)** — 1/2/4 uvicorn workers, ~251/s at concurrency 8, 1000 requests with 0 errors / 0 lost writes; 4 workers are slower than 1 (the write-lock attribution is tested in the section above).
+
+8. **[Controlled experiment](docs/worker-bottleneck.md)** — 2.48x throughput when persistence is off; the write-lock claim is supported in this batch but explicitly marked conditional, with an `inconclusive` verdict path.
 
 ## Architecture and layout
 
@@ -133,9 +142,9 @@ shotplan/
 │   ├── api.py         # Optional FastAPI layer
 │   └── cli.py         # CLI entry point
 ├── web/               # Dependency-free single-page UI (5 tabs)
-├── evals/             # 80 cases + 200 holdout briefs, mutation/mining/HTTP-load labs
-├── tests/             # 202 unit tests
-└── docs/              # Architecture, metrics, 10 ADRs, ops, interview notes
+├── evals/             # 80 cases + 200 holdout briefs, mutation/mining/HTTP/AB labs
+├── tests/             # 211 unit tests
+└── docs/              # Architecture, metrics, 11 ADRs, ops, interview notes
 ```
 
 The core uses only the Python standard library; FastAPI / pytest / ruff are optional layers. This makes "runs with no credentials" a design decision, not a compromise.
@@ -184,12 +193,13 @@ Any OpenAI-compatible endpoint works (OpenAI, DeepSeek, local Ollama / vLLM). Wi
 - The 8 mutations are hand-picked and prove those specific regressions are caught, not that the gate is infallible.
 - The 200 holdout briefs come from a fixed grid (combination diversity, not real customer distribution); they show the judgement chain generalises, not that a real model would score well.
 - The HTTP load test is a single-machine loopback sample with no TLS, reverse proxy or real-model latency; two runs on the same machine can differ by nearly 2x for 4 workers, so these numbers are a scale reference, not production QPS.
+- Only "synchronous persistence is the largest cost" reproduced reliably in the A/B experiment; "the write lock causes the 4-worker fall-off" is conditional and one independent run did not reproduce the fall-off at all.
 - Performance and concurrency numbers come from a single machine (concurrency 1/4/8, threads vs processes), not production QPS; the pipeline is synchronous and the API moves it off the event loop with a thread pool.
 - Fuzzing proves "any input returns a structured result", not "any input gets a good plan" — quality is still the eval suite's job.
 
 ## For interviews
 
-> "I built an evaluable planning agent. The point wasn't calling a model — it was writing 'executable' as 12 testable hard constraints, checking satisfiability *before* generation, grading outputs with a validator that never uses a model, feeding the report back as a repair hint, and refusing worse rewrites. To make quality comparable I built 80 eval cases across five cities plus a deliberately broken control provider. I didn't stop at '80/80 green': I mutation-tested the gate itself with 8 injected faults and found the old gate missed 4 cases where a single validation rule was silently deleted — the control plan is so broken that losing one issue barely moves its score. After adding rule-level coverage, all 8 are caught. I also mined 200 briefs the main suite had never seen, kept in a separate holdout so the historical baselines stay comparable. Finally I ran the real service under load and found that adding workers made it slower because they all contend for one SQLite writer — the bottleneck changes with the architecture layer. A deterministic fuzzer also guarantees no malformed brief can crash the service."
+> "I built an evaluable planning agent. The point wasn't calling a model — it was writing 'executable' as 12 testable hard constraints, checking satisfiability *before* generation, grading outputs with a validator that never uses a model, feeding the report back as a repair hint, and refusing worse rewrites. To make quality comparable I built 80 eval cases across five cities plus a deliberately broken control provider. I didn't stop at '80/80 green': I mutation-tested the gate itself with 8 injected faults and found the old gate missed 4 cases where a single validation rule was silently deleted — the control plan is so broken that losing one issue barely moves its score. After adding rule-level coverage, all 8 are caught. I also mined 200 briefs the main suite had never seen, kept in a separate holdout so the historical baselines stay comparable. Finally I ran the real service under load and found adding workers made it slower. Instead of stopping at a plausible story about SQLite contention, I added a switch and ran an on/off controlled experiment — and let the verdict be 'inconclusive' when the slowdown itself failed to reproduce. A deterministic fuzzer also guarantees no malformed brief can crash the service."
 
 Detailed Q&A: [docs/interview-notes.md](docs/interview-notes.md).
 

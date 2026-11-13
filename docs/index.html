@@ -111,6 +111,7 @@
       <a class="btn" href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/examples.md">真实输出示例</a>
       <a class="btn" href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/loadtest.md">并发负载</a>
       <a class="btn" href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/http-load.md">真实 HTTP 压测</a>
+      <a class="btn" href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/worker-bottleneck.md">对照实验</a>
       <a class="btn" href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/mutation-report.md">门禁有效性</a>
       <a class="btn" href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/case-mining.md">盲测挑战集</a>
       <a class="btn" href="https://github.com/zhaozilong6666/shotplan/blob/main/README.en.md">English</a>
@@ -237,7 +238,21 @@
       <div class="metric good"><b>1000 / 1000</b><span>真实请求 / 成功落库</span></div>
     </div>
     <p class="section-note http-note">
-      4 个 worker 的吞吐只有单 worker 的 0.52×：真实服务里每个请求都要写一条运行记录，多进程抢同一个 SQLite 写锁，瓶颈从 GIL 变成了共享状态。本机最佳是 2 worker。吞吐与 P95 只写进报告，不进 CI 门禁；门禁只查 0 错误、0 丢写与服务没挂住。
+      4 个 worker 的吞吐只有单 worker 的 0.52×：真实服务里每个请求都要写一条运行记录，多进程共享同一个 SQLite 文件，本机最佳是 2 worker。下节的对照实验显示关掉同步写库可让 1 worker 提速约 2.5×，写锁归因在本批数据下得到支持，但结论依赖负载稳定复现。吞吐与 P95 只写进报告，不进 CI 门禁；门禁只查 0 错误、0 丢写与服务没挂住。
+    </p>
+  </section>
+
+  <section>
+    <h2>对照实验：多 worker 变慢，真的是写锁吗</h2>
+    <p class="section-note">上一节把「4 个 worker 反而更慢」归因于共享 SQLite 写锁——那是推断，不是实验。这里给同一份产品代码加一个 <code>SHOTPLAN_PERSIST_RUNS</code> 开关，只改变「要不要同步写运行历史」，其余 HTTP / ASGI / JSON / 校验全部不变，再重跑 worker 曲线。</p>
+    <div class="metrics worker">
+      <div class="metric good"><b>2.48×</b><span>关掉同步写库后 1 worker 吞吐</span></div>
+      <div class="metric bad"><b>0.89×</b><span>有写入 · 4 worker / 1 worker</span></div>
+      <div class="metric good"><b>1.59×</b><span>关掉写入 · 4 worker / 1 worker</span></div>
+      <div class="metric good"><b>得到支持</b><span>对照实验对写锁归因的判定</span></div>
+    </div>
+    <p class="section-note worker-note">
+      同一份产品代码、同一个服务，只切 <code>SHOTPLAN_PERSIST_RUNS</code> 开关；2 轮 × 1/2/4 worker × 开/关取中位数。有写入组 4w/1w 的逐轮比值是 0.86× / 0.92×，两组最佳点分别是 2 / 4 worker。结论只作定性证据：另一批独立运行里「4 worker 回落」本身没稳定复现，因此不写成普适规律。吞吐不进 CI 门禁，门禁只验证开关真的生效（开 = 全落库、关 = 0 落库）。
     </p>
   </section>
 
@@ -288,9 +303,10 @@
           python -m evals.collect_failures --check<br>
           python -m evals.case_miner --check<br>
           python -m evals.http_load --check<br>
+          python -m evals.worker_lab --check<br>
           python -m shotplan.cli stats
         </p>
-        <p style="margin-top:10px">单元测试与 13 道质量门禁；CI 覆盖 Python 3.10 / 3.11 / 3.12 / 3.13。</p>
+        <p style="margin-top:10px">单元测试与 14 道质量门禁；CI 覆盖 Python 3.10 / 3.11 / 3.12 / 3.13。</p>
       </div>
       <div class="card">
         <h3>决策记录（ADR）</h3>
@@ -300,6 +316,7 @@
           <li><a href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/adr/0007-feasibility-before-generation.md">0007 可行性判定在生成之前</a></li>
           <li><a href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/adr/0009-gate-sensitivity.md">0009 门禁自身的有效性</a></li>
           <li><a href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/adr/0010-holdout-challenge-set.md">0010 盲测挑战集独立存放</a></li>
+          <li><a href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/adr/0011-controlled-experiment-over-inference.md">0011 对照实验优先于归因推断</a></li>
           <li><a href="https://github.com/zhaozilong6666/shotplan/tree/main/docs/adr">全部 ADR →</a></li>
         </ul>
       </div>

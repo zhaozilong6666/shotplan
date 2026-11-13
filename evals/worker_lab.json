@@ -1,0 +1,129 @@
+{
+  "version": 1,
+  "machine_dependent": true,
+  "note": "controlled experiment; throughput is reported, never gated",
+  "python": "3.13.14",
+  "platform": "Windows",
+  "cpu_count": 18,
+  "workers": [
+    1,
+    2,
+    4
+  ],
+  "concurrency": 8,
+  "requests_per_run": 200,
+  "repeats": 2,
+  "cells": [
+    {
+      "persist": false,
+      "workers": 1,
+      "median_rps": 662.51,
+      "median_p95_ms": 15.3,
+      "rps_runs": [
+        746.74,
+        578.27
+      ],
+      "p95_runs": [
+        13.01,
+        17.59
+      ],
+      "errors": 0,
+      "lost_writes": 0
+    },
+    {
+      "persist": false,
+      "workers": 2,
+      "median_rps": 971.91,
+      "median_p95_ms": 14.03,
+      "rps_runs": [
+        958.91,
+        984.91
+      ],
+      "p95_runs": [
+        14.31,
+        13.74
+      ],
+      "errors": 0,
+      "lost_writes": 0
+    },
+    {
+      "persist": false,
+      "workers": 4,
+      "median_rps": 1051.99,
+      "median_p95_ms": 11.98,
+      "rps_runs": [
+        1059.29,
+        1044.68
+      ],
+      "p95_runs": [
+        11.74,
+        12.23
+      ],
+      "errors": 0,
+      "lost_writes": 0
+    },
+    {
+      "persist": true,
+      "workers": 1,
+      "median_rps": 267.6,
+      "median_p95_ms": 36.91,
+      "rps_runs": [
+        275.02,
+        260.18
+      ],
+      "p95_runs": [
+        36.13,
+        37.7
+      ],
+      "errors": 0,
+      "lost_writes": 0
+    },
+    {
+      "persist": true,
+      "workers": 2,
+      "median_rps": 270.88,
+      "median_p95_ms": 68.22,
+      "rps_runs": [
+        228.95,
+        312.81
+      ],
+      "p95_runs": [
+        72.69,
+        63.74
+      ],
+      "errors": 0,
+      "lost_writes": 0
+    },
+    {
+      "persist": true,
+      "workers": 4,
+      "median_rps": 237.15,
+      "median_p95_ms": 81.85,
+      "rps_runs": [
+        235.74,
+        238.56
+      ],
+      "p95_runs": [
+        106.61,
+        57.08
+      ],
+      "errors": 0,
+      "lost_writes": 0
+    }
+  ],
+  "interpretation": {
+    "verdict": "confirmed",
+    "persistence_gain_1w": 2.48,
+    "persistence_gain_2w": 3.59,
+    "on_4w_over_1w": 0.89,
+    "off_4w_over_1w": 1.59,
+    "on_4w_over_1w_per_run": [
+      0.86,
+      0.92
+    ],
+    "on_peak_workers": 2,
+    "off_peak_workers": 4,
+    "persistence_is_major_cost": true,
+    "write_lock_caused_fall": true
+  }
+}

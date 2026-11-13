@@ -77,7 +77,7 @@ brief (jsonl)
 
 `evals/challenge/` 是**横向泛化检验**：由 `evals/case_miner.py` 从失败案例库与知识库交叉出 225 个候选 brief，筛掉 25 个不可满足的负向对照后留下 200 个主集从未见过的组合。挖掘器不读取任何用例的期望输出，只读取 brief 指纹用于去重；`run_eval` 不读这个目录。两者跑同一条流水线、同一个校验器、同一对 provider，只是用途不同。详见 [case-mining.md](case-mining.md) 与 [ADR 0010](adr/0010-holdout-challenge-set.md)。
 
-改动校验器、知识库或 provider 后，除了 `run_eval`，还要跑 `python -m evals.case_miner --check`：它会重新挖掘并逐字节比对三份产物，任何组合被判错都会让门禁失败，而不是悄悄把用例删掉。服务层另有 `python -m evals.http_load --check`，检查真实 HTTP 请求 0 错误、0 丢写与服务没挂住。
+改动校验器、知识库或 provider 后，除了 `run_eval`，还要跑 `python -m evals.case_miner --check`：它会重新挖掘并逐字节比对三份产物，任何组合被判错都会让门禁失败，而不是悄悄把用例删掉。服务层另有 `python -m evals.http_load --check`（真实 HTTP 请求 0 错误、0 丢写）与 `python -m evals.worker_lab --check`（持久化开关语义：开 = 全落库、关 = 0 落库）。
 
 ## 如何新增用例
 

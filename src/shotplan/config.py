@@ -33,6 +33,15 @@ def _env_float(name: str, default: float) -> float:
         raise ConfigError(f"{name} must be a number") from exc
 
 
+def _env_bool(name: str, default: bool) -> bool:
+    value = _env(name, "1" if default else "0").lower()
+    if value in ("1", "true", "yes", "on"):
+        return True
+    if value in ("0", "false", "no", "off"):
+        return False
+    raise ConfigError(f"{name} must be a boolean (1/0/true/false)")
+
+
 @dataclass(frozen=True)
 class Settings:
     provider: str = "mock"
@@ -44,6 +53,9 @@ class Settings:
     max_repairs: int = 1
     eval_min_score: float = 0.80
     log_level: str = "INFO"
+    # Set SHOTPLAN_PERSIST_RUNS=0 for stateless/read-only deployments, or for
+    # the controlled experiment in evals/worker_lab.py. Default keeps history.
+    persist_runs: bool = True
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -61,6 +73,7 @@ class Settings:
             max_repairs=max(0, _env_int("SHOTPLAN_MAX_REPAIRS", 1)),
             eval_min_score=_env_float("SHOTPLAN_EVAL_MIN_SCORE", 0.80),
             log_level=_env("SHOTPLAN_LOG_LEVEL", "INFO").upper(),
+            persist_runs=_env_bool("SHOTPLAN_PERSIST_RUNS", True),
         )
 
     def masked(self) -> dict[str, object]:
@@ -72,6 +85,7 @@ class Settings:
             "db_path": str(self.db_path),
             "max_repairs": self.max_repairs,
             "eval_min_score": self.eval_min_score,
+            "persist_runs": self.persist_runs,
         }
 
 

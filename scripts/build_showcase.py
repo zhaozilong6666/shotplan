@@ -13,6 +13,7 @@ Run after regenerating the eval artifacts:
     python -m evals.collect_failures --write-report
     python -m evals.case_miner --write
     python -m evals.http_load --write
+    python -m evals.worker_lab --write
     python -m evals.cost_latency --write-report
     python -m evals.benchmark --out evals/benchmark.json --write-report
     python scripts/build_showcase.py
@@ -280,9 +281,50 @@ def http_note_block(load: dict) -> str:
     return (
         '<p class="section-note http-note">\n'
         f'      {widest["workers"]} 个 worker 的吞吐只有单 worker 的 {ratio:.2f}×：'
-        "真实服务里每个请求都要写一条运行记录，多进程抢同一个 SQLite 写锁，"
-        f'瓶颈从 GIL 变成了共享状态。本机最佳是 {best["workers"]} worker。'
-        "吞吐与 P95 只写进报告，不进 CI 门禁；门禁只查 0 错误、0 丢写与服务没挂住。\n"
+        "真实服务里每个请求都要写一条运行记录，多进程共享同一个 SQLite 文件，"
+        f'本机最佳是 {best["workers"]} worker。'
+        "下节的对照实验显示关掉同步写库可让 1 worker 提速约 2.5×，写锁归因在本批数据下得到支持，"
+        "但结论依赖负载稳定复现。吞吐与 P95 只写进报告，不进 CI 门禁；门禁只查 0 错误、0 丢写与服务没挂住。\n"
+        "    </p>"
+    )
+
+
+VERDICT_LABELS = {
+    "confirmed": "得到支持",
+    "partially_confirmed": "归因不成立",
+    "refuted": "假设不成立",
+    "not_reproduced": "未复现",
+    "inconclusive": "不确定",
+}
+
+
+def worker_block(lab: dict) -> str:
+    r = lab["interpretation"]
+    return (
+        '<div class="metrics worker">\n'
+        f'      <div class="metric good"><b>{r["persistence_gain_1w"]}×</b>'
+        "<span>关掉同步写库后 1 worker 吞吐</span></div>\n"
+        f'      <div class="metric bad"><b>{r["on_4w_over_1w"]}×</b>'
+        "<span>有写入 · 4 worker / 1 worker</span></div>\n"
+        f'      <div class="metric good"><b>{r["off_4w_over_1w"]}×</b>'
+        "<span>关掉写入 · 4 worker / 1 worker</span></div>\n"
+        f'      <div class="metric good"><b>{VERDICT_LABELS.get(r["verdict"], r["verdict"])}</b>'
+        "<span>对照实验对写锁归因的判定</span></div>\n"
+        "    </div>"
+    )
+
+
+def worker_note_block(lab: dict) -> str:
+    r = lab["interpretation"]
+    runs = " / ".join(f"{v}×" for v in r["on_4w_over_1w_per_run"])
+    return (
+        '<p class="section-note worker-note">\n'
+        "      同一份产品代码、同一个服务，只切 <code>SHOTPLAN_PERSIST_RUNS</code> 开关；"
+        f"{lab['repeats']} 轮 × 1/2/4 worker × 开/关取中位数。"
+        f"有写入组 4w/1w 的逐轮比值是 {runs}，两组最佳点分别是 "
+        f"{r['on_peak_workers']} / {r['off_peak_workers']} worker。"
+        "结论只作定性证据：另一批独立运行里「4 worker 回落」本身没稳定复现，因此不写成普适规律。"
+        "吞吐不进 CI 门禁，门禁只验证开关真的生效（开 = 全落库、关 = 0 落库）。\n"
         "    </p>"
     )
 
@@ -312,6 +354,7 @@ def main() -> int:
     challenge = _load(ROOT / "evals" / "case_mining.json")
     # Single-machine loopback snapshot. Throughput is displayed, never gated.
     http_load = _load(ROOT / "evals" / "http_load.json")
+    worker_lab = _load(ROOT / "evals" / "worker_lab.json")
     # Benchmark numbers are machine-specific and cannot be regenerated identically
     # in CI, so the page reads a committed snapshot instead of evals/out/.
     # Refresh it with: python -m evals.benchmark --out evals/benchmark.json
@@ -400,6 +443,13 @@ def main() -> int:
         r'<p class="section-note http-note">.*?</p>',
         http_load_block(http_load) + "\n    " + http_note_block(http_load),
         "http load",
+    )
+    html = replace_block(
+        html,
+        r'<div class="metrics worker">.*?</div>\s*'
+        r'<p class="section-note worker-note">.*?</p>',
+        worker_block(worker_lab) + "\n    " + worker_note_block(worker_lab),
+        "worker lab",
     )
     page.write_text(html, encoding="utf-8")
     print(f"wrote {page}")

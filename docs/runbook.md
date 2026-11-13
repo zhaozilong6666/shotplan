@@ -20,6 +20,8 @@
 | 采集失败案例库 | `python -m evals.collect_failures --write-report` |
 | 验证盲测挑战集 | `python -m evals.case_miner --check` |
 | 真实 HTTP 服务压测门禁 | `python -m evals.http_load --check` |
+| 持久化对照实验门禁 | `python -m evals.worker_lab --check` |
+| 重刷对照实验矩阵与报告 | `python -m evals.worker_lab --write` |
 | 重刷 HTTP 压测矩阵与报告 | `python -m evals.http_load --write` |
 | 重刷盲测挑战集与报告 | `python -m evals.case_miner --write` |
 | 看运行统计 | `python -m shotplan.cli stats --limit 50` |
@@ -27,7 +29,7 @@
 | 启动 Web | `python -m shotplan.cli serve --port 8000` |
 | 一条命令全验证 | `make smoke` |
 
-没有 `make` 的 Windows 环境，直接按顺序跑 `python -m pytest`、`python -m evals.run_eval --write-report`、`python -m evals.case_miner --check`、`python -m evals.http_load --check`、`python -m shotplan.cli plan`。
+没有 `make` 的 Windows 环境，直接按顺序跑 `python -m pytest`、`python -m evals.run_eval --write-report`、`python -m evals.case_miner --check`、`python -m evals.http_load --check`、`python -m evals.worker_lab --check`、`python -m shotplan.cli plan`。
 
 ## 常见故障
 
@@ -64,6 +66,9 @@
 **`HTTP-LOAD GATE FAILED`**
 若提示 `could not run the service`，先看本机 `HTTP_PROXY` / `HTTPS_PROXY`：代理会把 loopback 请求改写成绝对路径（`GET http%3A//127.0.0.1...`），除了 `/api/health` 所有端点都会 404。压测客户端已经设了 `trust_env=False`，如果有人删掉它就会复现这个现象。若提示 `not persisted`，说明并发下 SQLite 丢写；若提示 `exceeds the loose ceiling`，说明服务挂住而不是「机器慢」——3000ms 只是防挂阈值，不要调它来掩盖真实性能问题。
 
+**`WORKER-LAB GATE FAILED`**
+若提示 `switch had no effect`，说明 `SHOTPLAN_PERSIST_RUNS` 没生效或 API 没有把 `store=None` 传下去——对照实验会变成自欺欺人，必须修实现而不是改断言。若提示 `writes were lost`，说明并发下 SQLite 丢写。吞吐与判定文字不在门禁里，波动属正常；重刷产物用 `python -m evals.worker_lab --write`。
+
 **`--compare` 显示巨大差值**
 先确认基线是不是同一批用例。`v1-naive.json` 是 12 用例时代的历史快照，当前 80 用例必须比 `v6-naive.json`。新增用例后要重刷基线，否则用例集变化会被误读成质量变化。
 
@@ -99,7 +104,8 @@ python scripts/push_via_api.py             # 推送当前 HEAD 到 origin 当前
 3. `python -m evals.mutation_lab --check`（门禁本身仍有效，且产物未过期）
 4. `python -m evals.case_miner --check`（未见组合上的判定链仍一致，且产物未过期）
 5. `python -m evals.http_load --check`（真实服务 0 错误、0 丢写）
-6. `python -m ruff check src tests evals scripts`（风格）
-7. `make gates` 跑完 CI 的全部 13 道质量门禁（含覆盖率、模糊测试、盲测、真实 HTTP、并发、扩展性与展示页一致性）
-8. `python -m shotplan.cli plan` 与 `python -m shotplan.cli plan --budget 100`（正常路径 + 拒绝路径冒烟）
-9. `git status` 确认没有把 `.env` / `.db` / `evals/out/` 加进去
+6. `python -m evals.worker_lab --check`（持久化开关语义）
+7. `python -m ruff check src tests evals scripts`（风格）
+8. `make gates` 跑完 CI 的全部 14 道质量门禁（含覆盖率、模糊测试、盲测、真实 HTTP、对照实验、并发、扩展性与展示页一致性）
+9. `python -m shotplan.cli plan` 与 `python -m shotplan.cli plan --budget 100`（正常路径 + 拒绝路径冒烟）
+10. `git status` 确认没有把 `.env` / `.db` / `evals/out/` 加进去
