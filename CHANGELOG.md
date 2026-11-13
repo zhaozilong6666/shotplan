@@ -21,7 +21,7 @@
 - **`SHOTPLAN_PIPELINE_BUDGET_S`**（默认 60s，0 关闭）：墙钟预算。超预算时停止开启新的修复轮次，**返回当前最优草稿**并追加 `REPAIR_BUDGET_EXCEEDED` 软问题；只有连第一次生成都没开始才返回 `status=error` + `DEADLINE_EXCEEDED`。
 - **解析器硬化**（`planner.py`）：括号配平扫描替代 `find/rfind`；支持多个 JSON 对象时逐个尝试构建、跳过示例对象；末尾逗号与全角引号做**有记录的**修复（写进 trace 的 `notes`）；BOM / 零宽字符 / bytes 载荷；数字只接受无歧义形式（`300` / `"¥300"` / `"免费"`），读不出就 `ParseError`。
 - [ADR 0012 写后置队列与可测量的持久性边界](docs/adr/0012-write-behind-persistence.md)、[ADR 0013 状态表与墙钟预算](docs/adr/0013-explicit-stage-table-and-budget.md)。
-- 新测试 50 个（共 **262** 个，覆盖率 90%）：写后置队列 11 个（含子进程 `os._exit` 硬杀两条）、解析对抗 25 个（含 300 次确定性变异）、流水线契约 12 个、API 异步/关闭模式 2 个。
+- 新测试 50 个（共 **263** 个，覆盖率 90%）：写后置队列 11 个（含子进程 `os._exit` 硬杀两条）、解析对抗 25 个（含 300 次确定性变异）、流水线契约 12 个、API 异步/关闭模式 2 个。
 
 ### Fixed
 

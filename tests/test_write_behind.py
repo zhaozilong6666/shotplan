@@ -285,3 +285,15 @@ def test_the_loss_window_is_bounded_and_measured(tmp_path):
     # And every row that did land is intact and readable.
     store = RunStore(tmp_path / "abandon.db")
     assert all(store.get(row["run_id"]) for row in store.recent(100))
+
+
+def test_a_submit_after_close_is_written_inline_not_lost(tmp_path):
+    """The shutdown race: a late submit must not vanish into a dead queue."""
+    store = RunStore(tmp_path / "late.db")
+    writer = RunWriter(store, batch_size=4)
+    writer.close()
+    late = _results(1)[0]
+    assert writer.submit(late) is False
+    assert store.get(late.trace.run_id) is not None
+    assert writer.stats.sync_fallbacks == 1
+    assert writer.pending == 0

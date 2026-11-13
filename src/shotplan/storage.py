@@ -296,6 +296,18 @@ class RunWriter:
 
     def submit(self, result: PlanResult) -> bool:
         """Enqueue a run. Returns False when it had to be written synchronously."""
+        with self._lock:
+            closed = self._closed
+        if closed:
+            # A late submit (shutdown race, background task) would sit in a
+            # queue whose thread has already exited — accepted, never written,
+            # and invisible. Write it inline instead: slower, but durable.
+            self.store.save(result)
+            with self._lock:
+                self.stats.submitted += 1
+                self.stats.written += 1
+                self.stats.sync_fallbacks += 1
+            return False
         try:
             self._queue.put(result, timeout=self.enqueue_timeout)
         except queue.Full:
