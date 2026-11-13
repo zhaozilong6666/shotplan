@@ -100,6 +100,16 @@ def test_persistence_failure_does_not_veto_a_valid_plan():
     assert "PERSISTENCE_FAILED" in {i.code for i in result.validation.issues}
 
 
+def test_parse_repair_hint_matches_the_parser_enum():
+    """A repair hint that disagrees with the parser teaches a new failure."""
+    from shotplan.agents.planner import _VALID_ACTIVITIES
+    from shotplan.agents.prompts import _PARSE_SCHEMA_RULES
+
+    for activity in _VALID_ACTIVITIES:
+        assert activity in _PARSE_SCHEMA_RULES
+    assert "costume" not in _PARSE_SCHEMA_RULES
+
+
 class _MalformedThenValid:
     """Emits a schema-invalid payload once, then behaves like the good planner.
 

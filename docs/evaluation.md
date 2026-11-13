@@ -151,3 +151,4 @@ python -m pytest tests/test_scorers.py -q
 - [线程 vs 进程](scaling.md)：同一 workload 两种并行方式，说明瓶颈在 GIL。
 - [真实输出示例](examples.md)：四份由代码生成、可比对的结果，含一次结构化拒绝。
 - [可观测性说明](observability.md)：评测报告是实验，运行统计是实际使用记录，两者不能互相替代。
+- [测量方法](measurement.md)：区间怎么算、配对为什么省样本、69 个用例能检测多大差异；配套工具 `evals/power.py` 与 `evals/pair_compare.py`。

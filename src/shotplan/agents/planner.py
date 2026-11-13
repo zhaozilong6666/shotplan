@@ -24,7 +24,7 @@ import re
 from typing import Any
 
 from ..domain.errors import ParseError
-from ..domain.models import Plan, PlanRequest, TimeSlot, to_minutes
+from ..domain.models import ALLOWED_ACTIVITIES, Plan, PlanRequest, TimeSlot, to_minutes
 
 _JSON_FENCE = re.compile(r"```(?:json)?\s*(.*?)```", re.DOTALL | re.IGNORECASE)
 _TRAILING_COMMA = re.compile(r",(\s*[}\]])")
@@ -37,7 +37,7 @@ _FREE_MARKERS = {"免费", "0元", "free", "n/a", "-", ""}
 _MAX_CANDIDATES = 8
 
 _REQUIRED_SLOT_FIELDS = {"start", "end", "activity", "location_id"}
-_VALID_ACTIVITIES = {"makeup", "travel", "shoot", "rest", "backup"}
+_VALID_ACTIVITIES = set(ALLOWED_ACTIVITIES)
 
 
 def _balanced_objects(text: str) -> list[str]:

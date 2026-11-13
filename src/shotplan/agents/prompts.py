@@ -12,7 +12,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from ..domain.models import PlanRequest
+from ..domain.models import ALLOWED_ACTIVITIES, PlanRequest
 
 PROMPT_VERSION = "planner-v2"
 
@@ -119,7 +119,7 @@ def build_repair_hint(report: Any) -> str:
 # The schema facts a model most often violates when a payload fails to parse.
 # Kept next to the repair hint so the two cannot drift apart.
 _PARSE_SCHEMA_RULES = (
-    "Allowed `activity` values: makeup, travel, shoot — nothing else.\n"
+    "Allowed `activity` values: " + ", ".join(ALLOWED_ACTIVITIES) + " — nothing else.\n"
     "Every slot requires: start, end, activity, location_id, label, cost_cny.\n"
     "`location_id` must be one of the candidate ids in the brief; never invent one.\n"
     "Return ONE JSON object, no markdown fences, no commentary."

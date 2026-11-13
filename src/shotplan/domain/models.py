@@ -22,6 +22,12 @@ def new_id(prefix: str) -> str:
     return f"{prefix}_{uuid.uuid4().hex[:12]}"
 
 
+# Single source of truth for the slot activity enum. The parser, the repair
+# hint and the prompt schema all read this, because a hint that disagrees with
+# the parser teaches the model to fail in a new way.
+ALLOWED_ACTIVITIES: tuple[str, ...] = ("makeup", "travel", "shoot", "rest", "backup")
+
+
 def to_minutes(hhmm: str) -> int:
     """Parse HH:MM into minutes since midnight. Raises ValueError on bad input."""
     if not isinstance(hhmm, str) or ":" not in hhmm:
