@@ -8,11 +8,11 @@
 
 ## 现在还需要你本人做的，只有这三件
 
-| # | 事项 | 时机 | 为什么只能你做 |
+| # | 事项 | 状态 | 说明 |
 | --- | --- | --- | --- |
-| 1 | 把 3 条 bullets 贴进简历 | 现在 | 简历是你本人的，只有你能改 |
-| 2 | 申请一个 API key（可选） | 阶段 4 真实模型实验 | 需要注册并实名/付款的服务 |
-| 3 | 注册部署平台账号（可选） | 阶段 5 | 需要你的账号授权 |
+| 1 | 把项目经历贴进简历 | 素材已备好 | 整段文字在 [resume.md](resume.md)（AI 应用/Agent 方向），复制即可 |
+| 2 | 配置真实模型 key | 你已确认有 key | 分步说明见下文第 4 节，约 5 分钟；配好后我接手对比实验 |
+| 3 | 在线 Demo 发布 | 待重试 | 2026-11-13 两次尝试均遇发布服务超时，未发布任何内容；恢复后说「发布 Demo」我再试 |
 
 其余全部已完成或由我继续推进。阶段 4 里不依赖 key 的部分（80 用例评测集、`INFEASIBLE` 分支、prompt v1/v2 对比框架、成本/延迟报告、修复循环实验、失败案例库、评测报告里的「分数下降→门禁拦截→回滚」实例）以及门禁有效性变异测试、失败案例驱动的盲测挑战集、真实 uvicorn 服务的 HTTP 压测、持久化开关的受控对照实验、运行统计面板、英文 README 都已做完并验证。需要你配合时，我会给「一步一条命令 + 验证方法」，不会让你自己去查。
 
@@ -104,21 +104,21 @@ python -m shotplan.cli serve
 
 > **shotplan** — 可评测的旅拍方案 Agent（Python / FastAPI / SQLite）：生成前判定需求可满足性，以确定性硬约束校验替代 LLM 自评，校验报告驱动定向修复；建 80 用例主评测集 + 200 个盲测 brief、对照组与门禁有效性变异测试，CI 设 16 道质量门禁（含真实 HTTP 服务压测、持久化三组对照、写入异步化与流水线契约一致性）。
 
-四条 bullets 和 10 分钟讲稿在 [interview-notes.md](interview-notes.md)，挑 2–3 条贴进简历即可。验证方法：找个人用 30 秒讲一遍，对方能复述出「校验不交给模型」这个点就算成功。
+四条 bullets 和 10 分钟讲稿在 [interview-notes.md](interview-notes.md)。**按 AI 应用/Agent 开发方向写好的整段项目经历在 [resume.md](resume.md)**，可直接复制；数字卡片与现场命令在 [interview-onepager.md](interview-onepager.md)。验证方法：找个人用 30 秒讲一遍，对方能复述出「校验不交给模型」这个点就算成功。
 
 > 面试时可以主动加两句：CI 在 Python 3.10/3.11 上暴露的浮点求和差异（ADR 0006）；以及「可行性判定也不交给模型」的取舍（ADR 0007）。这比只讲功能更能证明你跑过工程闭环。
 
 ---
 
-## 4. 申请 API key，接真实模型（阶段 4 剩余部分，可选）
+## 4. 配置真实模型 key（你已确认有 key，按此执行，约 5 分钟）
 
-> 不用现在做。没 key 时项目所有功能都能跑；阶段 4 的离线部分已经完成。
+> 没配置时项目所有功能都能跑（离线 mock）；以下只在你想跑阶段 4 真实模型对比实验时需要。密钥只进本地 `.env`，**不要贴进聊天**。
 
 ### 步骤
 
 1. 选一个 OpenAI 兼容服务并注册（任选其一）：
-   - OpenAI Platform：<https://platform.openai.com/api-keys>
    - DeepSeek：<https://platform.deepseek.com/api_keys>
+   - OpenAI Platform：<https://platform.openai.com/api-keys>
    - 本地免费方案：安装 Ollama，把 `SHOTPLAN_LLM_BASE_URL` 指向 `http://localhost:11434/v1`
 2. 创建一个 API key，**只在创建时可见，立刻复制**。
 3. 在项目目录复制配置模板：
@@ -127,21 +127,23 @@ python -m shotplan.cli serve
 cp .env.example .env
 ```
 
-4. 用文本编辑器打开 `.env`，改两行：
+4. 用文本编辑器打开 `.env`，改四行（DeepSeek 示例）：
 
 ```
 SHOTPLAN_PROVIDER=openai_compatible
+SHOTPLAN_LLM_BASE_URL=https://api.deepseek.com/v1
 SHOTPLAN_LLM_API_KEY=你复制的key
+SHOTPLAN_LLM_MODEL=deepseek-chat
 ```
 
-   若用 DeepSeek / Ollama，同步改 `SHOTPLAN_LLM_BASE_URL` 和 `SHOTPLAN_LLM_MODEL`。
+   若用 OpenAI 官方，`SHOTPLAN_LLM_BASE_URL=https://api.openai.com/v1`、`SHOTPLAN_LLM_MODEL=gpt-4o-mini` 即可。
 
-> 拿到 key 之后告诉我，剩下的真实模型对比实验、prompt v1/v2 实测差异、失败案例库与成本/延迟报告我来做。key 只放本地 `.env`，不要发给我、不要贴到聊天里。
+5. 配置完成后告诉我一声，剩下的我来做：真实模型对比实验、prompt v1/v2 实测差异、把真实失败案例追加进挑战集、更新评测报告。key 只放本地 `.env`，不要发给我、不要贴到聊天里。
 
 ### 验证
 
 ```bash
-python -m shotplan.cli config      # 应显示 "api_key_set": true，且不会打印 key 本身
+python -m shotplan.cli config      # 应显示 provider=openai_compatible、api_key_set=true，且不会打印 key 本身
 python -m shotplan.cli plan        # 不带 --mock-mode，走真实模型
 python -m evals.run_eval --write-report --compare evals/baselines/v6-naive.json
 ```
@@ -149,16 +151,20 @@ python -m evals.run_eval --write-report --compare evals/baselines/v6-naive.json
 ### 安全提醒
 
 - `.env` 已在 `.gitignore` 中，**永远不要**把它 commit 或贴到任何地方。
-- 公开 Demo 一律用 `SHOTPLAN_PROVIDER=mock`，不要在部署平台填真实 key。
+- ⚠️ **`.env` 配好后不要自己重新发布在线 Demo**：发布会把整个目录打包上传，`.env` 会被带上。需要更新线上时先告诉我，我会把 `.env` 排除后再发布。
 - 真实调用会产生费用，先设一个用量上限再跑评测集。
 
 ---
 
-## 5. 部署在线 Demo（阶段 5 再做，可选）
+## 5. 部署在线 Demo ⏳ 2026-11-13 尝试过，发布服务暂时不可用
 
 > 招聘方点开一个能直接玩的链接，比看十张截图有用。
 
-### 方案 A：Render / Railway（推荐，免费额度够用）
+### 方案 A：WorkBuddy 一键发布（首选，已就绪，等发布服务恢复）
+
+项目已按发布要求准备好（`python -m uvicorn shotplan.api:app --host 0.0.0.0 --port $PORT`，mock provider，无需 key）。2026-11-13 两次尝试均在「创建应用」阶段遇到发布服务超时（**未发布任何内容，也没有副作用**），按规范最多重试一次、不自动重试。**服务恢复后对我说一句「发布 Demo」即可再试。**
+
+### 方案 B：Render / Railway（备选，免费额度够用）
 
 1. 注册 <https://render.com> 或 <https://railway.app>，用 GitHub 账号登录。
 2. New → Web Service → 连接 `shotplan` 仓库。
@@ -167,7 +173,7 @@ python -m evals.run_eval --write-report --compare evals/baselines/v6-naive.json
 5. 点部署，等待生成 `https://xxx.onrender.com` 之类的地址。
 6. 把地址告诉我，我来更新 README 里的「在线 Demo」一行并推送。
 
-### 方案 B：自己的服务器
+### 方案 C：自己的服务器
 
 ```bash
 docker compose up -d --build
@@ -177,7 +183,7 @@ docker compose up -d --build
 
 ```bash
 curl https://你的地址/api/health
-# 应返回 {"status":"ok","provider":"mock","version":"0.1.0"}
+# 应返回 {"status":"ok","provider":"mock","version":"0.10.1"}
 ```
 
 浏览器打开根地址，点「生成方案」应能出结果。若 502，多半是端口没对上（容器内是 8000）或服务还在冷启动。

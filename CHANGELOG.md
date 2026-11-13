@@ -8,6 +8,7 @@
 
 - **`serve --persist-mode off|sync|async`**：演示异步写库不再需要改环境变量；CLI 会在启动时打印当前模式。配套测试断言该值真的进入应用进程环境。
 - **[docs/interview-onepager.md](docs/interview-onepager.md)**：面试一页纸（30 秒开场、数字卡片、5 个必考问答、边界与现场可跑命令），由面试笔记压缩而来，每个数字带出处链接。
+- **[docs/resume.md](docs/resume.md)**：按 AI 应用/Agent 开发方向写好的整段简历项目经历 + 技能清单 + 与 JD 要求的对应表；USER_TASKS 补充真实模型 key 的分步配置说明（含 `.env` 上传风险警告）。
 
 阶段 4 剩余项：接真实模型跑 `openai_compatible`、记录 prompt v1/v2 的实测差异。详见 `docs/ROADMAP.md`。
 
