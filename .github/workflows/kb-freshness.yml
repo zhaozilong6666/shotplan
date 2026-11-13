@@ -1,0 +1,32 @@
+name: kb-freshness
+
+# The knowledge base test fails once every entry is more than a year old.
+# A monthly run turns that into a reminder instead of a surprise outage on an
+# unrelated pull request months later.
+on:
+  schedule:
+    - cron: "0 1 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  freshness:
+    name: knowledge base review is current
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: python -m pip install -e ".[dev]"
+
+      - name: Knowledge base is fresh and internally consistent
+        run: python -m pytest tests/test_knowledge.py -q

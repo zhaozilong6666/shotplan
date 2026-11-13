@@ -242,8 +242,16 @@ class RunTrace:
     created_at: str = field(default_factory=utc_now)
     provider: str = "mock"
     prompt_version: str = "planner-v1"
+    # What produced this score. Without these two, a historical run cannot be
+    # re-interpreted after the knowledge base or the rule book changes.
+    kb_version: str = ""
+    rules_version: str = ""
+    # Request-level knobs that can change latency/quality. Recorded without
+    # secrets so a run can be explained even after the environment changes.
+    config: dict[str, Any] = field(default_factory=dict)
     events: list[TraceEvent] = field(default_factory=list)
     total_duration_ms: float = 0.0
+    wall_duration_ms: float = 0.0
     total_cost_cny: float = 0.0
     repair_count: int = 0
     success: bool = True
@@ -254,8 +262,12 @@ class RunTrace:
             "created_at": self.created_at,
             "provider": self.provider,
             "prompt_version": self.prompt_version,
+            "kb_version": self.kb_version,
+            "rules_version": self.rules_version,
+            "config": dict(self.config),
             "events": [e.to_dict() for e in self.events],
             "total_duration_ms": round(self.total_duration_ms, 2),
+            "wall_duration_ms": round(self.wall_duration_ms, 2),
             "total_cost_cny": round(self.total_cost_cny, 6),
             "repair_count": self.repair_count,
             "success": self.success,

@@ -8,5 +8,8 @@ services:
       SHOTPLAN_DB_PATH: /app/data/shotplan.db
       SHOTPLAN_LOG_LEVEL: INFO
     volumes:
-      - ./data:/app/data
+      - shotplan-data:/app/data
     restart: unless-stopped
+
+volumes:
+  shotplan-data:

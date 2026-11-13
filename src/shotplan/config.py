@@ -6,14 +6,27 @@ so the whole project runs offline on a fresh clone.
 
 from __future__ import annotations
 
+import logging
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from .domain.errors import ConfigError
 
 ROOT = Path(__file__).resolve().parents[2]
 PERSIST_MODES = ("off", "sync", "async")
+
+
+def _default_db_path() -> Path:
+    """Keep data next to the checkout, but never write into site-packages.
+
+    In an editable/source tree `ROOT` contains pyproject.toml. In a wheel it
+    does not, and the old default would point inside the interpreter's library
+    directory. Falling back to the working directory keeps installed CLIs usable.
+    """
+    if (ROOT / "pyproject.toml").exists():
+        return ROOT / "data" / "shotplan.db"
+    return Path.cwd() / "data" / "shotplan.db"
 
 
 def _env(name: str, default: str) -> str:
@@ -50,7 +63,7 @@ class Settings:
     llm_api_key: str = ""
     llm_model: str = "gpt-4o-mini"
     llm_timeout: int = 30
-    db_path: Path = ROOT / "data" / "shotplan.db"
+    db_path: Path = field(default_factory=_default_db_path)
     max_repairs: int = 1
     eval_min_score: float = 0.80
     log_level: str = "INFO"
@@ -62,6 +75,16 @@ class Settings:
     persist_mode: str = "sync"
     # Wall-clock ceiling for one plan request, repairs included. 0 disables it.
     pipeline_budget_s: float = 60.0
+    # Optional deployment guards. All default to "off" so the offline demo keeps
+    # working with no configuration; a public deployment should set at least a
+    # key and a rate limit.
+    api_key: str = ""
+    rate_limit_per_minute: int = 0
+    max_body_bytes: int = 1_000_000
+    # Delete run history older than N days at startup. 0 keeps everything, which
+    # stays the default: silent deletion of an audit trail is a worse surprise
+    # than a growing SQLite file.
+    retention_days: int = 0
 
     @property
     def persist_runs(self) -> bool:
@@ -70,7 +93,7 @@ class Settings:
 
     @classmethod
     def from_env(cls) -> Settings:
-        raw_db = _env("SHOTPLAN_DB_PATH", str(ROOT / "data" / "shotplan.db"))
+        raw_db = _env("SHOTPLAN_DB_PATH", str(_default_db_path()))
         provider = _env("SHOTPLAN_PROVIDER", "mock").lower()
         if provider not in ("mock", "openai_compatible"):
             raise ConfigError(f"unknown SHOTPLAN_PROVIDER: {provider}")
@@ -95,6 +118,10 @@ class Settings:
             log_level=_env("SHOTPLAN_LOG_LEVEL", "INFO").upper(),
             persist_mode=raw_mode,
             pipeline_budget_s=max(0.0, _env_float("SHOTPLAN_PIPELINE_BUDGET_S", 60.0)),
+            api_key=_env("SHOTPLAN_API_KEY", ""),
+            rate_limit_per_minute=max(0, _env_int("SHOTPLAN_RATE_LIMIT_PER_MINUTE", 0)),
+            max_body_bytes=max(1024, _env_int("SHOTPLAN_MAX_BODY_BYTES", 1_000_000)),
+            retention_days=max(0, _env_int("SHOTPLAN_RETENTION_DAYS", 0)),
         )
 
     def masked(self) -> dict[str, object]:
@@ -109,11 +136,22 @@ class Settings:
             "persist_runs": self.persist_runs,
             "persist_mode": self.persist_mode,
             "pipeline_budget_s": self.pipeline_budget_s,
+            "deploy_api_key_set": bool(self.api_key),
+            "rate_limit_per_minute": self.rate_limit_per_minute,
+            "max_body_bytes": self.max_body_bytes,
+            "retention_days": self.retention_days,
         }
 
 
 def load_dotenv(path: Path | None = None) -> None:
-    """Minimal .env loader, avoids a python-dotenv dependency."""
+    """Minimal .env loader, avoids a python-dotenv dependency.
+
+    `SHOTPLAN_SKIP_DOTENV=1` turns it off. The test suite sets it, because a
+    developer's local `.env` (a real provider key, say) must not change what a
+    unit test observes: that is how a green local run becomes a red CI run.
+    """
+    if os.environ.get("SHOTPLAN_SKIP_DOTENV") == "1":
+        return
     target = path or ROOT / ".env"
     if not target.exists():
         return
@@ -128,3 +166,12 @@ def load_dotenv(path: Path | None = None) -> None:
 def get_settings() -> Settings:
     load_dotenv()
     return Settings.from_env()
+
+
+def configure_logging(settings: Settings) -> None:
+    """Apply SHOTPLAN_LOG_LEVEL. Without this the setting is a dead knob."""
+    level = getattr(logging, settings.log_level, logging.INFO)
+    logging.basicConfig(
+        level=level,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )

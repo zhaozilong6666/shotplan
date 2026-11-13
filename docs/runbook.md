@@ -25,7 +25,8 @@
 | 重刷 HTTP 压测矩阵与报告 | `python -m evals.http_load --write` |
 | 重刷盲测挑战集与报告 | `python -m evals.case_miner --write` |
 | 看运行统计 | `python -m shotplan.cli stats --limit 50` |
-| 静态检查 | `python -m ruff check src tests evals` |
+| 清理运行历史 | `python -m shotplan.cli history --prune 1000` |
+| 静态检查 | `python -m ruff check src tests evals scripts` |
 | 启动 Web | `python -m shotplan.cli serve --port 8000` |
 | 一条命令全验证 | `make smoke` |
 
@@ -40,7 +41,7 @@
 执行 `python -m pip install -e ".[api]"`。核心功能不受影响。
 
 **`SHOTPLAN_LLM_API_KEY is empty`**
-`.env` 里把 `SHOTPLAN_PROVIDER` 设成了 `openai_compatible` 但没填 key。改用 `SHOTPLAN_PROVIDER=mock`，或按 [USER_TASKS.md](USER_TASKS.md) 第 4 节配置。
+`.env` 里把 `SHOTPLAN_PROVIDER` 设成了 `openai_compatible` 但没填 key。改用 `SHOTPLAN_PROVIDER=mock`，或按 [portfolio/USER_TASKS.md](portfolio/USER_TASKS.md) 第 4 节配置。
 
 **`unknown city` / `KnowledgeError`**
 知识库目前有 `xian` / `luoyang` / `hangzhou` / `suzhou` / `nanjing` 五座城市。走 `run_plan()` 时未知城市会变成结构化 `INFEASIBLE`（`UNSUPPORTED_CITY`），不是异常；若直接调 `KnowledgeTools.city()` 才会抛错。要加城市就往 `knowledge/data/locations.json` 增加一个 city 对象，并同步补用例与基线。
@@ -79,7 +80,10 @@
 先确认基线是不是同一批用例。`v1-naive.json` 是 12 用例时代的历史快照，当前 80 用例必须比 `v6-naive.json`。新增用例后要重刷基线，否则用例集变化会被误读成质量变化。
 
 **页面打开但点「生成方案」报错**
-先看终端里 serve 是否还在运行，再访问 `http://127.0.0.1:8000/api/health`。若用 `file://` 直接打开 `web/index.html`，浏览器无法请求相对路径的 API，必须通过 serve 访问。
+先看终端里 serve 是否还在运行，再访问 `http://127.0.0.1:8000/api/health`。若用 `file://` 直接打开 `src/shotplan/web/index.html`，浏览器无法请求相对路径的 API，必须通过 serve 访问。
+
+**排查 5xx / 429 时对不上日志**
+先看响应头 `X-Request-ID`（429 / 503 的 JSON body 里也有 `request_id`），再到 `shotplan.api` 日志里搜同一个 id。每个请求固定一行：`request_id=... method=... path=... status=... duration_ms=...`。客户端或反向代理可以传 `X-Request-ID` 把链路串起来，但只接受 `[A-Za-z0-9._-]{1,64}`，其他值会被服务端替换。日志级别由 `SHOTPLAN_LOG_LEVEL` 控制（默认 INFO）。
 
 **`docs/eval-report.md` 被改动**
 这个文件由代码生成，但**会随仓库提交**（招聘方不必跑代码就能看到结论）。要改内容请改 `evals/run_eval.py::build_report` 后重跑 `--write-report`，再把更新后的报告一起提交。`evals/out/latest.json` 才是被忽略的原始产物。
@@ -101,7 +105,7 @@ python scripts/push_via_api.py             # 推送当前 HEAD 到 origin 当前
 - 基线快照：`evals/baselines/*.json`（需要提交，用于跨版本对比）
 - 密钥：`.env`（**永不提交**，`config.py` 不会打印 key 值）
 
-清空运行历史：删除 `data/shotplan.db` 即可，下次运行自动重建。
+清空运行历史：删除 `data/shotplan.db` 即可，下次运行自动重建。也可以保留最近 N 条（`history --prune N`）、删除超过 N 天的记录（`history --prune-days N`），或设置 `SHOTPLAN_RETENTION_DAYS=N` 让 API 在每次启动时自动清理；默认 0 表示永久保留。
 
 ## 修改代码后的自检顺序
 
@@ -112,6 +116,7 @@ python scripts/push_via_api.py             # 推送当前 HEAD 到 origin 当前
 5. `python -m evals.http_load --check`（真实服务 0 错误、0 丢写）
 6. `python -m evals.worker_lab --check`（持久化开关语义）
 7. `python -m ruff check src tests evals scripts`（风格）
-8. `make gates` 跑完 CI 的全部 16 道质量门禁（含覆盖率、模糊测试、盲测、真实 HTTP、对照实验、写入异步化、流水线契约、并发、扩展性与展示页一致性）
-9. `python -m shotplan.cli plan` 与 `python -m shotplan.cli plan --budget 100`（正常路径 + 拒绝路径冒烟）
-10. `git status` 确认没有把 `.env` / `.db` / `evals/out/` 加进去
+8. `python -m mypy`（类型，只检查 `src/shotplan`；改依赖后再按 `requirements.lock` 头部的命令重生成锁）
+9. `make gates` 跑完全部质量门禁（模糊测试、盲测、真实 HTTP、对照实验、写入异步化、流水线契约、并发、扩展性与示例一致性）；覆盖率由 `make test` 负责，展示页 diff 由 CI 负责
+10. `python -m shotplan.cli plan` 与 `python -m shotplan.cli plan --budget 100`（正常路径 + 拒绝路径冒烟）
+11. `git status` 确认没有把 `.env` / `.db` / `evals/out/` 加进去

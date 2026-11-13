@@ -7,6 +7,9 @@ See docs/problem-and-metrics.md for the reasoning behind each number.
 
 from __future__ import annotations
 
+import hashlib
+import json
+
 # A plan may not run longer than the booked time plus this grace period.
 MAX_OVERRUN_MINUTES = 15
 
@@ -111,6 +114,24 @@ RULES: list[dict[str, str]] = [
         "why": "用于检测模型编造不存在的地点",
     },
     {
+        "code": "MISSING_REQUIRED_LOCATION",
+        "severity": "hard",
+        "rule": "must_include 中的地点必须出现在拍摄时间块里",
+        "why": "用户明确要求的地点被忽略，方案即使自洽也不可交付",
+    },
+    {
+        "code": "AVOIDED_LOCATION",
+        "severity": "hard",
+        "rule": "avoid 中的地点不得出现在任何时间块里",
+        "why": "排除项是用户给的硬约束；只把它当检索提示，模型可以绕过",
+    },
+    {
+        "code": "UNKNOWN_SOURCE_REF",
+        "severity": "hard",
+        "rule": "source_refs 必须指向知识库中已有的地点或风格条目",
+        "why": "引用不存在的来源等于伪造溯源，比不引用更糟",
+    },
+    {
         "code": "SHOOT_TOO_SHORT",
         "severity": "soft",
         "rule": f"单个拍摄块不少于 {MIN_SHOOT_BLOCK_MINUTES} 分钟",
@@ -141,3 +162,30 @@ RULES: list[dict[str, str]] = [
         "why": "唐制配现代极简场景会显得违和",
     },
 ]
+
+
+def rules_fingerprint() -> str:
+    """Stable fingerprint of the rule book, recorded in every run trace.
+
+    Scores are only comparable if you know which rules produced them. Hashing
+    the rule table plus the thresholds it depends on makes that visible without
+    maintaining a manual version string that will eventually be forgotten.
+    """
+    payload = {
+        "rules": RULES,
+        "weights": SCORE_WEIGHTS,
+        "constants": {
+            "max_overrun_minutes": MAX_OVERRUN_MINUTES,
+            "min_transfer_minutes": MIN_TRANSFER_MINUTES,
+            "min_shoot_block_minutes": MIN_SHOOT_BLOCK_MINUTES,
+            "min_feasible_hours": MIN_FEASIBLE_HOURS,
+            "min_transfer_cost_cny": MIN_TRANSFER_COST_CNY,
+            "required_activities": list(REQUIRED_ACTIVITIES),
+            "budget_tolerance_cny": BUDGET_TOLERANCE_CNY,
+            "golden_light_windows": GOLDEN_LIGHT_WINDOWS,
+            "min_alternatives": MIN_ALTERNATIVES,
+            "min_source_refs": MIN_SOURCE_REFS,
+        },
+    }
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()[:12]

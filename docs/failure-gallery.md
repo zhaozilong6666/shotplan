@@ -3,7 +3,7 @@
 这份清单不是 bug 列表，而是**校验器真实抓到过的错误模式**。
 它回答一个面试里常被追问的问题：「你怎么知道你的规则不是拍脑袋定的？」
 
-当前共 **517** 条记录，来自 `naive` 对照 provider 在 **69** 个可满足 brief 上的输出，覆盖 **4** 类硬约束违规。
+当前共 **527** 条记录，来自 `naive` 对照 provider 在 **69** 个可满足 brief 上的输出，覆盖 **6** 类硬约束违规。
 
 ## 按问题码汇总
 
@@ -13,6 +13,8 @@
 | `UNKNOWN_LOCATION` | 186 | 69 | 换成知识库里真实存在的地点 id |
 | `BUDGET_EXCEEDED` | 69 | 69 | 减少收费景点、改用免费场景或降低妆造套餐档位 |
 | `TIME_OVERRUN` | 64 | 64 | 删减一个拍摄点，或缩短妆造/拍摄时长 |
+| `MISSING_REQUIRED_LOCATION` | 6 | 6 | 把必去地点安排为一个 shoot 时间块，并顺延其余行程 |
+| `AVOIDED_LOCATION` | 4 | 4 | 换成 avoid 之外的地点，或从请求里移除该排除项 |
 
 ## 典型案例
 
@@ -168,6 +170,88 @@
     "end": "09:00",
     "activity": "shoot",
     "location_id": "big_wild_goose_pagoda",
+    "cost_cny": 0
+  },
+  {
+    "start": "09:00",
+    "end": "10:00",
+    "activity": "shoot",
+    "location_id": "big_wild_goose_pagoda",
+    "cost_cny": 0
+  }
+]
+```
+
+### `MISSING_REQUIRED_LOCATION`
+
+- 用例：`C45`（conflict）  ｜  该次得分 `0.19`
+- 判定：必去地点没有出现在拍摄块中：baima_temple
+- 期望：包含 baima_temple
+- 修复建议：把必去地点安排为一个 shoot 时间块，并顺延其余行程
+
+输入 brief：
+
+```json
+{"budget_cny": 1500, "city": "luoyang", "date": "2026-10-04", "hours": 7, "must_include": ["baima_temple"], "styles": ["tang"]}
+```
+
+观察到的输出（声明总计 3000 元，时间块前 3 条）：
+
+```json
+[
+  {
+    "start": "08:00",
+    "end": "08:30",
+    "activity": "makeup",
+    "location_id": "indoor_studio",
+    "cost_cny": 0
+  },
+  {
+    "start": "08:30",
+    "end": "09:00",
+    "activity": "shoot",
+    "location_id": "mingtang_tiantang",
+    "cost_cny": 0
+  },
+  {
+    "start": "09:00",
+    "end": "10:00",
+    "activity": "shoot",
+    "location_id": "big_wild_goose_pagoda",
+    "cost_cny": 0
+  }
+]
+```
+
+### `AVOIDED_LOCATION`
+
+- 用例：`C08`（conflict）  ｜  该次得分 `0.19`
+- 判定：方案使用了被排除的地点：big_wild_goose_pagoda, datang_furong_garden
+- 期望：不出现 big_wild_goose_pagoda, datang_furong_garden
+- 修复建议：换成 avoid 之外的地点，或从请求里移除该排除项
+
+输入 brief：
+
+```json
+{"avoid": ["big_wild_goose_pagoda", "datang_furong_garden"], "budget_cny": 1500, "city": "xian", "date": "2026-10-04", "hours": 6, "styles": ["tang"]}
+```
+
+观察到的输出（声明总计 3000 元，时间块前 3 条）：
+
+```json
+[
+  {
+    "start": "08:00",
+    "end": "08:30",
+    "activity": "makeup",
+    "location_id": "indoor_studio",
+    "cost_cny": 0
+  },
+  {
+    "start": "08:30",
+    "end": "09:00",
+    "activity": "shoot",
+    "location_id": "guangren_temple",
     "cost_cny": 0
   },
   {

@@ -31,7 +31,7 @@ brief (jsonl)
   → check_feasibility        ← 生成前的确定性判定，不经过模型
   → provider.generate (good / naive)   ← 不可行时整段跳过
   → parse_plan               ← 解析失败记作用例失败，不中断整批
-  → validate                 ← 12 条规则 + 5 维度评分
+  → validate                 ← 15 条规则 + 5 维度评分
   → evaluate_case            ← 硬约束结论符合预期 AND 分数 >= 用例下限
                                （不可满足用例：正确拒绝才通过）
   → aggregate                ← 通过率、均分、分组、P50/P95、token
@@ -62,6 +62,8 @@ brief (jsonl)
 | 对照组规则覆盖下限 | 见 `CONTROL_RULE_MIN_COUNTS` | 实测次数的一半左右 |
 
 阈值写在环境变量而不是硬编码，是为了让阶段 4 接真实模型后可以逐步提高门槛，而不必改代码。
+
+用例级 `expect_min_score` 表达的是「这个场景下可接受的最低质量」，不是「当前实现刚好能过」。同一组内阈值随难度递减（极限短约 0.45–0.55，常规组合 0.65–0.80），并与 `description` 一起审阅：description 说明场景为什么难，阈值说明难到什么程度。改实现后分数变化要先解释；为了变绿而下调阈值，等于把回归写进基线。
 
 ## 四类用例与「正确拒绝」
 
@@ -136,6 +138,8 @@ python -m pytest tests/test_scorers.py -q
 并发负载测的是「同时来 8 个请求会怎样」：既验证正确性（不丢写、不报错），也暴露饱和点。
 
 性能基准测的是**不含模型延迟**的常数成本，用 `tracemalloc` 单独一轮统计堆峰值。门禁设在实测值的十倍以上（p95 < 50ms、吞吐 > 50/s、堆 < 64MB），目的是抓「意外的 O(n²)」「每次调用重载知识库」这类回归，而不是卡 CI 抖动。
+
+**机器相关数字怎么读**：[benchmark.md](benchmark.md)、[loadtest.md](loadtest.md)、[http-load.md](http-load.md)、[scaling.md](scaling.md)、[persistence.md](persistence.md)、[worker-bottleneck.md](worker-bottleneck.md) 都是单机快照（同一台 Windows / 18 逻辑核开发机，离线 mock provider）。绝对值随 CPU、Python 版本和后台负载漂移，用途是比较**同一批次内的相对关系**——同步 vs 异步、1 worker vs 4 worker、线程 vs 进程——以及「有没有丢写、有没有报错」。可迁移的是比例与不变量，不是某个毫秒数。
 
 ## 相关材料
 

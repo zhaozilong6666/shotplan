@@ -28,7 +28,7 @@ def _naive(avg: float, hard_pass: float, counts: dict[str, int] | None = None) -
     }
 
 
-def _good(avg: float = 0.9788, hard_pass: float = 1.0, failed: int = 0) -> dict:
+def _good(avg: float = 0.9778, hard_pass: float = 1.0, failed: int = 0) -> dict:
     return {
         "avg_score": avg,
         "hard_pass_rate": hard_pass,

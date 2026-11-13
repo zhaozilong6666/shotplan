@@ -14,7 +14,7 @@ flowchart TB
     subgraph Entry["入口层（可选依赖）"]
         CLI["cli.py"]
         API["api.py (FastAPI)"]
-        WEB["web/ 原生单页"]
+        WEB["src/shotplan/web/ 原生单页"]
     end
     subgraph Orchestration["编排层"]
         PIPE["pipeline.py"]
@@ -63,7 +63,7 @@ flowchart TB
 2. `KnowledgeTools.context_for()` 做结构化检索，产出**紧凑、可引用**的上下文：候选地点、风格详情、黄金光线窗口、室内兜底、转场最短时长。
 3. `PlanProvider.generate()` 返回原始 payload。真实 provider 走 urllib 调 OpenAI 兼容接口，并按版本取系统提示词；离线 provider 用确定性规则生成。
 4. `parse_plan()` 是信任边界：抽取 JSON（容忍 markdown 围栏和前后解释）、校验字段、统一时间格式、按时间排序、计算成本。任何不合法都抛 `ParseError`。
-5. `validate()` 执行 12 条规则，产出问题清单、5 个维度分与用 `math.fsum` 聚合的加权总分。
+5. `validate()` 执行 15 条规则（10 硬 + 5 软），产出问题清单、5 个维度分与用 `math.fsum` 聚合的加权总分。
 6. 若存在硬约束问题且还有修复轮次，`build_repair_hint()` 把报告转成精确修复指令再生成一次。**只有当新草稿严格更优时才替换**，避免修复把方案改坏。
 7. `TraceCollector` 汇总每步耗时 / token / 成本。运行历史有两种写入策略，共用同一张表：`RunStore` 同步提交（默认，响应返回前已落库）；`RunWriter` 交给进程内单写线程批量提交，`flush()` 才是「已落库」的屏障（ADR 0012）。
 
@@ -74,6 +74,12 @@ flowchart TB
 - `total_cost_cny` 与所有时间块成本之和取较大者参与预算判定，防止模型在总计字段上低报。
 - 修复循环单调不降：`(hard_pass, score)` 字典序比较，只有严格变大才接受。
 - 任何 `location_id` 都必须在知识库中存在（travel 块允许 `-` 占位），否则判硬失败。
+- `must_include` 与 `avoid` 是硬规则，不只是检索提示：必去地点必须出现在拍摄块里，排除地点不得出现在任何时间块里。
+- `source_refs` 必须解析到知识库中的地点或风格；伪造引用是硬失败。
+- 每次运行都记录知识库与规则指纹（`kb_version` / `rules_version`）以及请求级配置快照（修复次数、墙钟预算、模型、持久化模式）；改数据或改规则后，历史分数仍可解释。
+- 知识库每个地点/风格条目都带 `source` 与 `last_verified_at`；加载器校验非空与 ISO 日期，测试在「超过一年未复核」时失败。`knowledge_version` 仍是整份数据的内容指纹。
+- 配置在 API 启动时解析一次（`app.state.settings`）并注入；请求 ID 中间件为每个响应回传 `X-Request-ID`，访问日志只记 method / path / status / duration，不记请求体与 key。CORS 默认关闭，自带界面与 API 同源。
+- 公开部署的保护是可选层：设置 `SHOTPLAN_API_KEY` 后，`/api/plan`、`/api/runs*`、`/api/summary`、`/api/stats` 都需要 `X-API-Key`；`/api/health`、`/api/config`、`/api/rules` 保持公开（只含版本、脱敏配置与规则说明，不含运行数据）。内置 Web 面板不发送该头，因此受保护部署应改用独立前端或把 key 留在反向代理层；限流是进程内尽力而为，多 worker 下不共享计数。
 - 评分用 `math.fsum` + 固定 6 位精度，跨 Python 3.10–3.13 逐位一致（ADR 0006）。
 - 不可行结果同样写入运行历史，且 `status` / `feasibility` 会随 JSON 一起返回给 CLI、API 与 Web。
 - 一次请求的墙钟受 `SHOTPLAN_PIPELINE_BUDGET_S` 约束：超预算停止开启新的修复轮次，返回当前最优草稿并记 `REPAIR_BUDGET_EXCEEDED`，不丢弃已算出的结果。
@@ -87,7 +93,7 @@ flowchart TB
 | `domain/`、`knowledge/`、`agents/`、`pipeline.py`、`tracing.py`、`storage.py`、`cli.py` | 仅 Python 标准库 |
 | `api.py` | `fastapi`、`uvicorn`（`[api]` extra） |
 | `tests/`、`evals/` | `pytest`、`httpx`、`ruff`（`[dev]` extra） |
-| `web/` | 无构建、无 npm、无 CDN |
+| `src/shotplan/web/` | 无构建、无 npm、无 CDN |
 
 `urllib` 而非官方 SDK 调模型，是为了让超时、重试、错误映射和响应结构都显式可见；代价是要自己处理兼容端点的差异，代码里对 `response_format` 做了降级重试。
 

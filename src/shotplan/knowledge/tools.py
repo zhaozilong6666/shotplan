@@ -137,7 +137,7 @@ class KnowledgeTools:
             max_cost=max(0, request.budget_cny // 3),
             limit=6,
         )
-        fallback = self.search_locations(city_id, indoor=True, limit=1)
+        fallback = self.search_locations(city_id, indoor=True, exclude=request.avoid, limit=1)
         light_start, light_end = self.light_window(request.date)
         return {
             "city": city_id,

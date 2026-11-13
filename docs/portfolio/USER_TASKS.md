@@ -34,7 +34,7 @@
 - Python 3.10/3.11 失败、3.12/3.13 通过 —— 3.12 起 `sum()` 改用补偿求和，满分方案在旧版本算出 `1.0000000000000002`。已改为 `math.fsum` + 固定 6 位精度（ADR 0006）。
 - 较早用例集里的 C24（预算 400 元）暴露 planner 会挑收费景点导致超预算。已改为按剩余预算裁剪地点组合 + 风格选择先预留转场费。修的是实现，不是调低用例期望。
 
-**网络后患也处理了**：`git push` 走不通时不必换网络，仓库里有 `scripts/push_via_api.py`，通过 GitHub Git Data API 完成等价推送并逐对象校验 SHA（详见 [runbook.md](runbook.md)）。密钥仍从系统凭证读取，不落盘。
+**网络后患也处理了**：`git push` 走不通时不必换网络，仓库里有 `scripts/push_via_api.py`，通过 GitHub Git Data API 完成等价推送并逐对象校验 SHA（详见 [runbook.md](../runbook.md)）。密钥仍从系统凭证读取，不落盘。
 
 **你想自己复核，在 Git Bash 里执行**（只读，安全）：
 
@@ -59,9 +59,9 @@ git ls-files | grep -E "\.env$|\.db$|evals/out/" || echo "没有敏感文件被�
 
 | 检查 | 结果 |
 | --- | --- |
-| `pytest` | 211 passed（本机 Python 3.13），覆盖率 89% |
+| `pytest` | 301 passed（本机 Python 3.13），覆盖率 91% |
 | `ruff check src tests evals scripts` | All checks passed |
-| `evals.run_eval --compare v6` | 80/80，均分 0.9788，对照组 0.3014，差值 0.6774，退出码 0 |
+| `evals.run_eval --compare v6` | 80/80，均分 0.9778，对照组 0.3014，差值 0.6764，退出码 0 |
 | `evals.mutation_lab --check` | 8/8 受控变异被门禁拦截、0 存活、8/8 回滚后与基线一致（旧门禁仅 4/8） |
 | `evals.case_miner --check` | 225 候选 → 200 个未见 brief 纳入、25 个矛盾输入被可行性判定筛掉，覆盖 19/25 → 25/25 |
 | `evals.http_load --check` | 真实 uvicorn 服务：40 次 loopback POST /api/plan，0 错误、40/40 落库 |
@@ -195,15 +195,15 @@ curl https://你的地址/api/health
 | 想做 | 怎么做 |
 | --- | --- |
 | 换成你熟悉的场景 | 编辑 `knowledge/data/locations.json` 和 `styles.json`，id 保持英文小写 |
-| 加评测用例 | 在 `evals/cases/*.jsonl` 加一行，格式见 [evaluation.md](evaluation.md)；加完要重刷基线 |
+| 加评测用例 | 在 `evals/cases/*.jsonl` 加一行，格式见 [evaluation.md](../evaluation.md)；加完要重刷基线 |
 | 改一条规则 | 改 `src/shotplan/domain/constraints.py` 的常量，补一条 `tests/test_validator.py` 测试 |
 | 加一个不可行条件 | 在 `domain/feasibility.py` 加一条 `FeasibilityIssue`，补测试与 `infeasible` 组用例 |
 | 看某次运行到底发生了什么 | `python -m shotplan.cli history`，或访问 `/api/runs/<run_id>` |
-| `git push` 被代理挡住 | `python scripts/push_via_api.py`，见 [runbook.md](runbook.md) |
-| 每次改完代码 | 按 [runbook.md](runbook.md) 的自检顺序跑一遍 |
+| `git push` 被代理挡住 | `python scripts/push_via_api.py`，见 [runbook.md](../runbook.md) |
+| 每次改完代码 | 按 [runbook.md](../runbook.md) 的自检顺序跑一遍 |
 
 ---
 
 ## 我这边已经做完、你不用管的
 
-仓库结构与全部源码、263 个单元测试、80 个评测用例 + 200 个盲测挑战用例与六代对照基线、自动生成的评测报告、架构文档与 13 份 ADR、CI 工作流（含评测阈值、**门禁有效性变异测试**、**盲测挑战集挖掘**、修复实验、失败案例库、模糊测试、性能基准、并发负载、扩展性、示例一致性、覆盖率与展示页一致性共 16 道门禁）、Docker 配置、Web 界面（含运行统计视图）、中英文 README、GitHub Pages 静态展示页、路线图、面试讲稿、排错手册、GitHub 建仓与推送、仓库描述与 topics、CI 跨版本浮点问题修复、代理受限时的 API 推送脚本、生成前可行性判定、prompt v1/v2 对比框架、成本/延迟报告与模拟 provider、修复循环实验、结构化失败案例库、对照组规则覆盖门禁与可复核的「改动→拦截→回滚」实例、失败案例聚类驱动的盲测挑战集、真实 uvicorn 多 worker 的 HTTP 压测、持久化开关对照实验、写入异步化与写后置队列、流水线状态表与墙钟预算、按 provider / prompt 版本聚合的运行统计面板。本地已验证：测试全绿、评测退出码 0、变异门禁 8/8、盲测门禁 200/200 有区分度、HTTP 压测 0 错误 0 丢写、对照实验开关语义正确、三组持久化对照 0 丢写、流水线契约文档与代码一致、CLI 与 API 端到端可用；GitHub Actions 4 个 Python 版本全部通过。
+仓库结构与全部源码、301 个单元测试、80 个评测用例 + 200 个盲测挑战用例与六代对照基线、自动生成的评测报告、架构文档与 16 份 ADR、CI 工作流（含评测阈值、**门禁有效性变异测试**、**盲测挑战集挖掘**、修复实验、失败案例库、模糊测试、性能基准、并发负载、扩展性、示例一致性、覆盖率与展示页一致性共 16 道门禁）、Docker 配置、Web 界面（含运行统计视图）、中英文 README、GitHub Pages 静态展示页、路线图、面试讲稿、排错手册、GitHub 建仓与推送、仓库描述与 topics、CI 跨版本浮点问题修复、代理受限时的 API 推送脚本、生成前可行性判定、prompt v1/v2 对比框架、成本/延迟报告与模拟 provider、修复循环实验、结构化失败案例库、对照组规则覆盖门禁与可复核的「改动→拦截→回滚」实例、失败案例聚类驱动的盲测挑战集、真实 uvicorn 多 worker 的 HTTP 压测、持久化开关对照实验、写入异步化与写后置队列、流水线状态表与墙钟预算、按 provider / prompt 版本聚合的运行统计面板。本地已验证：测试全绿、评测退出码 0、变异门禁 8/8、盲测门禁 200/200 有区分度、HTTP 压测 0 错误 0 丢写、对照实验开关语义正确、三组持久化对照 0 丢写、流水线契约文档与代码一致、CLI 与 API 端到端可用；GitHub Actions 4 个 Python 版本全部通过。

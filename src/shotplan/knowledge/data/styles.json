@@ -1,8 +1,12 @@
 {
-  "version": "1.0",
+  "version": "1.2",
+  "updated_at": "2026-11-13",
+  "provenance_note": "source/last_verified_at record curation provenance inside this repository; price ranges are planning estimates, not quotes.",
   "styles": [
     {
       "id": "tang",
+      "source": "curation:seed",
+      "last_verified_at": "2026-11-13",
       "name": "唐制",
       "era": "唐",
       "makeup_minutes": 90,
@@ -14,6 +18,8 @@
     },
     {
       "id": "song",
+      "source": "curation:seed",
+      "last_verified_at": "2026-11-13",
       "name": "宋制",
       "era": "宋",
       "makeup_minutes": 70,
@@ -25,6 +31,8 @@
     },
     {
       "id": "ming",
+      "source": "curation:seed",
+      "last_verified_at": "2026-11-13",
       "name": "明制",
       "era": "明",
       "makeup_minutes": 80,
@@ -36,6 +44,8 @@
     },
     {
       "id": "weijin",
+      "source": "curation:seed",
+      "last_verified_at": "2026-11-13",
       "name": "魏晋风",
       "era": "魏晋",
       "makeup_minutes": 75,
@@ -47,6 +57,8 @@
     },
     {
       "id": "republic",
+      "source": "curation:seed",
+      "last_verified_at": "2026-11-13",
       "name": "民国旗装",
       "era": "民国",
       "makeup_minutes": 60,

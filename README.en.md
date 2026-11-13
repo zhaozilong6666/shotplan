@@ -18,7 +18,7 @@ Hanfu travel photography was chosen because its constraints are real: golden-hou
 | | Common approach | This project |
 | --- | --- | --- |
 | Output | Free text | Structured `Plan`: time blocks, costs, citations |
-| Quality | Try another prompt | 12 deterministic rules + dimension scores |
+| Quality | Try another prompt | 15 deterministic rules + dimension scores |
 | Impossible brief | Fabricate a plan anyway | Pre-generation check returns reasons, gaps, suggestions and theoretical minimums |
 | Failure handling | Regenerate once | Validation report becomes a repair hint; **worse drafts are rejected** |
 | Evidence | Screenshots | 80 regression cases + 200 holdout briefs + real HTTP load test + three-arm persistence experiment + 16 CI gates |
@@ -79,10 +79,10 @@ Running an eval only against a planner you wrote yourself makes it easy to build
 | Metric | Rule agent (`good`) | Control (`naive`) |
 | --- | ---: | ---: |
 | Hard-constraint pass rate | **100%** | 13.8% |
-| Average score | **0.9788** | 0.3014 |
+| Average score | **0.9778** | 0.3014 |
 | Cases passed | **80 / 80** | 11 / 80 |
 
-The **0.6774** gap is the point. `naive` deliberately ignores time, transfers, budget, sourcing and invents locations. The gate does more than compare two averages: it requires the control plan to still trigger **each of its known defects** (a rule-level coverage floor), plus a delta floor and control-group ceilings. Otherwise silently deleting one hard rule is invisible — the control plan is so broken that its `constraints` score is already clamped at 0. See [ADR 0009](docs/adr/0009-gate-sensitivity.md).
+The **0.6764** gap is the point. `naive` deliberately ignores time, transfers, budget, sourcing and invents locations. The gate does more than compare two averages: it requires the control plan to still trigger **each of its known defects** (a rule-level coverage floor), plus a delta floor and control-group ceilings. Otherwise silently deleting one hard rule is invisible — the control plan is so broken that its `constraints` score is already clamped at 0. See [ADR 0009](docs/adr/0009-gate-sensitivity.md).
 
 Cases: `normal` 30, `conflict` 23, `edge` 16, `infeasible` 11. The last group describes briefs that are **mathematically unsatisfiable**; the correct behaviour is a structured refusal, not a fabricated plan. Since feasibility is checked before generation and is provider-independent, both providers share that verdict — differentiation comes from the other 69 cases.
 
@@ -130,7 +130,7 @@ The retry count alone does not bound latency: two generations x three HTTP attem
 ## More verifiable evidence
 
 1. **[Repair-loop experiment](docs/repair-experiment.md)** — three constructed providers over the same 69 satisfiable briefs. A repairable provider goes from 0% to 100% hard-pass in one round (69/69); all 69 "repairs" from a provider that ignores hints are rejected; all 69 worse-than-original repairs are blocked by the monotonic guard. Every accept/reject decision is read from the run trace.
-2. **[Failure gallery](docs/failure-gallery.md)** — 517 structured failure records in 4 categories, each with the input brief, observed output fragment, expected rule and repair suggestion. New rules should be backed by a real failure; real-model failures get appended in the same format later.
+2. **[Failure gallery](docs/failure-gallery.md)** — 527 structured failure records in 6 categories, each with the input brief, observed output fragment, expected rule and repair suggestion. New rules should be backed by a real failure; real-model failures get appended in the same format later.
 3. **[Observability dashboard](docs/observability.md)** — `python -m shotplan.cli stats`, `GET /api/stats` and a Web tab aggregate stored runs by provider / prompt version: pass rate, average score, P50/P95 latency, cost, repairs and structured refusals. Data comes from the full SQLite payloads, with no second metrics table.
 4. **[Gate-sensitivity lab](docs/mutation-report.md)** — 8 controlled mutations (3 on generation, 5 on validation) are injected in-process, run through the same 80 cases and the real gate, and must all be rejected; every one is rolled back and compared field-by-field. The previous gate caught only **4/8**; the fixed gate catches **8/8**.
 5. **Engineering evidence** — [fuzzing](docs/fuzz-report.md) (1000 mutated inputs, 0 crashes), [benchmark](docs/benchmark.md) (p50 ≈0.2 ms), [load test](docs/loadtest.md) (600 concurrent requests, 0 errors / 0 lost writes), [real output examples](docs/examples.md) and [threads vs processes](docs/scaling.md) (1.04× vs 1.72×).
@@ -154,11 +154,11 @@ shotplan/
 │   ├── tracing.py     # Latency / tokens / cost / events
 │   ├── storage.py     # SQLite run history
 │   ├── api.py         # Optional FastAPI layer
+│   ├── web/           # Dependency-free single-page UI (shipped in the package)
 │   └── cli.py         # CLI entry point
-├── web/               # Dependency-free single-page UI (5 tabs)
 ├── evals/             # 80 cases + 200 holdout briefs, mutation/mining/HTTP/AB labs
-├── tests/             # 211 unit tests
-└── docs/              # Architecture, metrics, 11 ADRs, ops, interview notes
+├── tests/             # 301 unit tests
+└── docs/              # Architecture, metrics, 16 ADRs, ops; personal material in docs/portfolio/
 ```
 
 The core uses only the Python standard library; FastAPI / pytest / ruff are optional layers. This makes "runs with no credentials" a design decision, not a compromise.
@@ -180,6 +180,9 @@ The core uses only the Python standard library; FastAPI / pytest / ruff are opti
 | [0011](docs/adr/0011-controlled-experiment-over-inference.md) | Controlled experiments before causal claims | A plausible mechanism is not an intervention |
 | [0012](docs/adr/0012-write-behind-persistence.md) | Write-behind queue for run history | The write is the bottleneck, but speed must not silently drop rows |
 | [0013](docs/adr/0013-explicit-stage-table-and-budget.md) | Stage table plus a wall-clock budget | Diagrams drift; retry counts do not bound latency |
+| [0014](docs/adr/0014-request-constraints-are-hard-rules.md) | `must_include` / `avoid` are hard rules | A retrieval hint cannot stop a model from ignoring an explicit condition |
+| [0015](docs/adr/0015-reproducible-run-trace.md) | Trace records KB and rule fingerprints | Historical scores must remain explainable after data or rules change |
+| [0016](docs/adr/0016-source-refs-must-resolve.md) | Citations must resolve in the KB | A fabricated citation is worse than no citation |
 
 ## Optional: real model, UI, deployment
 
@@ -192,6 +195,8 @@ docker compose up --build
 ```
 
 Any OpenAI-compatible endpoint works (OpenAI, DeepSeek, local Ollama / vLLM). Without a key everything runs in `mock` mode. Versioned v1/v2 prompts and `--prompt-version` are ready for a real-model comparison experiment.
+
+Deployment guards are opt-in: set `SHOTPLAN_API_KEY` and `SHOTPLAN_RATE_LIMIT_PER_MINUTE` to protect `/api/plan` and `/api/runs*`, and keep the 1 MB request-body cap. Every response carries `X-Request-ID` (client-supplied ids are validated against a safe alphabet), one structured access-log line records method, path, status and duration, and `/api/plan` stores the same id in `trace.config.request_id`. Run history is kept forever by default; `SHOTPLAN_RETENTION_DAYS=N` prunes records older than N days at startup. CORS is intentionally disabled — the bundled UI is same-origin, so a wildcard would only widen exposure.
 
 ## Roadmap
 
@@ -216,9 +221,9 @@ Any OpenAI-compatible endpoint works (OpenAI, DeepSeek, local Ollama / vLLM). Wi
 
 ## For interviews
 
-> "I built an evaluable planning agent. The point wasn't calling a model — it was writing 'executable' as 12 testable hard constraints, checking satisfiability *before* generation, grading outputs with a validator that never uses a model, feeding the report back as a repair hint, and refusing worse rewrites. To make quality comparable I built 80 eval cases across five cities plus a deliberately broken control provider. I didn't stop at '80/80 green': I mutation-tested the gate itself with 8 injected faults and found the old gate missed 4 cases where a single validation rule was silently deleted — the control plan is so broken that losing one issue barely moves its score. After adding rule-level coverage, all 8 are caught. I also mined 200 briefs the main suite had never seen, kept in a separate holdout so the historical baselines stay comparable. Finally I ran the real service under load and found adding workers made it slower. Instead of stopping at a plausible story about SQLite contention, I added a switch and ran an on/off controlled experiment — and let the verdict be 'inconclusive' when the slowdown itself failed to reproduce. A deterministic fuzzer also guarantees no malformed brief can crash the service."
+> "I built an evaluable planning agent. The point wasn't calling a model — it was writing 'executable' as 15 testable hard constraints, checking satisfiability *before* generation, grading outputs with a validator that never uses a model, feeding the report back as a repair hint, and refusing worse rewrites. To make quality comparable I built 80 eval cases across five cities plus a deliberately broken control provider. I didn't stop at '80/80 green': I mutation-tested the gate itself with 8 injected faults and found the old gate missed 4 cases where a single validation rule was silently deleted — the control plan is so broken that losing one issue barely moves its score. After adding rule-level coverage, all 8 are caught. I also mined 200 briefs the main suite had never seen, kept in a separate holdout so the historical baselines stay comparable. Finally I ran the real service under load and found adding workers made it slower. Instead of stopping at a plausible story about SQLite contention, I added a switch and ran an on/off controlled experiment — and let the verdict be 'inconclusive' when the slowdown itself failed to reproduce. A deterministic fuzzer also guarantees no malformed brief can crash the service."
 
-Detailed Q&A: [docs/interview-notes.md](docs/interview-notes.md).
+Detailed Q&A: [docs/portfolio/interview-notes.md](docs/portfolio/interview-notes.md).
 
 ## License
 

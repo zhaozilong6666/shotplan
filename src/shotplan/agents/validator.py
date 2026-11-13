@@ -38,6 +38,19 @@ def _clamp(value: float) -> float:
     return max(0.0, min(1.0, value))
 
 
+def _source_ref_exists(ref: str, plan: Plan, kb: KnowledgeTools) -> bool:
+    """A citation is only real if the id resolves in the knowledge base."""
+    text = str(ref).strip()
+    prefix, separator, item_id = text.partition("#")
+    if not separator or not item_id:
+        return False
+    if prefix == "locations.json":
+        return plan.city in kb.city_ids() and kb.location(plan.city, item_id) is not None
+    if prefix == "styles.json":
+        return kb.style(item_id) is not None
+    return False
+
+
 def validate(
     plan: Plan,
     request: PlanRequest,
@@ -108,13 +121,13 @@ def validate(
 
     # --- 2. Required activities and ordering -----------------------------------
     activities = {s.activity for s in slots}
-    for required in REQUIRED_ACTIVITIES:
-        if required not in activities:
+    for activity in REQUIRED_ACTIVITIES:
+        if activity not in activities:
             add(
-                "MISSING_ACTIVITY", "hard", f"缺少必需环节：{required}",
+                "MISSING_ACTIVITY", "hard", f"缺少必需环节：{activity}",
                 actual=", ".join(sorted(activities)) or "empty",
-                expected=f"包含 {required}",
-                suggestion=f"补一个 activity={required} 的时间块",
+                expected=f"包含 {activity}",
+                suggestion=f"补一个 activity={activity} 的时间块",
             )
 
     shoot_indices = [i for i, s in enumerate(slots) if s.activity == "shoot"]
@@ -171,7 +184,56 @@ def validate(
                 suggestion="换成知识库里真实存在的地点 id",
             )
 
-    # --- 6. Soft quality signals ------------------------------------------------
+    # --- 6. Request-level constraints --------------------------------------------
+    # `must_include` and `avoid` used to be retrieval hints only: the context
+    # excluded avoided places, but a provider could still emit them, and a
+    # required place could be skipped while the plan scored 0.97. They are now
+    # hard rules, because the user stated them as conditions, not preferences.
+    required = {str(item).strip().lower() for item in request.must_include if str(item).strip()}
+    if required:
+        shot_locations = {slots[i].location_id for i in shoot_indices}
+        missing = sorted(required - shot_locations)
+        if missing:
+            add(
+                "MISSING_REQUIRED_LOCATION", "hard",
+                f"必去地点没有出现在拍摄块中：{', '.join(missing)}",
+                actual=", ".join(sorted(shot_locations)) or "empty",
+                expected=f"包含 {', '.join(missing)}",
+                suggestion="把必去地点安排为一个 shoot 时间块，并顺延其余行程",
+            )
+
+    avoided = {str(item).strip().lower() for item in request.avoid if str(item).strip()}
+    if avoided:
+        used = sorted({slot.location_id for slot in slots if slot.location_id in avoided})
+        if used:
+            add(
+                "AVOIDED_LOCATION", "hard",
+                f"方案使用了被排除的地点：{', '.join(used)}",
+                actual=", ".join(used),
+                expected=f"不出现 {', '.join(sorted(avoided))}",
+                suggestion="换成 avoid 之外的地点，或从请求里移除该排除项",
+            )
+
+    unknown_refs = sorted(
+        {
+            ref
+            for ref in (
+                list(plan.source_refs)
+                + [ref for slot in slots for ref in slot.source_refs]
+            )
+            if not _source_ref_exists(str(ref), plan, kb)
+        }
+    )
+    if unknown_refs:
+        add(
+            "UNKNOWN_SOURCE_REF", "hard",
+            f"引用了知识库中不存在的来源：{', '.join(unknown_refs)}",
+            actual=", ".join(unknown_refs),
+            expected="locations.json#<location_id> 或 styles.json#<style_id>",
+            suggestion="只引用候选地点与风格的 id；编造引用会被当作伪造溯源",
+        )
+
+    # --- 7. Soft quality signals ------------------------------------------------
     for idx in shoot_indices:
         if slots[idx].minutes() < MIN_SHOOT_BLOCK_MINUTES:
             add(
@@ -236,7 +298,7 @@ def validate(
                 suggestion="更换地点或改选更适配的妆造风格",
             )
 
-    # --- 7. Scores --------------------------------------------------------------
+    # --- 8. Scores --------------------------------------------------------------
     hard_issues = [i for i in issues if i.severity == "hard"]
     soft_issues = [i for i in issues if i.severity == "soft"]
     hard_pass = not hard_issues

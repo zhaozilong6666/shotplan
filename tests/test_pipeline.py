@@ -1,4 +1,5 @@
 from shotplan.agents import MockProvider
+from shotplan.domain.errors import StorageError
 from shotplan.domain.models import PlanRequest
 from shotplan.pipeline import as_summary, run_plan
 from shotplan.storage import RunStore
@@ -58,3 +59,41 @@ def test_as_summary_is_compact():
     assert summary["hard_pass"] is True
     assert "score" in summary and "run_id" in summary
     assert "plan" not in summary
+
+
+def test_trace_records_what_produced_the_score():
+    """Without these versions a historical score cannot be re-interpreted."""
+    first = run_plan(PlanRequest(), provider=MockProvider("good"), max_repairs=0)
+    second = run_plan(PlanRequest(), provider=MockProvider("good"), max_repairs=0)
+    assert len(first.trace.kb_version) == 12
+    assert len(first.trace.rules_version) == 12
+    assert first.trace.kb_version == second.trace.kb_version
+    assert first.trace.rules_version == second.trace.rules_version
+    assert first.trace.wall_duration_ms >= first.trace.total_duration_ms
+    assert first.trace.config["max_repairs"] == 0
+    assert "pipeline_budget_s" in first.trace.config
+
+
+def test_request_id_is_recorded_only_when_supplied():
+    offline = run_plan(PlanRequest(), provider=MockProvider("good"), max_repairs=0)
+    assert "request_id" not in offline.trace.config
+
+    tagged = run_plan(
+        PlanRequest(), provider=MockProvider("good"), max_repairs=0,
+        request_id="trace-42",
+    )
+    assert tagged.trace.config["request_id"] == "trace-42"
+
+
+def test_persistence_failure_does_not_veto_a_valid_plan():
+    class BrokenStore:
+        def save(self, result):
+            raise StorageError("disk full")
+
+    result = run_plan(
+        PlanRequest(), provider=MockProvider("good"),
+        store=BrokenStore(), max_repairs=0,
+    )
+    assert result.status == "ok"
+    assert result.validation.hard_pass is True
+    assert "PERSISTENCE_FAILED" in {i.code for i in result.validation.issues}

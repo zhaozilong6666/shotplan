@@ -2,11 +2,16 @@
   "accepted": 200,
   "candidate_count": 225,
   "code_city_counts": {
+    "AVOIDED_LOCATION|xian": 4,
     "BUDGET_EXCEEDED|hangzhou": 9,
     "BUDGET_EXCEEDED|luoyang": 12,
     "BUDGET_EXCEEDED|nanjing": 9,
     "BUDGET_EXCEEDED|suzhou": 9,
     "BUDGET_EXCEEDED|xian": 30,
+    "MISSING_REQUIRED_LOCATION|luoyang": 1,
+    "MISSING_REQUIRED_LOCATION|nanjing": 2,
+    "MISSING_REQUIRED_LOCATION|suzhou": 2,
+    "MISSING_REQUIRED_LOCATION|xian": 1,
     "TIME_OVERRUN|hangzhou": 8,
     "TIME_OVERRUN|luoyang": 11,
     "TIME_OVERRUN|nanjing": 8,
@@ -27,17 +32,19 @@
   "coverage_before": 19,
   "coverage_total": 25,
   "failure_codes": [
+    "AVOIDED_LOCATION",
     "BUDGET_EXCEEDED",
+    "MISSING_REQUIRED_LOCATION",
     "TIME_OVERRUN",
     "TRANSFER_BUFFER",
     "UNKNOWN_LOCATION"
   ],
-  "failure_records": 517,
+  "failure_records": 527,
   "good": {
-    "avg_score": 0.9881,
+    "avg_score": 0.9879,
     "cases": 200,
     "hard_pass_rate": 1.0,
-    "min_score": 0.9587
+    "min_score": 0.9525
   },
   "grid": {
     "cities": 5,
@@ -52,7 +59,7 @@
     "seasons": 4,
     "styles": 5
   },
-  "min_gap": 0.7687,
+  "min_gap": 0.7625,
   "min_gap_required": 0.3,
   "naive": {
     "avg_score": 0.19,

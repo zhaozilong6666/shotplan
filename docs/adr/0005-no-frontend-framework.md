@@ -9,7 +9,7 @@
 
 ## 决策
 
-`web/` 用原生 HTML + CSS + JavaScript，无 npm、无构建、无 CDN。API 直接以 `FileResponse` 提供这三个静态文件。
+`src/shotplan/web/` 用原生 HTML + CSS + JavaScript，无 npm、无构建、无 CDN。API 直接以 `FileResponse` 提供这三个静态文件。
 
 ## 理由
 

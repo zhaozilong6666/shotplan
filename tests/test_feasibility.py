@@ -44,6 +44,20 @@ def test_conflicting_constraints_are_refused(tools):
     assert "CONFLICTING_CONSTRAINTS" in reason_codes(check_feasibility(brief, tools))
 
 
+def test_unknown_required_location_is_refused(tools):
+    brief = PlanRequest(must_include=["invented_palace"])
+    report = check_feasibility(brief, tools)
+    assert report.feasible is False
+    assert "UNKNOWN_REQUIRED_LOCATION" in reason_codes(report)
+
+
+def test_excluding_every_location_is_refused(tools):
+    brief = PlanRequest(avoid=[item["id"] for item in tools.locations("xian")])
+    report = check_feasibility(brief, tools)
+    assert report.feasible is False
+    assert "ALL_LOCATIONS_EXCLUDED" in reason_codes(report)
+
+
 def test_all_reasons_are_reported_at_once(tools):
     report = check_feasibility(PlanRequest(hours=1.0, budget_cny=0), tools)
     assert {"BUDGET_BELOW_MINIMUM", "TIME_BELOW_MINIMUM"} <= reason_codes(report)

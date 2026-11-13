@@ -1,6 +1,8 @@
 {
-  "version": "1.0",
+  "version": "1.2",
+  "updated_at": "2026-11-13",
   "note": "Small curated knowledge base. Exact facts matter more than coverage here; see docs/adr/0003.",
+  "provenance_note": "source/last_verified_at record curation provenance inside this repository: which dataset an entry came from and when it was last reviewed for internal consistency. They are not live opening-hours or price confirmations.",
   "cities": {
     "xian": {
       "name": "西安",
@@ -8,6 +10,8 @@
       "locations": [
         {
           "id": "city_wall",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "西安城墙",
           "district": "beilin",
           "tags": ["tang", "architecture", "outdoor"],
@@ -22,6 +26,8 @@
         },
         {
           "id": "big_wild_goose_pagoda",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "大雁塔北广场",
           "district": "yanta",
           "tags": ["tang", "architecture", "night", "outdoor"],
@@ -36,6 +42,8 @@
         },
         {
           "id": "datang_furong_garden",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "大唐芙蓉园",
           "district": "yanta",
           "tags": ["tang", "garden", "night", "outdoor"],
@@ -50,6 +58,8 @@
         },
         {
           "id": "qinglong_temple",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "青龙寺",
           "district": "yanta",
           "tags": ["tang", "garden", "quiet", "outdoor"],
@@ -64,6 +74,8 @@
         },
         {
           "id": "daming_palace",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "大明宫国家遗址公园",
           "district": "weiyang",
           "tags": ["tang", "architecture", "open", "outdoor"],
@@ -78,6 +90,8 @@
         },
         {
           "id": "shuyuanmen",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "书院门古文化街",
           "district": "beilin",
           "tags": ["ming", "street", "human", "outdoor"],
@@ -92,6 +106,8 @@
         },
         {
           "id": "guangren_temple",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "广仁寺",
           "district": "lianhu",
           "tags": ["tang", "architecture", "quiet", "outdoor"],
@@ -106,6 +122,8 @@
         },
         {
           "id": "indoor_studio",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "室内古风影棚",
           "district": "yanta",
           "tags": ["indoor", "minimal", "controlled"],
@@ -126,6 +144,8 @@
       "locations": [
         {
           "id": "luoyi_ancient_city",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "洛邑古城",
           "district": "laocheng",
           "tags": ["tang", "street", "night", "outdoor"],
@@ -140,6 +160,8 @@
         },
         {
           "id": "yingtianmen",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "应天门",
           "district": "xigong",
           "tags": ["tang", "architecture", "night", "outdoor"],
@@ -154,6 +176,8 @@
         },
         {
           "id": "longmen_grottoes",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "龙门石窟",
           "district": "luolong",
           "tags": ["tang", "architecture", "open", "outdoor"],
@@ -168,6 +192,8 @@
         },
         {
           "id": "baima_temple",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "白马寺",
           "district": "luolong",
           "tags": ["tang", "architecture", "quiet", "outdoor"],
@@ -182,6 +208,8 @@
         },
         {
           "id": "lijing_gate",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "丽景门",
           "district": "laocheng",
           "tags": ["tang", "street", "human", "outdoor"],
@@ -196,6 +224,8 @@
         },
         {
           "id": "mingtang_tiantang",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "明堂天堂",
           "district": "xigong",
           "tags": ["tang", "architecture", "night", "indoor"],
@@ -210,6 +240,8 @@
         },
         {
           "id": "luoyang_museum",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "洛阳博物馆",
           "district": "luolong",
           "tags": ["ming", "indoor", "controlled", "human"],
@@ -224,6 +256,8 @@
         },
         {
           "id": "indoor_studio_luoyang",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "洛阳室内影棚",
           "district": "xigong",
           "tags": ["indoor", "minimal", "controlled"],
@@ -244,6 +278,8 @@
       "locations": [
         {
           "id": "west_lake",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "西湖断桥",
           "district": "xihu",
           "tags": ["song", "garden", "open", "outdoor"],
@@ -258,6 +294,8 @@
         },
         {
           "id": "lingyin_temple",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "灵隐寺",
           "district": "xihu",
           "tags": ["song", "architecture", "quiet", "outdoor"],
@@ -272,6 +310,8 @@
         },
         {
           "id": "hefang_street",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "河坊街",
           "district": "shangcheng",
           "tags": ["song", "republic", "street", "human", "outdoor"],
@@ -286,6 +326,8 @@
         },
         {
           "id": "xixi_wetland",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "西溪湿地",
           "district": "xihu",
           "tags": ["song", "garden", "open", "quiet", "outdoor"],
@@ -300,6 +342,8 @@
         },
         {
           "id": "leifeng_pagoda",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "雷峰塔",
           "district": "xihu",
           "tags": ["song", "architecture", "night", "outdoor"],
@@ -314,6 +358,8 @@
         },
         {
           "id": "huxueyan_residence",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "胡雪岩故居",
           "district": "shangcheng",
           "tags": ["ming", "architecture", "garden", "outdoor"],
@@ -328,6 +374,8 @@
         },
         {
           "id": "hangzhou_museum",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "杭州博物馆",
           "district": "shangcheng",
           "tags": ["ming", "indoor", "controlled", "human"],
@@ -342,6 +390,8 @@
         },
         {
           "id": "indoor_studio_hangzhou",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "杭州室内影棚",
           "district": "gongshu",
           "tags": ["indoor", "minimal", "controlled"],
@@ -362,6 +412,8 @@
       "locations": [
         {
           "id": "pingjiang_road",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "平江路",
           "district": "gusu",
           "tags": [
@@ -385,6 +437,8 @@
         },
         {
           "id": "humble_administrator_garden",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "拙政园",
           "district": "gusu",
           "tags": [
@@ -406,6 +460,8 @@
         },
         {
           "id": "suzhou_museum",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "苏州博物馆",
           "district": "gusu",
           "tags": [
@@ -427,6 +483,8 @@
         },
         {
           "id": "tiger_hill",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "虎丘",
           "district": "gusu",
           "tags": [
@@ -449,6 +507,8 @@
         },
         {
           "id": "shantang_street",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "山塘街",
           "district": "gusu",
           "tags": [
@@ -472,6 +532,8 @@
         },
         {
           "id": "canglang_pavilion",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "沧浪亭",
           "district": "gusu",
           "tags": [
@@ -494,6 +556,8 @@
         },
         {
           "id": "jinji_lake",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "金鸡湖",
           "district": "sip",
           "tags": [
@@ -515,6 +579,8 @@
         },
         {
           "id": "indoor_studio_suzhou",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "苏州室内影棚",
           "district": "gusu",
           "tags": [
@@ -541,6 +607,8 @@
       "locations": [
         {
           "id": "zhonghua_gate",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "中华门瓮城",
           "district": "qinhuai",
           "tags": [
@@ -563,6 +631,8 @@
         },
         {
           "id": "laomendong",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "老门东",
           "district": "qinhuai",
           "tags": [
@@ -586,6 +656,8 @@
         },
         {
           "id": "qinhuai_river",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "秦淮河夫子庙",
           "district": "qinhuai",
           "tags": [
@@ -609,6 +681,8 @@
         },
         {
           "id": "sun_yat_sen_mausoleum",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "中山陵",
           "district": "xuanwu",
           "tags": [
@@ -630,6 +704,8 @@
         },
         {
           "id": "nanjing_museum",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "南京博物院",
           "district": "xuanwu",
           "tags": [
@@ -651,6 +727,8 @@
         },
         {
           "id": "xuanwu_lake",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "玄武湖",
           "district": "xuanwu",
           "tags": [
@@ -673,6 +751,8 @@
         },
         {
           "id": "jiming_temple",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "鸡鸣寺",
           "district": "xuanwu",
           "tags": [
@@ -696,6 +776,8 @@
         },
         {
           "id": "indoor_studio_nanjing",
+          "source": "curation:seed",
+          "last_verified_at": "2026-11-13",
           "name": "南京室内影棚",
           "district": "gulou",
           "tags": [

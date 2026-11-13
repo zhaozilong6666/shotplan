@@ -1,0 +1,72 @@
+{
+  "archived": true,
+  "note": "汇总指标保留，逐例 per_case 在第二轮回写 real-model.json 时被覆盖，无法恢复。归档时未重新调用模型。",
+  "generated_by": "evals.real_model_lab",
+  "runs": [
+    {
+      "label": "deepseek-chat · 并发 4（首轮）",
+      "model": "deepseek-chat",
+      "base_url": "https://api.deepseek.com/v1",
+      "prompt_version": "planner-v2",
+      "temperature": 0.2,
+      "concurrency": 4,
+      "cases": 80,
+      "cases_needing_a_plan": 69,
+      "preflight_cases": 11,
+      "preflight_refused": 11,
+      "hard_pass": 62,
+      "hard_pass_rate": 0.8986,
+      "mean_score": 0.8437,
+      "min_score": 0.0,
+      "errors": 0,
+      "first_attempt_clean": 49,
+      "repaired": 20,
+      "p50_ms": 4317.2,
+      "p95_ms": 8642.7,
+      "tokens_in": 175444,
+      "tokens_out": 70337,
+      "cost_cny": 0.9136,
+      "top_issue_codes": {
+        "LIGHT_MISUSE": 42,
+        "SHOOT_TOO_SHORT": 14,
+        "TIME_OVERRUN": 6,
+        "PIPELINE_ERROR": 1,
+        "STYLE_MISMATCH": 1
+      },
+      "caveat": "该轮统计有缺陷：一个 status=error 的用例没被计入 errors，min_score 因此显示 0.0。保留原值以便对照，不要引用这轮的异常数。"
+    },
+    {
+      "label": "deepseek-chat · 并发 2（修正统计后）",
+      "model": "deepseek-chat",
+      "base_url": "https://api.deepseek.com/v1",
+      "prompt_version": "planner-v2",
+      "temperature": 0.2,
+      "concurrency": 2,
+      "cases": 80,
+      "cases_needing_a_plan": 69,
+      "preflight_cases": 11,
+      "preflight_refused": 11,
+      "hard_pass": 59,
+      "hard_pass_rate": 0.8551,
+      "mean_score": 0.8423,
+      "min_score": 0.73,
+      "errors": 1,
+      "error_cases": ["C26"],
+      "error_detail": "C26: model did not return valid JSON: Expecting ',' delimiter",
+      "first_attempt_clean": 42,
+      "repaired": 26,
+      "p50_ms": 4436.1,
+      "p95_ms": 9734.2,
+      "tokens_in": 187984,
+      "tokens_out": 76425,
+      "cost_cny": 0.9874,
+      "top_issue_codes": {
+        "LIGHT_MISUSE": 43,
+        "TIME_OVERRUN": 9,
+        "SHOOT_TOO_SHORT": 9,
+        "PIPELINE_ERROR": 1,
+        "STYLE_MISMATCH": 1
+      }
+    }
+  ]
+}

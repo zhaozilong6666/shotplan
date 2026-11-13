@@ -24,6 +24,105 @@ def test_styles_have_required_shape():
     assert all(len(s["price_cny"]) == 2 for s in load_styles()["styles"])
 
 
+def test_knowledge_metadata_and_cross_references():
+    locations, styles = load_locations(), load_styles()
+    assert locations["version"] and locations["updated_at"]
+    assert styles["version"] and styles["updated_at"]
+
+    all_tags = {
+        tag
+        for city in locations["cities"].values()
+        for item in city["locations"]
+        for tag in item["tags"]
+    }
+    for style in styles["styles"]:
+        unknown = set(style["suitable_tags"]) - all_tags
+        assert not unknown, f"style {style['id']} references unknown tags: {unknown}"
+
+    for city_id, city in locations["cities"].items():
+        assert any(item["indoor"] for item in city["locations"]), (
+            f"city {city_id} has no indoor fallback"
+        )
+
+
+def test_every_entry_records_its_provenance():
+    """Prices and opening facts age; an entry without a review date cannot."""
+    from datetime import date
+
+    locations, styles = load_locations(), load_styles()
+    assert locations["provenance_note"] and styles["provenance_note"]
+
+    today = date.today()
+    verified: list[date] = []
+    entries = [
+        ("location", item)
+        for city in locations["cities"].values()
+        for item in city["locations"]
+    ] + [("style", item) for item in styles["styles"]]
+    for kind, item in entries:
+        assert item["source"].strip(), f"{kind} {item['id']} has no source"
+        stamp = date.fromisoformat(item["last_verified_at"])
+        assert stamp <= today, f"{kind} {item['id']} is verified in the future"
+        verified.append(stamp)
+
+    newest = max(verified)
+    assert (today - newest).days <= 365, (
+        "the knowledge base has not been reviewed for over a year; "
+        "re-check prices/opening facts and bump last_verified_at"
+    )
+
+
+def test_loader_rejects_a_blank_source(tmp_path):
+    import json
+
+    from shotplan.knowledge.loader import DATA_DIR
+
+    data = json.loads((DATA_DIR / "locations.json").read_text(encoding="utf-8"))
+    data["cities"]["xian"]["locations"][0]["source"] = "  "
+    path = tmp_path / "locations.json"
+    path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    with pytest.raises(KnowledgeError, match="empty source"):
+        load_locations(path)
+
+
+def test_loader_rejects_an_invalid_verification_date(tmp_path):
+    import json
+
+    from shotplan.knowledge.loader import DATA_DIR
+
+    data = json.loads((DATA_DIR / "locations.json").read_text(encoding="utf-8"))
+    data["cities"]["xian"]["locations"][0]["last_verified_at"] = "last spring"
+    path = tmp_path / "locations.json"
+    path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    with pytest.raises(KnowledgeError, match="invalid last_verified_at"):
+        load_locations(path)
+
+
+def test_case_requests_only_reference_known_locations():
+    """A typo in a case's must_include/avoid would silently change its meaning."""
+    import json
+    from pathlib import Path
+
+    locations = load_locations()
+    known = {
+        city_id: {item["id"] for item in city["locations"]}
+        for city_id, city in locations["cities"].items()
+    }
+    root = Path(__file__).resolve().parents[1]
+    paths = list((root / "evals" / "cases").glob("*.jsonl"))
+    paths.append(root / "evals" / "challenge" / "cases.jsonl")
+    for path in paths:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            case = json.loads(line)
+            request = case["request"]
+            city = request.get("city")
+            for key in ("must_include", "avoid"):
+                unknown = set(request.get(key, [])) - known.get(city, set())
+                assert not unknown, f"{case.get('id')}: unknown {key} ids {unknown}"
+
+
 def test_unknown_city_raises(tools):
     with pytest.raises(KnowledgeError):
         tools.city("atlantis")

@@ -6,18 +6,22 @@
 
 ## 数据来源
 
-每次 `run_plan()` 都会把完整结果（request / plan / validation / trace / status / feasibility）写入 SQLite（`data/shotplan.db`）。`observability.build_dashboard()` 直接读这些 payload，不维护第二份指标表，因此**只能报告系统真实记录过的东西**，也无需额外的埋点服务。
+每次 `run_plan()` 都会把完整结果（request / plan / validation / trace / status / feasibility）写入 SQLite（`data/shotplan.db`）。`observability.build_dashboard()` 只读取轻量列（provider / prompt / status / score / duration / cost / repairs），不再解析完整 payload；完整记录仍可通过 `/api/runs/<id>` 查看。这样统计成本不随历史体积线性增长，也不需要第二份指标表。
+
+保留策略是可选的：`SHOTPLAN_RETENTION_DAYS=N` 在 API 启动时删除超过 N 天的记录（默认 0 = 永久保留），`python -m shotplan.cli history --prune-days N` 可手动执行；`history --prune N` 仍按条数保留最近 N 条。
+
+注意 SQLite 的 `DELETE` 不会把空间还给操作系统，WAL 与已用页仍占用磁盘；需要回收时应在停服状态执行 `VACUUM`（`sqlite3 data/shotplan.db "VACUUM;"`），不要在请求路径里做——它会长时间锁库。这也是没有实现「按文件体积自动清理」的原因：按时间/条数删除是可控的，按体积删除还依赖一次昂贵的重写。
 
 字段映射：
 
 | 面板指标 | 来源 |
 | --- | --- |
-| `status` | payload 顶层 `status`（`ok` / `infeasible`） |
-| `provider` / `prompt_version` | `trace` |
-| 硬约束通过率、均分 | `validation.hard_pass` / `validation.score` |
-| P50 / P95 延迟 | `trace.total_duration_ms` |
-| 估算成本 | `trace.total_cost_cny` |
-| 修复轮次 | `trace.repair_count` |
+| `status` | `runs.status`（`ok` / `infeasible` / `error`） |
+| `provider` / `prompt_version` | `runs.provider` / `runs.prompt_version` |
+| 硬约束通过率、均分 | `runs.hard_pass` / `runs.score` |
+| P50 / P95 延迟 | `runs.duration_ms`（端到端墙钟） |
+| 估算成本 | `runs.cost_cny` |
+| 修复轮次 | `runs.repair_count` |
 
 ## 聚合口径
 
@@ -32,14 +36,36 @@
 ```bash
 python -m shotplan.cli plan --persist          # 产生一条记录
 python -m shotplan.cli stats --limit 50        # 打印 JSON 面板
+python -m shotplan.cli history --prune 1000    # 只保留最近 1000 条（可选）
+python -m shotplan.cli history --prune-days 90 # 删除超过 90 天的记录（可选）
 
 python -m shotplan.cli serve                   # 另开终端
-curl http://127.0.0.1:8000/api/stats          # 同一份数据
+curl -H "X-API-Key: $SHOTPLAN_API_KEY" http://127.0.0.1:8000/api/stats
 ```
 
 Web 界面的「运行统计」标签页渲染的就是 `/api/stats`：表格按 provider / prompt 版本列出运行数、通过率、均分、P50/P95、成本、修复轮次与不可行数量。
 
 同一页还有一块**持久化面板**（数据来自 `/api/config`）：显示 `persist_mode`；`async` 模式下额外显示写队列的 `pending / written / failed / sync_fallbacks / batches / max_batch`。`pending > 0` 是黄色（正常，几秒内归零），`failed > 0` 是红色（磁盘问题，需要处理），`sync_fallbacks > 0` 表示队列曾满、退化为同步写。每次切到该页都会重新拉取，便于演示时观察积压排空。
+
+## 日志与请求追踪
+
+配置在启动时解析一次（`app.state.settings`），每个 HTTP 请求在 `shotplan.api` logger 上留下**一行**结构化访问日志：
+
+```text
+request_id=4f1c2a7d9e0b4c11 method=POST path=/api/plan status=200 duration_ms=31.4
+```
+
+`request_id` 优先取客户端或反向代理传的 `X-Request-ID`，只接受 `[A-Za-z0-9._-]{1,64}`（避免伪造日志行或注入响应头），否则由服务端生成 16 位十六进制串；响应头始终回传该 id，429 与 503 的 JSON body 也带 `request_id`，`/api/plan` 还会把它写进 `trace.config.request_id`——从一条历史运行可以直接反查产生它的日志行。CLI 与评测不传该值，因此离线产物保持确定性。日志级别由 `SHOTPLAN_LOG_LEVEL` 控制，默认 INFO；`/api/health` 同样记录，容器健康检查也可追踪。
+
+**CORS 是刻意不开启的**：仓库自带的界面与 API 同源，开启通配符只会让任意页面能调用一个未设 key 的本地实例。接独立前端时应在 `api.py` 里加显式白名单，而不是 `allow_origins=["*"]`。
+
+## 不在规则表里的运维码
+
+`/api/rules` 返回的是**方案质量规则**（15 条：10 硬 + 5 软），全部由 `domain/constraints.py` 的 `RULES` 定义，用于判定一份行程能不能执行。
+
+有一个码故意不进去：`PERSISTENCE_FAILED`。它由流水线在写库失败时追加为 **soft** issue——磁盘满、库被锁、路径无权限都属于运维事件，和行程本身对不对无关。把它塞进规则表会让客户端误以为这是一条可被模型修复的校验规则，所以它只出现在运行结果的 `validation.issues` 里，语义是「这次结果有效，但没存下来」。
+
+看到它时该查的是 `SHOTPLAN_DB_PATH`、磁盘空间和写权限，不是让模型重写方案。
 
 ## 边界
 

@@ -7,11 +7,18 @@ The core engine has no dependency on this file.
 
 from __future__ import annotations
 
+import json
+import logging
+import re
+import threading
+import time
+import uuid
 from contextlib import asynccontextmanager
-from typing import Any
+from pathlib import Path
+from typing import Annotated, Any
 
 try:
-    from fastapi import FastAPI, HTTPException, Request
+    from fastapi import Depends, FastAPI, HTTPException, Request
     from fastapi.responses import FileResponse, JSONResponse
     from starlette.concurrency import run_in_threadpool
 except ImportError as exc:  # pragma: no cover
@@ -22,24 +29,54 @@ except ImportError as exc:  # pragma: no cover
 
 from . import __version__
 from .agents import MockProvider, build_provider
-from .config import ROOT, Settings, get_settings
+from .config import Settings, configure_logging, get_settings
 from .domain.constraints import RULES
-from .domain.errors import ShotplanError
+from .domain.errors import (
+    ConfigError,
+    DeadlineExceeded,
+    KnowledgeError,
+    ParseError,
+    ProviderError,
+    ShotplanError,
+    StorageError,
+)
 from .domain.models import PlanRequest
 from .pipeline import run_plan
 from .storage import RunSink, RunStore, close_all_writers, get_writer
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
-    """Drain the write-behind queue on shutdown.
+async def lifespan(app: FastAPI):
+    """Resolve configuration once and drain the write-behind queue on shutdown.
 
-    Without this, SIGTERM would stop the process with rows still queued, which
-    is exactly the failure mode that makes people distrust background writes.
+    Reading the environment on every request made "which config produced this
+    run?" unanswerable and re-parsed `.env` thousands of times. Settings are
+    now pinned at startup; `app.dependency_overrides[app_settings]` still lets
+    tests substitute a specific instance.
+
+    Draining matters too: without it SIGTERM would stop the process with rows
+    still queued, which is exactly the failure mode that makes people distrust
+    background writes.
     """
+    settings = get_settings()
+    app.state.settings = settings
+    configure_logging(settings)
+    if settings.retention_days > 0:
+        # Optional housekeeping. A failure here must not stop the service: the
+        # database being briefly locked is not a reason to refuse every request.
+        try:
+            removed = _store(settings).prune_older_than(settings.retention_days)
+            if removed:
+                _ACCESS_LOG.info(
+                    "retention removed %s runs older than %s days",
+                    removed, settings.retention_days,
+                )
+        except StorageError as exc:
+            _ACCESS_LOG.warning("retention failed: %s", exc)
     try:
         yield
     finally:
+        app.state.settings = None
         close_all_writers(timeout=10.0)
 
 
@@ -49,36 +86,173 @@ app = FastAPI(
     description="可评测、带硬约束校验的旅拍方案 Agent",
     lifespan=lifespan,
 )
-WEB_DIR = ROOT / "web"
+WEB_DIR = Path(__file__).resolve().parent / "web"
+_ACCESS_LOG = logging.getLogger("shotplan.api")
+_REQUEST_ID = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
+
+# No CORS middleware on purpose. The bundled UI is served from this same
+# origin, so a cross-origin policy would only widen the attack surface: a
+# wildcard would let any page call a key-less local deployment. A separate
+# frontend needs an explicit allow-list here, not `allow_origins=["*"]`.
+
+# Not every ShotplanError is a client mistake. Keeping the mapping here makes
+# a storage outage or an upstream provider failure observable in monitoring
+# instead of masquerading as "you sent a bad brief" (422).
+_HTTP_STATUS: tuple[tuple[type[ShotplanError], int], ...] = (
+    (DeadlineExceeded, 504),
+    (ProviderError, 502),
+    (StorageError, 503),
+    (ConfigError, 500),
+    (KnowledgeError, 500),
+    (ParseError, 422),
+)
 
 
-def _store() -> RunStore:
-    return RunStore(get_settings().db_path)
+def _status_for(exc: ShotplanError) -> int:
+    for error_type, status in _HTTP_STATUS:
+        if isinstance(exc, error_type):
+            return status
+    return 500
+
+
+def _cached_settings(request: Request) -> Settings:
+    cached = getattr(request.app.state, "settings", None)
+    return cached if isinstance(cached, Settings) else get_settings()
+
+
+def app_settings(request: Request) -> Settings:
+    """FastAPI dependency: the startup snapshot, or env when there is none.
+
+    The fallback keeps direct calls and tests working without a lifespan.
+    """
+    return _cached_settings(request)
+
+
+def _store(cfg: Settings) -> RunStore:
+    return RunStore(cfg.db_path)
+
+
+# Annotated keeps the dependency out of argument defaults (ruff B008) and is
+# the current FastAPI idiom.
+SettingsDep = Annotated[Settings, Depends(app_settings)]
+
+
+def require_api_key(request: Request, cfg: SettingsDep) -> None:
+    """Optional bearer check: off by default, on as soon as a key is configured."""
+    if cfg.api_key and request.headers.get("x-api-key", "") != cfg.api_key:
+        raise HTTPException(status_code=401, detail="invalid or missing X-API-Key")
+
+
+_RATE_LOCK = threading.Lock()
+_RATE_BUCKETS: dict[str, list[float]] = {}
+_RATE_BUCKET_SOFT_CAP = 4096
+
+
+def _purge_idle_rate_buckets(now: float) -> None:
+    """Bound memory: a per-client bucket would otherwise live forever.
+
+    Only runs once the map grows past the soft cap, because the common case
+    (one client, a handful of buckets) should not pay for a scan.
+    """
+    if len(_RATE_BUCKETS) < _RATE_BUCKET_SOFT_CAP:
+        return
+    for client, stamps in list(_RATE_BUCKETS.items()):
+        if not stamps or now - stamps[-1] >= 60:
+            _RATE_BUCKETS.pop(client, None)
+
+
+@app.middleware("http")
+async def rate_limit(request: Request, call_next):
+    """Best-effort per-process limit for the expensive plan endpoint.
+
+    It is deliberately in-memory: the project has no Redis and a multi-worker
+    deployment would need a shared store. It still stops a single client from
+    hammering one process, which is the failure mode of a public demo.
+    """
+    cfg = _cached_settings(request)
+    if cfg.rate_limit_per_minute > 0 and request.url.path == "/api/plan":
+        client = request.client.host if request.client else "unknown"
+        now = time.monotonic()
+        with _RATE_LOCK:
+            _purge_idle_rate_buckets(now)
+            bucket = [stamp for stamp in _RATE_BUCKETS.get(client, []) if now - stamp < 60]
+            if len(bucket) >= cfg.rate_limit_per_minute:
+                _RATE_BUCKETS[client] = bucket
+                return JSONResponse(
+                    status_code=429,
+                    content={
+                        "detail": "rate limit exceeded",
+                        "request_id": getattr(request.state, "request_id", None),
+                    },
+                )
+            bucket.append(now)
+            _RATE_BUCKETS[client] = bucket
+    return await call_next(request)
+
+
+@app.middleware("http")
+async def request_context(request: Request, call_next):
+    """Give every request an id and one machine-parseable access log line.
+
+    The id is echoed in `X-Request-ID` and can be supplied by a proxy, which
+    makes a user report ("it failed at 14:02") traceable to one log line.
+    Accepted ids are restricted to a safe alphabet so a client cannot forge
+    log lines or inject response headers.
+    """
+    supplied = request.headers.get("x-request-id", "")
+    request_id = supplied if _REQUEST_ID.fullmatch(supplied) else uuid.uuid4().hex[:16]
+    request.state.request_id = request_id
+    started = time.perf_counter()
+    try:
+        response = await call_next(request)
+    except Exception:
+        _ACCESS_LOG.exception(
+            "request_id=%s method=%s path=%s status=unhandled",
+            request_id, request.method, request.url.path,
+        )
+        raise
+    elapsed_ms = (time.perf_counter() - started) * 1000
+    response.headers["X-Request-ID"] = request_id
+    _ACCESS_LOG.info(
+        "request_id=%s method=%s path=%s status=%s duration_ms=%.1f",
+        request_id, request.method, request.url.path,
+        response.status_code, elapsed_ms,
+    )
+    return response
 
 
 def _sink(cfg: Settings) -> RunSink | None:
     """Where a finished run goes: nowhere, disk now, or the write-behind queue."""
     if cfg.persist_mode == "off":
         return None
-    store = _store()
+    store = _store(cfg)
     return get_writer(store) if cfg.persist_mode == "async" else store
 
 
 @app.get("/api/health")
-def health() -> dict[str, Any]:
-    cfg = get_settings()
+def health(cfg: SettingsDep) -> dict[str, Any]:
     return {"status": "ok", "provider": cfg.provider, "version": __version__}
 
 
 @app.get("/api/config")
-def config() -> dict[str, Any]:
-    cfg = get_settings()
+def config(cfg: SettingsDep) -> dict[str, Any]:
     payload = cfg.masked()
     if cfg.persist_mode == "async":
         # Make the queue observable: pending rows are the honest answer to
         # "did my write land?", and sync_fallbacks means it is saturated.
-        payload["writer"] = get_writer(_store()).stats.to_dict()
+        payload["writer"] = get_writer(_store(cfg)).stats.to_dict()
     return payload
+
+
+@app.exception_handler(StorageError)
+async def storage_error_handler(request: Request, exc: StorageError) -> JSONResponse:
+    return JSONResponse(
+        status_code=503,
+        content={
+            "detail": str(exc),
+            "request_id": getattr(request.state, "request_id", None),
+        },
+    )
 
 
 @app.get("/api/rules")
@@ -86,20 +260,30 @@ def rules() -> dict[str, Any]:
     return {"count": len(RULES), "rules": RULES}
 
 
-@app.post("/api/plan")
-async def create_plan(request: Request) -> JSONResponse:
+@app.post("/api/plan", dependencies=[Depends(require_api_key)])
+async def create_plan(request: Request, cfg: SettingsDep) -> JSONResponse:
     try:
-        body = await request.json()
+        raw = await request.body()
+        if len(raw) > cfg.max_body_bytes:
+            raise HTTPException(
+                status_code=413,
+                detail=f"request body exceeds {cfg.max_body_bytes} bytes",
+            )
+        try:
+            body = json.loads(raw or b"{}")
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"body must be valid JSON: {exc}") from exc
         if not isinstance(body, dict):
             raise ValueError("body must be a JSON object")
         brief = PlanRequest.from_dict(body)
-        mode = body.pop("mock_mode", None)
+        # `mock_mode` is a demo aid. With a real provider configured, a client
+        # must not be able to swap it for the offline planner.
+        mode = body.pop("mock_mode", None) if cfg.provider == "mock" else None
         provider = (
             MockProvider(mode=mode)
             if mode in ("good", "naive")
             else build_provider()
         )
-        cfg = get_settings()
         sink = _sink(cfg)
         # The pipeline is synchronous CPU work (and, with a real provider, blocking
         # network I/O). Calling it directly from an async endpoint would block the
@@ -111,36 +295,39 @@ async def create_plan(request: Request) -> JSONResponse:
                 store=sink,
                 settings=cfg,
                 max_repairs=cfg.max_repairs,
+                request_id=request.state.request_id,
             )
         )
         return JSONResponse(result.to_dict())
-    except (ShotplanError, ValueError, TypeError) as exc:
+    except ShotplanError as exc:
+        raise HTTPException(status_code=_status_for(exc), detail=str(exc)) from exc
+    except (ValueError, TypeError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
-@app.get("/api/runs")
-def runs(limit: int = 20) -> list[dict[str, Any]]:
-    return _store().recent(min(max(limit, 1), 100))
+@app.get("/api/runs", dependencies=[Depends(require_api_key)])
+def runs(cfg: SettingsDep, limit: int = 20) -> list[dict[str, Any]]:
+    return _store(cfg).recent(min(max(limit, 1), 100))
 
 
-@app.get("/api/runs/{run_id}")
-def run_detail(run_id: str) -> dict[str, Any]:
-    found = _store().get(run_id)
+@app.get("/api/runs/{run_id}", dependencies=[Depends(require_api_key)])
+def run_detail(run_id: str, cfg: SettingsDep) -> dict[str, Any]:
+    found = _store(cfg).get(run_id)
     if found is None:
         raise HTTPException(status_code=404, detail="run not found")
     return found
 
 
-@app.get("/api/summary")
-def summary() -> dict[str, Any]:
-    return _store().summary()
+@app.get("/api/summary", dependencies=[Depends(require_api_key)])
+def summary(cfg: SettingsDep) -> dict[str, Any]:
+    return _store(cfg).summary()
 
 
-@app.get("/api/stats")
-def stats(limit: int = 200) -> dict[str, Any]:
+@app.get("/api/stats", dependencies=[Depends(require_api_key)])
+def stats(cfg: SettingsDep, limit: int = 200) -> dict[str, Any]:
     from .observability import build_dashboard
 
-    return build_dashboard(_store(), min(max(limit, 1), 1000))
+    return build_dashboard(_store(cfg), min(max(limit, 1), 1000))
 
 
 @app.get("/")

@@ -121,6 +121,28 @@ def check_feasibility(request: PlanRequest, tools: Any) -> FeasibilityReport:
             )
         )
 
+    known = {item["id"] for item in locations}
+    unknown_required = sorted(set(req.must_include) - known) if req.city in city_ids else []
+    if unknown_required:
+        reasons.append(
+            FeasibilityIssue(
+                code="UNKNOWN_REQUIRED_LOCATION",
+                message=f"必去地点不在知识库中：{', '.join(unknown_required)}",
+                shortfall="无法为不存在的地点安排行程",
+                suggestion="改用知识库内的地点 id，或先在 locations.json 里补充",
+            )
+        )
+
+    if known and known <= set(req.avoid):
+        reasons.append(
+            FeasibilityIssue(
+                code="ALL_LOCATIONS_EXCLUDED",
+                message="该城市的全部地点都被 avoid 排除，没有任何可用场地",
+                shortfall=f"可用地点数 {len(known - set(req.avoid))}",
+                suggestion="从 avoid 里移除至少一个地点，或换一座城市",
+            )
+        )
+
     minimums = {
         "min_budget_cny": min_budget,
         "min_hours": MIN_FEASIBLE_HOURS,

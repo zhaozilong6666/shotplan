@@ -1,6 +1,6 @@
 # 贡献指南
 
-这个仓库的每条改动都应该能被验证。以下是四类常见改动的标准流程。
+这个仓库的每条改动都应该能被验证。以下是几类常见改动的标准流程。
 
 ## 本地准备
 
@@ -10,7 +10,7 @@ python -m pytest
 python -m evals.run_eval --write-report
 ```
 
-核心功能不需要安装，但改代码建议装全套，方便跑测试和界面。
+核心功能不需要安装，但改代码建议装全套，方便跑测试和界面。需要精确复现某个开发环境时，用 `python -m pip install -r requirements.lock` 再 `python -m pip install -e . --no-deps`；锁文件只是参考环境，CI 仍按 `pyproject.toml` 的版本区间解析。
 
 ## 加一条约束
 
@@ -32,6 +32,10 @@ python -m evals.run_eval --write-report
 
 真实模型接入时记得把 `prompt_version` 正确写进 trace，否则运行记录无法归因。
 
+## 改知识库
+
+`knowledge/data/*.json` 的每个地点/风格条目都必须带 `source` 与 `last_verified_at`（ISO `YYYY-MM-DD`）；加载器拒绝空来源或坏日期，测试会在整库超过一年未复核时失败，每月 1 日的 `kb-freshness` workflow 会主动跑这组测试。改价格、标签、时长或新增条目后，按 [优化报告第 7 节](docs/optimization-report.md) 的顺序重生成产物，否则 `--check` 门禁会指出哪份文档过期。
+
 ## 改 prompt
 
 递增 `agents/prompts.py` 的 `PROMPT_VERSION`，在 `PROMPT_CHANGELOG` 追加一条记录（版本、日期、改动、观测结果）。流程：
@@ -47,7 +51,7 @@ python -m evals.run_eval --write-report --compare evals/baselines/before-change.
 ## 代码风格
 
 - Python 3.10+，类型标注用 `from __future__ import annotations` + 内置泛型。
-- `python -m ruff check src tests evals` 必须通过（line-length 100）。
+- `python -m ruff check src tests evals scripts` 与 `python -m mypy` 必须通过（line-length 120）。
 - 核心域不引入第三方依赖。新依赖只能加在 `[api]` 或 `[dev]` extra。
 - 每个公开函数/类写清楚「为什么」，而不是复述「做了什么」。
 - 提交信息用 `feat:` / `fix:` / `test:` / `docs:` / `refactor:` 前缀。
@@ -57,7 +61,8 @@ python -m evals.run_eval --write-report --compare evals/baselines/before-change.
 ```bash
 python -m pytest
 python -m evals.run_eval --write-report
-python -m ruff check src tests evals
+python -m ruff check src tests evals scripts
+python -m mypy
 python -m shotplan.cli plan
 git status    # 确认没有 .env / .db / evals/out 被提交
 ```

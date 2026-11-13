@@ -4,11 +4,37 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **请求约束闭环**：`must_include` / `avoid` 从检索提示升级为硬规则（`MISSING_REQUIRED_LOCATION` / `AVOIDED_LOCATION`）；不可行判定新增 `UNKNOWN_REQUIRED_LOCATION` 与 `ALL_LOCATIONS_EXCLUDED`；`source_refs` 新增存在性硬规则 `UNKNOWN_SOURCE_REF`；规则 12 → 15（10 硬 + 5 软）。离线 planner 现在会优先安排必去地点，且不再用被排除的室内棚做妆造。见 [ADR 0014](docs/adr/0014-request-constraints-are-hard-rules.md)、[ADR 0016](docs/adr/0016-source-refs-must-resolve.md)。
+- **可复现运行记录**：trace 增加 `kb_version` / `rules_version` / `wall_duration_ms` / 请求级配置快照；SQLite schema v2 增加 `status` 列与 `user_version` 迁移。见 [ADR 0015](docs/adr/0015-reproducible-run-trace.md)。
+- **统计与保留**：`/api/stats` 改为读取轻量 SQL 列，不再解析完整 payload；`shotplan history --prune N` 可清理旧记录。
+- **部署保护**：可选 `SHOTPLAN_API_KEY`、进程内限流、请求体大小限制；配置真实 provider 后客户端不能再通过 `mock_mode` 绕过；Docker 改为非 root + 命名卷。
+- **错误语义与持久化隔离**：provider → 502、storage → 503、配置/知识库 → 500、解析/输入 → 422；写库失败返回方案 + `PERSISTENCE_FAILED` 软问题，不再否决结果。
+- **打包修正**：`web/` 移入 `src/shotplan/web/` 并随包发布；默认数据库路径在非源码安装时回退到工作目录；补 `py.typed`；`shotplan eval` 在 wheel 环境下给出明确提示。
+- **CI 拆分**：lint + 单元测试保留 3.10–3.13 矩阵；评测/变异/压测/对照实验等重门禁只在 3.12 执行一次，并加 `permissions` / `concurrency` / `timeout-minutes`。
+- **配置与可观测性**：`Settings` 改为启动时解析一次（`app.state.settings`），可用依赖覆盖替换；新增请求 ID 中间件与单行结构化访问日志（`X-Request-ID` 回传，非法 id 会被替换），429 / 503 响应带 `request_id`；明确不启用 CORS，并补测试防止误加通配符。
+- **知识库来源字段**：每个地点/风格条目新增 `source` 与 `last_verified_at`，加载时校验；新增「知识库超过一年未复核」测试。数据版本 1.1 → 1.2。
+- **追踪闭环与保留策略**：`/api/plan` 把 HTTP `request_id` 写进 `trace.config`，历史运行可反查日志行；新增 `SHOTPLAN_RETENTION_DAYS`（启动时清理过期记录，默认 0 = 永久保留）与 `history --prune-days N`。
+- **Docker 基础镜像固定 digest**：`python:3.12-slim-bookworm@sha256:935c3c5b…`（多架构索引，2026-11-13 通过 mirror.gcr.io 校验），避免重建时基础镜像悄悄漂移。
+- **打包元数据现代化**：`license` 改为 SPDX 字符串 + `license-files`，构建要求 `setuptools>=77`，移除已废弃的 License classifier；构建不再出现 setuptools 弃用告警，wheel 元数据写出 `License-Expression: MIT`。
+- **类型检查与依赖锁**：新增 mypy 配置（`src/shotplan`，23 个模块零错误）、`pytest-cov` 进入 dev extras、`requirements.lock` 记录一份可复现的 API + 开发环境；CI 增加类型检查步骤。
+
+### Fixed
+
+- `must_include` 被忽略仍能拿高分：C18 等 9 个用例此前是空转，现已真正覆盖。
+- `source_refs` 只计数不校验：伪造引用此前仍能拿溯源分，现在直接硬失败。
+- `SHOTPLAN_LOG_LEVEL` 是死配置；现在 CLI 与 API 启动时生效。
+- **聚合接口的鉴权边界不一致**：`/api/summary` 与 `/api/stats` 此前在设置 `SHOTPLAN_API_KEY` 后仍可匿名访问，等于绕过了 `/api/runs` 的保护；现已一并要求 `X-API-Key`，公开接口只剩 `/api/health`、`/api/config`、`/api/rules`。内置面板不发送该头，受保护部署需由反向代理注入或改用独立前端。
+- **文档口径错误**：简历与面试稿把「15 条规则（10 硬 + 5 软）」写成「15 条硬约束」，会把软评分说成硬失败；测试数与覆盖率同步为 304 / 90.9%。`PERSISTENCE_FAILED` 属于运维码而非方案规则，已在可观测性文档中单列说明，不进入 `RULES`。
+- `pipeline.py` 两个 `__all__` 导致 `STAGES` / `Stage` 不在通配导出里；预检被重复计算的开销也一并去掉。
+- 文档数字漂移：263 → 301 个测试、517 → 527 条失败记录、12 → 15 条规则、README「十四份/十二块」不一致；CHANGELOG 0.10.1 的重复条目。
+
 ### Added
 
 - **`serve --persist-mode off|sync|async`**：演示异步写库不再需要改环境变量；CLI 会在启动时打印当前模式。配套测试断言该值真的进入应用进程环境。
-- **[docs/interview-onepager.md](docs/interview-onepager.md)**：面试一页纸（30 秒开场、数字卡片、5 个必考问答、边界与现场可跑命令），由面试笔记压缩而来，每个数字带出处链接。
-- **[docs/resume.md](docs/resume.md)**：按 AI 应用/Agent 开发方向写好的整段简历项目经历 + 技能清单 + 与 JD 要求的对应表；USER_TASKS 补充真实模型 key 的分步配置说明（含 `.env` 上传风险警告）。
+- **[docs/portfolio/interview-onepager.md](docs/portfolio/interview-onepager.md)**：面试一页纸（30 秒开场、数字卡片、5 个必考问答、边界与现场可跑命令），由面试笔记压缩而来，每个数字带出处链接。
+- **[docs/portfolio/resume.md](docs/portfolio/resume.md)**：按 AI 应用/Agent 开发方向写好的整段简历项目经历 + 技能清单 + 与 JD 要求的对应表；USER_TASKS 补充真实模型 key 的分步配置说明（含 `.env` 上传风险警告）。
 
 阶段 4 剩余项：接真实模型跑 `openai_compatible`、记录 prompt v1/v2 的实测差异。详见 `docs/ROADMAP.md`。
 
@@ -20,7 +46,6 @@
 
 - 「运行统计」标签页新增**持久化面板**：显示 `persist_mode`；`async` 模式下显示 `pending / written / failed / sync_fallbacks / batches / max_batch`，`pending > 0` 黄色告警、`failed > 0` 红色；附刷新按钮，每次切到该页自动重取。`/api/config` 缺失或不可达时不影响统计主视图。
 - 演示路径：`SHOTPLAN_PERSIST_MODE=async python -m shotplan.cli serve` → 打开「运行统计」→ 连点几次生成，可看到 `pending` 从非 0 归零。
-- `evals/persist_lab.py --report`：从已提交的快照重排 `docs/persistence.md`，不必重跑矩阵；边界段落里的「本批倍数」改为由快照计算——此前那句话是手改的，重跑矩阵后出现过结论段 5.13× 与边界段 11× 并存的内部矛盾。
 - `evals/persist_lab.py --report`：从已提交的快照重排 `docs/persistence.md`，不必重跑矩阵；边界段落里的「本批倍数」改为由快照计算——此前那句话是手改的，重跑矩阵后出现过结论段 5.13× 与边界段 11× 并存的内部矛盾。
 
 ### Fixed
@@ -272,7 +297,7 @@
 
 ### Changed
 
-- `docs/USER_TASKS.md` 改为按当前状态记录已完成/待办事项；GitHub 建仓、推送、描述与 topics 已由本机凭证完成。
+- `docs/portfolio/USER_TASKS.md` 改为按当前状态记录已完成/待办事项；GitHub 建仓、推送、描述与 topics 已由本机凭证完成。
 - 新增 `scripts/push_via_api.py`：代理只放行 `api.github.com` 时，通过 Git Data API 完成等价推送（逐对象校验 SHA、密钥不落盘），并在排错手册记录故障处置。
 - GitHub Pages 源设为 `main` 的 `/docs` 目录，附 `.nojekyll`。
 

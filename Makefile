@@ -1,4 +1,4 @@
-.PHONY: help install test lint eval mutation mine report fuzz bench load httpload workerlab persistlab pipelinedoc scale examples gates showcase serve plan smoke clean
+.PHONY: help install test lint typecheck eval mutation mine report fuzz bench load httpload workerlab persistlab pipelinedoc scale examples gates showcase serve plan smoke clean
 
 PYTHON ?= python
 
@@ -7,6 +7,7 @@ help:
 	@echo "  install   安装可选依赖 (api + dev)"
 	@echo "  test      运行单元测试（含覆盖率门槛）"
 	@echo "  lint      ruff 静态检查"
+	@echo "  typecheck mypy 类型检查（src/shotplan）"
 	@echo "  eval      运行评测集并生成报告"
 	@echo "  mutation  变异测试：注入受控故障验证门禁有效，并刷新报告"
 	@echo "  mine      从失败案例库挖掘盲测挑战集并刷新报告"
@@ -34,6 +35,9 @@ test:
 
 lint:
 	$(PYTHON) -m ruff check src tests evals scripts
+
+typecheck:
+	$(PYTHON) -m mypy
 
 eval:
 	$(PYTHON) -m evals.run_eval --write-report
@@ -98,7 +102,7 @@ serve:
 plan:
 	$(PYTHON) -m shotplan.cli plan --city xian --date 2026-10-04 --hours 6 --budget 1500 --style tang
 
-smoke: lint test gates plan
+smoke: lint typecheck test gates plan
 
 clean:
 	rm -rf .pytest_cache .ruff_cache evals/out

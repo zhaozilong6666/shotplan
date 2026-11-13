@@ -97,35 +97,55 @@ class MockProvider:
                 f"（标准 {style_total} 分钟）"
             )
 
-        outdoor = [
-            item
-            for item in context["candidate_locations"]
-            if not item["indoor"] and item["id"] not in req.avoid
-        ]
+        # `must_include` is a hard rule in the validator, so the offline planner
+        # has to honour it too. Look the locations up in the whole city rather
+        # than only in the retrieved candidates: a required place may not match
+        # the requested style tags.
+        all_locations = [x for x in kb.locations(req.city) if x["id"] not in req.avoid]
+        required: list[dict[str, Any]] = []
+        for location_id in req.must_include:
+            item = next((x for x in all_locations if x["id"] == location_id), None)
+            if item is not None and item not in required:
+                required.append(item)
+
+        outdoor = [x for x in all_locations if not x["indoor"]]
         if not outdoor:
-            outdoor = context["indoor_fallback"] or kb.locations(req.city)[:1]
+            outdoor = context["indoor_fallback"] or all_locations[:1]
 
         remaining = total_minutes - makeup_minutes
         count = 2 if remaining >= 2 * (MIN_TRANSFER_MINUTES + MIN_SHOOT_MINUTES) else 1
-        golden = [x for x in outdoor if "golden" in x["best_light"]]
-        plain = [x for x in outdoor if "golden" not in x["best_light"]]
+        required = required[:count]
+        required_ids = {x["id"] for x in required}
+
+        filler_pool = [x for x in outdoor if x["id"] not in required_ids]
+        golden = [x for x in filler_pool if "golden" in x["best_light"]]
+        plain = [x for x in filler_pool if "golden" not in x["best_light"]]
+        fillers_needed = max(0, count - len(required))
         # The last shoot block should land in golden light; pick one plain
         # scene first and one golden-friendly scene last whenever possible.
-        if count >= 2 and golden:
+        if fillers_needed >= 2 and golden:
             chosen_ids = list(dict.fromkeys([(plain or golden)[0]["id"], golden[-1]["id"]]))
-            points = [next(x for x in outdoor if x["id"] == pid) for pid in chosen_ids]
+            fillers = [next(x for x in filler_pool if x["id"] == pid) for pid in chosen_ids]
+        elif fillers_needed == 1:
+            fillers = golden[:1] or plain[:1] or filler_pool[:1]
         else:
-            points = (golden or outdoor)[:count]
+            fillers = []
+        points = required + fillers[:fillers_needed]
 
         # Budget-aware selection: never keep a location combination whose total
         # cost exceeds what is left after styling and transfer. Eval case C24
         # (budget 400) exposed the old behaviour of picking a paid scenic spot
-        # and then failing BUDGET_EXCEEDED.
+        # and then failing BUDGET_EXCEEDED. Required locations are never trimmed:
+        # if the budget cannot fit them, the validator must say so instead of
+        # silently ignoring the user's request.
         styling_cost = int(style["price_cny"][0])
         location_budget = max(0, req.budget_cny - styling_cost - TRANSFER_COST_CNY)
-        while points and sum(int(p["cost_cny"]) for p in points) > location_budget:
-            priciest = max(range(len(points)), key=lambda i: int(points[i]["cost_cny"]))
-            points.pop(priciest)
+        while sum(int(p["cost_cny"]) for p in points) > location_budget:
+            trimmable = [p for p in points if p["id"] not in required_ids]
+            if not trimmable:
+                break
+            priciest = max(trimmable, key=lambda p: int(p["cost_cny"]))
+            points.remove(priciest)
         if not points:
             free = [x for x in outdoor if int(x["cost_cny"]) == 0]
             points = free[:1] or [outdoor[0]]
@@ -145,10 +165,18 @@ class MockProvider:
 
         slots: list[dict[str, Any]] = []
         style_ref = f"styles.json#{style['id']}"
-        # Makeup happens at the current city's indoor fallback, not a hard-coded id.
-        makeup_location_id = (context["indoor_fallback"] or [{}])[0].get(
-            "id", "indoor_studio"
+        # Makeup happens at an indoor fallback when one is allowed. If the user
+        # excluded the only studio, use the first allowed location instead of
+        # silently violating the avoidance list.
+        makeup_location_id = (
+            (context["indoor_fallback"] or [{}])[0].get("id")
+            or (points[0]["id"] if points else None)
+            or (context["candidate_locations"] or [{}])[0].get("id", "indoor_studio")
         )
+        if context["indoor_fallback"]:
+            makeup_note = "室内妆造，避免户外补妆"
+        else:
+            makeup_note = "室内影棚被排除，妆造安排在首个外景集合点"
 
         def push(
             start: int,
@@ -176,7 +204,8 @@ class MockProvider:
         push(
             cursor, cursor + makeup_minutes, "makeup", makeup_location_id,
             f"{style['name']}妆造", styling_cost, [style_ref],
-            f"含发型 {style['makeup_minutes']} 分钟、着装 {style['costume_minutes']} 分钟；{style['notes']}",
+            f"含发型 {style['makeup_minutes']} 分钟、着装 {style['costume_minutes']} 分钟；"
+            f"{style['notes']}；{makeup_note}",
         )
         cursor += makeup_minutes
 
@@ -202,7 +231,7 @@ class MockProvider:
             )
             cursor = min(cursor + duration, end_limit)
 
-        fallback = (context["indoor_fallback"] or [{}])[0]
+        fallback = (context["indoor_fallback"] or points or [{}])[0]
         fallback_id = fallback.get("id", "indoor_studio")
         # Alternatives must point at the CURRENT city, never a hard-coded id.
         quiet = next(
@@ -219,6 +248,11 @@ class MockProvider:
             styling_cost + photography + loc_costs + TRANSFER_COST_CNY
         )
         refs = [style_ref] + [f"locations.json#{p['id']}" for p in points]
+        included_required = [
+            item["id"] for item in required if any(p["id"] == item["id"] for p in points)
+        ]
+        if included_required:
+            assumptions.append("已按要求包含必去地点：" + ", ".join(included_required))
         assumptions.append(f"黄金光线按 {req.date} 所在季节估算为 {light_start}-{light_end}")
         if repair_hint:
             assumptions.append("本次为校验失败后的修复轮次")

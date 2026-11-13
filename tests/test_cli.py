@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from shotplan import cli
 
 
@@ -46,6 +48,22 @@ def test_rules_config_history_and_persistence(capsys, monkeypatch, tmp_path):
     assert len(rows) == 1
 
 
+def test_history_prune_days_removes_stale_rows(capsys, monkeypatch, tmp_path):
+    import sqlite3
+
+    db = tmp_path / "cli-retention.db"
+    monkeypatch.setenv("SHOTPLAN_DB_PATH", str(db))
+    assert cli.main(["plan", "--mock-mode", "good", "--persist"]) == 0
+    with sqlite3.connect(db) as conn:
+        conn.execute("UPDATE runs SET created_at = '2020-01-01T00:00:00+00:00'")
+
+    capsys.readouterr()
+    assert cli.main(["history", "--prune-days", "30"]) == 0
+    out = capsys.readouterr().out
+    assert "已删除 1 条超过 30 天的运行记录" in out
+    assert json.loads(out[out.index("["):]) == []
+
+
 def test_stats_aggregates_persisted_runs(capsys, monkeypatch, tmp_path):
     monkeypatch.setenv("SHOTPLAN_DB_PATH", str(tmp_path / "stats.db"))
     assert cli.main(["plan", "--mock-mode", "good", "--persist"]) == 0
@@ -68,6 +86,7 @@ def test_eval_command_delegates_to_the_harness(monkeypatch):
 
 
 def test_serve_delegates_to_uvicorn(monkeypatch):
+    pytest.importorskip("uvicorn")
     import uvicorn
 
     called = {}
@@ -77,6 +96,7 @@ def test_serve_delegates_to_uvicorn(monkeypatch):
 
 
 def test_serve_persist_mode_reaches_the_app_environment(monkeypatch):
+    pytest.importorskip("uvicorn")
     import os
 
     import uvicorn

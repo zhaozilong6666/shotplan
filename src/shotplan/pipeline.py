@@ -20,6 +20,7 @@ single attempt can consume the whole provider timeout.
 
 from __future__ import annotations
 
+import logging
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -28,8 +29,8 @@ from .agents import MockProvider, parse_plan, validate
 from .agents.base import PlanProvider
 from .agents.prompts import build_repair_hint
 from .config import Settings
-from .domain.errors import DeadlineExceeded, ShotplanError
-from .domain.feasibility import check_feasibility
+from .domain.errors import DeadlineExceeded, ShotplanError, StorageError
+from .domain.feasibility import FeasibilityReport, check_feasibility
 from .domain.models import (
     Plan,
     PlanRequest,
@@ -41,7 +42,7 @@ from .knowledge.tools import KnowledgeTools, get_tools
 from .storage import RunSink
 from .tracing import TraceCollector
 
-__all__ = ["PlanResult", "run_plan", "STAGES", "Stage"]
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -110,7 +111,7 @@ STAGES: tuple[Stage, ...] = (
         outputs={"report": "{issues: [...], scores: {...}, score: float, hard_pass: bool}"},
         on_success="ok",
         on_failure="repair",
-        notes="12 条硬规则 + 软评分。hard_pass=True 时直接终止，不进入修复。",
+        notes="15 条规则（10 硬 + 5 软）。hard_pass=True 时直接终止，不进入修复。",
     ),
     Stage(
         name="repair",
@@ -134,13 +135,12 @@ TERMINALS: dict[str, str] = {
 
 def _infeasible_result(
     request: PlanRequest,
-    kb: KnowledgeTools,
+    feasibility: FeasibilityReport,
     agent: PlanProvider,
     collector: TraceCollector,
     started: float,
 ) -> PlanResult:
     """Build a structured refusal instead of a plan that is bound to fail."""
-    feasibility = check_feasibility(request, kb)
     collector.record(
         "preflight", started,
         outcome="infeasible",
@@ -227,6 +227,30 @@ def _error_result(
     )
 
 
+def _safe_save(store: RunSink | None, result: PlanResult) -> None:
+    """Persist run history without letting a write failure veto a valid plan.
+
+    Storage is an auxiliary capability: if the disk is full or the DB is
+    locked, the caller should still receive the plan and a visible warning,
+    not a 5xx (or, worse, a 422 for an input error).
+    """
+    if store is None:
+        return
+    try:
+        store.save(result)
+    except StorageError as exc:
+        logger.warning("run history write failed for %s: %s", result.trace.run_id, exc)
+        result.validation.issues.append(
+            ValidationIssue(
+                code="PERSISTENCE_FAILED",
+                severity="soft",
+                message=f"运行历史写入失败：{exc}",
+                expected="本次运行可在 /api/runs 中查询",
+                suggestion="检查 SHOTPLAN_DB_PATH、磁盘空间与写权限；结果本身仍然有效",
+            )
+        )
+
+
 def run_plan(
     request: PlanRequest,
     *,
@@ -235,14 +259,28 @@ def run_plan(
     store: RunSink | None = None,
     settings: Settings | None = None,
     max_repairs: int | None = None,
+    request_id: str | None = None,
 ) -> PlanResult:
-    """Run the whole pipeline once and return a fully traceable result."""
+    """Run the whole pipeline once and return a fully traceable result.
+
+    ``request_id`` is the HTTP request's id, when there is one. It is stored in
+    the trace's config snapshot so a historical run can be matched to the
+    access-log line that produced it. Offline callers (CLI, evals) omit it,
+    which keeps their traces deterministic.
+    """
     cfg = settings or Settings.from_env()
     kb = tools or get_tools()
     agent = provider or MockProvider(mode="good")
     req = request.normalized()
     retries = cfg.max_repairs if max_repairs is None else max(0, max_repairs)
     collector = TraceCollector(agent.name, agent.prompt_version)
+    collector.set_config(
+        max_repairs=retries,
+        pipeline_budget_s=cfg.pipeline_budget_s,
+        llm_model=None if cfg.provider == "mock" else cfg.llm_model,
+        persist_mode=cfg.persist_mode,
+        request_id=request_id,
+    )
 
     # Wall clock, not just a counter: one attempt can legally take the whole
     # provider timeout, so `max_repairs` alone does not bound latency at all.
@@ -256,9 +294,8 @@ def run_plan(
     tick = time.perf_counter()
     feasibility = check_feasibility(req, kb)
     if not feasibility.feasible:
-        result = _infeasible_result(req, kb, agent, collector, tick)
-        if store is not None:
-            store.save(result)
+        result = _infeasible_result(req, feasibility, agent, collector, tick)
+        _safe_save(store, result)
         return result
     collector.record("preflight", tick, outcome="feasible")
     if expired():
@@ -266,8 +303,7 @@ def run_plan(
             req, agent, collector, tick,
             DeadlineExceeded(f"在 {budget_s:g}s 预算内未完成预检"),
         )
-        if store is not None:
-            store.save(result)
+        _safe_save(store, result)
         return result
 
     # 1. Retrieval ---------------------------------------------------------------
@@ -285,8 +321,7 @@ def run_plan(
         generation = agent.generate(req, context)
     except ShotplanError as exc:
         result = _error_result(req, agent, collector, tick, exc)
-        if store is not None:
-            store.save(result)
+        _safe_save(store, result)
         return result
     collector.record(
         "generate", tick,
@@ -309,8 +344,7 @@ def run_plan(
         )
     except ShotplanError as exc:
         result = _error_result(req, agent, collector, tick, exc)
-        if store is not None:
-            store.save(result)
+        _safe_save(store, result)
         return result
     collector.record(
         "parse", tick, slots=len(plan.slots), salvage=bool(parse_notes),
@@ -382,8 +416,7 @@ def run_plan(
 
     trace = collector.finish(success=report.hard_pass, repair_count=repairs)
     result = PlanResult(request=req, plan=plan, validation=report, trace=trace)
-    if store is not None:
-        store.save(result)
+    _safe_save(store, result)
     return result
 
 
@@ -397,9 +430,14 @@ def as_summary(result: PlanResult) -> dict[str, Any]:
         "issues": [i.code for i in result.validation.issues],
         "slots": len(result.plan.slots),
         "total_cost_cny": result.plan.total_cost_cny,
-        "duration_ms": round(result.trace.total_duration_ms, 2),
+        "duration_ms": round(
+            result.trace.wall_duration_ms or result.trace.total_duration_ms, 2
+        ),
         "provider": result.trace.provider,
     }
 
 
-__all__ = ["PlanResult", "Plan", "PlanRequest", "ValidationReport", "run_plan", "as_summary"]
+__all__ = [
+    "Plan", "PlanRequest", "PlanResult", "STAGES", "Stage", "ValidationReport",
+    "as_summary", "run_plan",
+]

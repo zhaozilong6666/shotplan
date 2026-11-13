@@ -6,7 +6,7 @@
 
 - [x] 领域模型与规范化输入
 - [x] 人工整理的知识库（8 个地点 / 5 种风格）+ 精确检索工具
-- [x] 12 条硬/软约束及其单一定义源
+- [x] 15 条硬/软约束及其单一定义源
 - [x] 不依赖模型的校验器（另加生成前的可行性判定，见 ADR 0007）
 - [x] 离线 provider（含故意犯错的对照模式）
 - [x] CLI：`plan` / `rules` / `config` / `history` / `eval` / `serve`
@@ -20,7 +20,7 @@
 - [x] SQLite 运行历史与聚合摘要
 - [x] 可选 FastAPI 层与原生单页界面（五种视图）
 - [x] 版本化 prompt、真实模型 provider（urllib + 重试 + 降级）
-- [x] 211 个单元测试，逐条覆盖规则、可行性与边界
+- [x] 301 个单元测试，逐条覆盖规则、可行性与边界
 
 验收：`python -m pytest` 全绿；`python -m shotplan.cli serve` 后界面能切换 good/naive 并看到问题清单。
 
@@ -36,14 +36,14 @@
 - [x] 线程 vs 进程扩展性：线程约 1.04×、进程约 1.72×，证明瓶颈在 GIL（见 [scaling.md](scaling.md)）
 - [x] 真实输出示例：四份由代码生成、可 `--check` 比对的结果（见 [examples.md](examples.md)）
 - [x] **门禁有效性**：8 处受控变异注入 + 回滚比对，旧门禁只拦住 4/8，补齐对照组规则覆盖后 8/8（见 [mutation-report.md](mutation-report.md)、[ADR 0009](adr/0009-gate-sensitivity.md)）
-- [x] **盲测挑战集**：从 517 条失败记录聚类出 225 个候选、纳入 200 个未见 brief，城市 × 风格覆盖 19/25 → 25/25；独立存放不污染 v1–v6 基线（见 [case-mining.md](case-mining.md)、[ADR 0010](adr/0010-holdout-challenge-set.md)）
+- [x] **盲测挑战集**：从 527 条失败记录聚类出 225 个候选、纳入 200 个未见 brief，城市 × 风格覆盖 19/25 → 25/25；独立存放不污染 v1–v6 基线（见 [case-mining.md](case-mining.md)、[ADR 0010](adr/0010-holdout-challenge-set.md)）
 - [x] **真实 HTTP 服务压测**：启动 1/2/4 个 uvicorn worker 走 loopback 发真实请求，1000 次请求 0 错误 0 丢写；发现多 worker 抢共享 SQLite 写锁反而变慢（见 [http-load.md](http-load.md)）
 - [x] **持久化对照实验**：`SHOTPLAN_PERSIST_RUNS` 开关在同一份产品代码上做开/关对照，验证 v0.8.0 的写锁归因；判定允许输出「不确定」，结论随数据动态生成（见 [worker-bottleneck.md](worker-bottleneck.md)、[ADR 0011](adr/0011-controlled-experiment-over-inference.md)）
 - [x] **写入异步化**：`off/sync/async` 三组同批对照，异步相对同步 1 worker 2.96×、4 worker 1.95×，拿回约 47% 写库开销，三组 0 丢写；默认仍为 `sync`，硬杀丢失窗口用 `os._exit` 实测（见 [persistence.md](persistence.md)、[ADR 0012](adr/0012-write-behind-persistence.md)）
 - [x] **流水线契约与墙钟预算**：6 个节点写成状态表，图与逐节点 I/O 由代码生成、CI 比对漂移；超预算时降级返回最优草稿（见 [pipeline-contract.md](pipeline-contract.md)、[ADR 0013](adr/0013-explicit-stage-table-and-budget.md)）
-- [x] GitHub Actions：测试 + lint + **16 道质量门禁**（Python 3.10–3.13 四版本矩阵）
+- [x] GitHub Actions：测试 + lint + **16 道质量门禁**（单元测试跑 3.10–3.13 矩阵，重门禁在 3.12 执行一次）
 
-验收：`python -m evals.run_eval --write-report` 退出码 0；实测 80/80 通过、均分 0.9788、对照组 0.3014；`python -m evals.mutation_lab --check` 退出码 0 且 0 处变异存活；`python -m evals.case_miner --check` 退出码 0 且 200 个盲测 brief 全部与主集不重复；`python -m evals.http_load --check` 退出码 0 且真实 HTTP 请求 0 错误、0 丢写；`python -m evals.worker_lab --check` 退出码 0 且持久化开关语义正确（开 = 全落库、关 = 0 落库）；`python -m evals.persist_lab --check` 退出码 0 且三组各自满足落库契约；`python scripts/build_pipeline_doc.py --check` 退出码 0 且契约文档与代码一致。
+验收：`python -m evals.run_eval --write-report` 退出码 0；实测 80/80 通过、均分 0.9778、对照组 0.3014；`python -m evals.mutation_lab --check` 退出码 0 且 0 处变异存活；`python -m evals.case_miner --check` 退出码 0 且 200 个盲测 brief 全部与主集不重复；`python -m evals.http_load --check` 退出码 0 且真实 HTTP 请求 0 错误、0 丢写；`python -m evals.worker_lab --check` 退出码 0 且持久化开关语义正确（开 = 全落库、关 = 0 落库）；`python -m evals.persist_lab --check` 退出码 0 且三组各自满足落库契约；`python scripts/build_pipeline_doc.py --check` 退出码 0 且契约文档与代码一致。
 
 ## 阶段 4 · 接真实模型，让评测真正承压 ⏳
 
@@ -56,14 +56,14 @@
 - [ ] 用真实 OpenAI 兼容端点跑通 `SHOTPLAN_PROVIDER=openai_compatible`
 - [ ] 记录 v1 / v2 prompt 在真实模型上的硬约束通过率差异，写进 `PROMPT_CHANGELOG`
 - [x] 修复循环实验（离线）：一次修复成功率 100%（69/69）、69 次更差修复全被拦截，见 [repair-experiment.md](repair-experiment.md)
-- [x] 失败案例库框架 + 离线对照组 517 条记录；真实模型典型错误待补，见 [failure-gallery.md](failure-gallery.md)
+- [x] 失败案例库框架 + 离线对照组 527 条记录；真实模型典型错误待补，见 [failure-gallery.md](failure-gallery.md)
 - [x] 失败案例库不再只是展示材料：它驱动盲测挑战集挖掘，见 [case-mining.md](case-mining.md)
 - [x] `docs/eval-report.md` 记录至少一次「改动导致分数下降并回滚」的实例（由变异测试自动生成，离线数据即可复核）
 - [ ] 用真实模型数据填满成本/延迟对比表
 
 验收：报告里出现真实模型的一行数据，且能与基线做 `--compare`。「分数下降并回滚」一项已用离线变异测试完成，不必等 API key。
 
-**需要你做的**：申请一个 API key 并写入 `.env`，步骤见 [USER_TASKS.md](USER_TASKS.md) 第 4 节。不需要把 key 发给任何人。
+**需要你做的**：申请一个 API key 并写入 `.env`，步骤见 [portfolio/USER_TASKS.md](portfolio/USER_TASKS.md) 第 4 节。不需要把 key 发给任何人。
 
 ## 阶段 5 · 上线与叙事 ⏳
 
@@ -77,7 +77,7 @@
 
 验收：任意一个陌生人通过链接能在不改代码、不配 key 的情况下完成一次生成并看到校验报告。
 
-**需要你做的**：部署账号与域名，步骤见 [USER_TASKS.md](USER_TASKS.md) 第 5 节。
+**需要你做的**：部署账号与域名，步骤见 [portfolio/USER_TASKS.md](portfolio/USER_TASKS.md) 第 5 节。
 
 ## 明确不做
 

@@ -118,9 +118,9 @@
     </div>
     <div class="metrics">
       <div class="metric good"><b>80 / 80</b><span>评测用例通过</span></div>
-      <div class="metric good"><b>0.9788</b><span>规则 Agent 均分</span></div>
+      <div class="metric good"><b>0.9778</b><span>规则 Agent 均分</span></div>
       <div class="metric good"><b>100%</b><span>硬约束通过率</span></div>
-      <div class="metric bad"><b>0.6774</b><span>与对照组的差值</span></div>
+      <div class="metric bad"><b>0.6764</b><span>与对照组的差值</span></div>
     </div>
   </header>
 
@@ -138,7 +138,7 @@
       <div class="card">
         <span class="tag">生成后</span>
         <h3>方案是否可执行</h3>
-        <p>时间不重叠、妆造先于拍摄、跨景点至少 20 分钟转场、预算不超、地点必须在白名单。12 条规则单一定义源，校验器、打分器、文档与 API 共用同一份定义。</p>
+        <p>时间不重叠、妆造先于拍摄、跨景点至少 20 分钟转场、预算不超、地点必须在白名单、必去地点不能漏、引用必须真实存在。15 条规则单一定义源，校验器、打分器、文档与 API 共用同一份定义。</p>
       </div>
       <div class="card">
         <span class="tag">评测</span>
@@ -157,14 +157,14 @@
       </thead>
       <tbody>
         <tr><td>normal</td><td class="num">30</td><td class="num pass">100%</td><td class="num">0.9900</td><td class="num">30 / 30</td></tr>
-        <tr><td>conflict</td><td class="num">23</td><td class="num pass">100%</td><td class="num">0.9693</td><td class="num">23 / 23</td></tr>
-        <tr><td>edge</td><td class="num">16</td><td class="num pass">100%</td><td class="num">0.9569</td><td class="num">16 / 16</td></tr>
+        <tr><td>conflict</td><td class="num">23</td><td class="num pass">100%</td><td class="num">0.9683</td><td class="num">23 / 23</td></tr>
+        <tr><td>edge</td><td class="num">16</td><td class="num pass">100%</td><td class="num">0.9531</td><td class="num">16 / 16</td></tr>
         <tr><td>infeasible</td><td class="num">11</td><td class="num pass">100%</td><td class="num">1.0000</td><td class="num">11 / 11</td></tr>
-        <tr><td><strong>合计</strong></td><td class="num"><strong>80</strong></td><td class="num pass"><strong>100%</strong></td><td class="num"><strong>0.9788</strong></td><td class="num"><strong>80 / 80</strong></td></tr>
+        <tr><td><strong>合计</strong></td><td class="num"><strong>80</strong></td><td class="num pass"><strong>100%</strong></td><td class="num"><strong>0.9778</strong></td><td class="num"><strong>80 / 80</strong></td></tr>
       </tbody>
     </table>
     <p class="section-note" style="margin-top:14px">
-      对照基线 <code>naive</code>：硬约束通过率 13.8%、均分 0.3014。差值 0.6774。
+      对照基线 <code>naive</code>：硬约束通过率 13.8%、均分 0.3014。差值 0.6764。
       11 个 infeasible 用例因共享生成前判定而两组同分，区分度由其余 69 个用例提供——这一点在报告里如实写明。
     </p>
   </section>
@@ -210,9 +210,9 @@
         <tr><th>模型</th><th class="num">单次成本</th><th class="num">P50 / P95</th><th class="num">每天 100 次</th></tr>
       </thead>
       <tbody>
-        <tr><td><code>gpt-4o-mini</code></td><td class="num">0.002335 元</td><td class="num">800 / 800 ms</td><td class="num">0.23 元</td></tr>
-        <tr><td><code>deepseek-chat</code></td><td class="num">0.004314 元</td><td class="num">1200 / 1200 ms</td><td class="num">0.43 元</td></tr>
-        <tr><td><code>gpt-4o</code></td><td class="num">0.038822 元</td><td class="num">2500 / 2500 ms</td><td class="num">3.88 元</td></tr>
+        <tr><td><code>gpt-4o-mini</code></td><td class="num">0.002480 元</td><td class="num">800 / 800 ms</td><td class="num">0.25 元</td></tr>
+        <tr><td><code>deepseek-chat</code></td><td class="num">0.004578 元</td><td class="num">1200 / 1200 ms</td><td class="num">0.46 元</td></tr>
+        <tr><td><code>gpt-4o</code></td><td class="num">0.041202 元</td><td class="num">2500 / 2500 ms</td><td class="num">4.12 元</td></tr>
       </tbody>
     </table>
   </section>
@@ -280,6 +280,8 @@
           <li><code>UNKNOWN_LOCATION</code><span>186 次 · 编造不存在的地点</span></li>
           <li><code>BUDGET_EXCEEDED</code><span>69 次 · 总花费超预算</span></li>
           <li><code>TIME_OVERRUN</code><span>64 次 · 时间轴超出预约时长</span></li>
+          <li><code>MISSING_REQUIRED_LOCATION</code><span>6 次 · 忽略用户指定的必去地点</span></li>
+          <li><code>AVOIDED_LOCATION</code><span>4 次 · 使用了用户排除的地点</span></li>
         </ul>
       </div>
       <div class="quote">
@@ -299,7 +301,7 @@
       <div class="metric bad"><b>0%</b><span>盲测集 naive 硬约束通过率</span></div>
     </div>
     <p class="section-note challenge-note">
-      225 个候选中 25 个「同一地点既指定又排除」被生成前可行性判定挡下；其余全部与主集不重复。good 均分 0.9881、naive 0.19，最小差值 0.7687。挑战集独立存放，不影响 v1–v6 基线的可比性。
+      225 个候选中 25 个「同一地点既指定又排除」被生成前可行性判定挡下；其余全部与主集不重复。good 均分 0.9879、naive 0.19，最小差值 0.7625。挑战集独立存放，不影响 v1–v6 基线的可比性。
     </p>
   </section>
 
@@ -343,7 +345,7 @@
   <div class="wrap">
     <p><strong>shotplan</strong> · 可评测的旅拍方案 Agent · MIT</p>
     <p>本页是静态快照，数据来自仓库内由代码生成的评测报告、修复实验与失败案例库；交互式界面需本地运行 <code>python -m shotplan.cli serve</code>。</p>
-    <p class="mono">离线规则 provider 的 0.9788 是当前规则下的上限参考，不代表真实模型效果；盲测挑战集同理，只证明判定链在未见组合上一致。</p>
+    <p class="mono">离线规则 provider 的 0.9778 是当前规则下的上限参考，不代表真实模型效果；盲测挑战集同理，只证明判定链在未见组合上一致。</p>
   </div>
 </footer>
 

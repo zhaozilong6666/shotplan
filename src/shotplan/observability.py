@@ -45,30 +45,9 @@ def _summarise(rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def _flatten(payloads: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    rows: list[dict[str, Any]] = []
-    for payload in payloads:
-        trace = payload.get("trace") or {}
-        validation = payload.get("validation") or {}
-        rows.append(
-            {
-                "status": payload.get("status", "ok"),
-                "provider": trace.get("provider", "unknown"),
-                "prompt_version": trace.get("prompt_version", "unknown"),
-                "hard_pass": bool(validation.get("hard_pass", False)),
-                "score": float(validation.get("score", 0.0)),
-                "duration_ms": float(trace.get("total_duration_ms", 0.0)),
-                "cost_cny": float(trace.get("total_cost_cny", 0.0)),
-                "repairs": int(trace.get("repair_count", 0)),
-            }
-        )
-    return rows
-
-
 def build_dashboard(store: RunStore, limit: int = 200) -> dict[str, Any]:
     """Return overall metrics plus one row per (provider, prompt_version) pair."""
-    payloads = store.recent_payloads(limit)
-    rows = _flatten(payloads)
+    rows = store.stats_rows(limit)
     groups: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     for row in rows:
         groups[(row["provider"], row["prompt_version"])].append(row)

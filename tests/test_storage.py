@@ -1,3 +1,5 @@
+import sqlite3
+
 import pytest
 
 from shotplan.agents import MockProvider
@@ -74,3 +76,77 @@ def test_concurrent_writes_are_all_stored(tmp_path):
     assert len(set(run_ids)) == 24
     assert store.summary()["total_runs"] == 24
     assert all(store.get(run_id) is not None for run_id in run_ids)
+
+
+def test_schema_version_is_recorded(tmp_path):
+    path = tmp_path / "versioned.db"
+    RunStore(path)
+    with sqlite3.connect(path) as conn:
+        assert conn.execute("PRAGMA user_version").fetchone()[0] == 2
+
+
+def test_a_v1_database_is_migrated_in_place(tmp_path):
+    path = tmp_path / "v1.db"
+    with sqlite3.connect(path) as conn:
+        conn.executescript(
+            """
+            CREATE TABLE runs (
+                run_id TEXT PRIMARY KEY, created_at TEXT NOT NULL,
+                request_id TEXT NOT NULL, provider TEXT NOT NULL,
+                prompt_version TEXT NOT NULL, score REAL NOT NULL,
+                hard_pass INTEGER NOT NULL, repair_count INTEGER NOT NULL,
+                duration_ms REAL NOT NULL, cost_cny REAL NOT NULL,
+                payload TEXT NOT NULL
+            );
+            PRAGMA user_version = 1;
+            """
+        )
+    store = RunStore(path)
+    with sqlite3.connect(path) as conn:
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(runs)")}
+        assert "status" in columns
+        assert conn.execute("PRAGMA user_version").fetchone()[0] == 2
+    assert store.recent() == []
+
+
+def test_stats_rows_do_not_include_payload(tmp_path):
+    store = RunStore(tmp_path / "stats.db")
+    store.save(run_plan(PlanRequest(), provider=MockProvider("good"), max_repairs=0))
+    rows = store.stats_rows()
+    assert rows and "payload" not in rows[0]
+    assert {"provider", "prompt_version", "status", "score", "duration_ms"} <= set(rows[0])
+
+
+def test_prune_keeps_the_newest_runs(tmp_path):
+    store = RunStore(tmp_path / "prune.db")
+    for i in range(5):
+        store.save(run_plan(PlanRequest(hours=4 + i), max_repairs=0))
+    removed = store.prune(keep_last=2)
+    assert removed == 3
+    assert store.summary()["total_runs"] == 2
+
+
+def test_prune_older_than_removes_only_stale_runs(tmp_path):
+    store = RunStore(tmp_path / "retention.db")
+    stale = run_plan(PlanRequest(), provider=MockProvider("good"), max_repairs=0)
+    stale.trace.created_at = "2020-01-01T00:00:00+00:00"
+    store.save(stale)
+    fresh = run_plan(PlanRequest(), provider=MockProvider("good"), max_repairs=0)
+    store.save(fresh)
+
+    assert store.prune_older_than(0) == 0  # 0 means "keep everything"
+    assert store.prune_older_than(30) == 1
+    assert store.summary()["total_runs"] == 1
+    assert store.get(fresh.trace.run_id) is not None
+    assert store.get(stale.trace.run_id) is None
+
+
+def test_a_newer_schema_is_rejected(tmp_path):
+    from shotplan.domain.errors import StorageError
+
+    path = tmp_path / "future.db"
+    with sqlite3.connect(path) as conn:
+        conn.execute("CREATE TABLE runs (run_id TEXT PRIMARY KEY)")
+        conn.execute("PRAGMA user_version = 999")
+    with pytest.raises(StorageError, match="newer schema"):
+        RunStore(path)

@@ -1,8 +1,8 @@
 {
   "baseline": {
     "cases_failed": 0,
-    "delta": 0.6774,
-    "good_avg": 0.9788,
+    "delta": 0.6764,
+    "good_avg": 0.9778,
     "good_hard_pass_rate": 1.0,
     "naive_avg": 0.3014,
     "naive_hard_pass_rate": 0.1375,
@@ -33,7 +33,7 @@
       "good_hard_pass_rate": 0.1375,
       "key": "planner/no-transfer",
       "naive_avg": 0.3014,
-      "score_delta": -0.8413,
+      "score_delta": -0.8403,
       "side": "planner",
       "signals": [
         "avg_score 0.1375 is below threshold 0.8",
@@ -47,34 +47,34 @@
       "cases_failed": 69,
       "caught": true,
       "caught_by_legacy_gate": true,
-      "delta": 0.4304,
+      "delta": 0.4284,
       "description": "转场费从 50 元抬到 5000 元",
       "disabled_rules": [],
-      "good_avg": 0.7318,
+      "good_avg": 0.7298,
       "good_hard_pass_rate": 0.1375,
       "key": "planner/transfer-cost-5000",
       "naive_avg": 0.3014,
-      "score_delta": -0.247,
+      "score_delta": -0.248,
       "side": "planner",
       "signals": [
-        "avg_score 0.7318 is below threshold 0.8",
+        "avg_score 0.7298 is below threshold 0.8",
         "hard_pass_rate 0.1375 is below 0.9",
         "69 case(s) failed their expectation",
-        "control delta 0.4304 is below 0.45: good and bad outputs are no longer distinguishable"
+        "control delta 0.4284 is below 0.45: good and bad outputs are no longer distinguishable"
       ]
     },
     {
       "cases_failed": 69,
       "caught": true,
       "caught_by_legacy_gate": true,
-      "delta": 0.5872,
+      "delta": 0.5864,
       "description": "生成端删掉必需的妆造时间块",
       "disabled_rules": [],
-      "good_avg": 0.8886,
+      "good_avg": 0.8878,
       "good_hard_pass_rate": 0.1375,
       "key": "planner/no-makeup",
       "naive_avg": 0.3014,
-      "score_delta": -0.0902,
+      "score_delta": -0.09,
       "side": "planner",
       "signals": [
         "hard_pass_rate 0.1375 is below 0.9",
@@ -85,12 +85,12 @@
       "cases_failed": 0,
       "caught": true,
       "caught_by_legacy_gate": false,
-      "delta": 0.5044,
+      "delta": 0.5034,
       "description": "预算容差改成 10^9，BUDGET_EXCEEDED 永不触发",
       "disabled_rules": [
         "BUDGET_EXCEEDED"
       ],
-      "good_avg": 0.9788,
+      "good_avg": 0.9778,
       "good_hard_pass_rate": 1.0,
       "key": "validator/budget-tolerance",
       "naive_avg": 0.4744,
@@ -105,15 +105,15 @@
       "cases_failed": 0,
       "caught": true,
       "caught_by_legacy_gate": false,
-      "delta": 0.6612,
+      "delta": 0.6627,
       "description": "转场下限改成 0，TRANSFER_BUFFER 永不触发",
       "disabled_rules": [
         "TRANSFER_BUFFER"
       ],
-      "good_avg": 0.9788,
+      "good_avg": 0.9778,
       "good_hard_pass_rate": 1.0,
       "key": "validator/no-transfer-rule",
-      "naive_avg": 0.3176,
+      "naive_avg": 0.3151,
       "score_delta": 0.0,
       "side": "validator",
       "signals": [
@@ -124,12 +124,12 @@
       "cases_failed": 0,
       "caught": true,
       "caught_by_legacy_gate": false,
-      "delta": 0.6774,
+      "delta": 0.6764,
       "description": "时长宽限改成 10^6 分钟，TIME_OVERRUN 永不触发",
       "disabled_rules": [
         "TIME_OVERRUN"
       ],
-      "good_avg": 0.9788,
+      "good_avg": 0.9778,
       "good_hard_pass_rate": 1.0,
       "key": "validator/no-time-limit",
       "naive_avg": 0.3014,
@@ -143,12 +143,12 @@
       "cases_failed": 0,
       "caught": true,
       "caught_by_legacy_gate": false,
-      "delta": 0.6769,
+      "delta": 0.6759,
       "description": "所有地点 id 都视为存在，UNKNOWN_LOCATION 永不触发",
       "disabled_rules": [
         "UNKNOWN_LOCATION"
       ],
-      "good_avg": 0.9788,
+      "good_avg": 0.9778,
       "good_hard_pass_rate": 1.0,
       "key": "validator/no-grounding",
       "naive_avg": 0.3019,
@@ -177,7 +177,7 @@
       "good_hard_pass_rate": 1.0,
       "key": "validator/always-pass",
       "naive_avg": 1.0,
-      "score_delta": 0.0212,
+      "score_delta": 0.0222,
       "side": "validator",
       "signals": [
         "control group scored at or above the planner: measurement is broken",
@@ -195,7 +195,7 @@
     }
   ],
   "restored": true,
-  "restored_avg": 0.9788,
+  "restored_avg": 0.9778,
   "restored_cases_failed": 0,
   "restored_checks": 8,
   "restored_hard_pass_rate": 1.0,

@@ -8,8 +8,8 @@ import os
 import sys
 from typing import Any
 
-from .agents import MockProvider, build_provider
-from .config import get_settings
+from .agents import MockProvider, PlanProvider, build_provider
+from .config import configure_logging, get_settings
 from .domain.constraints import RULES
 from .domain.errors import ShotplanError
 from .domain.models import PlanRequest
@@ -78,6 +78,7 @@ def cmd_plan(args: argparse.Namespace) -> int:
         preferences=args.preference.split(",") if args.preference else [],
         avoid=args.avoid.split(",") if args.avoid else [],
     )
+    provider: PlanProvider
     if args.mock_mode:
         provider = MockProvider(mode=args.mock_mode)
     else:
@@ -116,13 +117,28 @@ def cmd_config(_args: argparse.Namespace) -> int:
 
 
 def cmd_history(args: argparse.Namespace) -> int:
-    rows = RunStore(get_settings().db_path).recent(args.limit)
+    store = RunStore(get_settings().db_path)
+    if args.prune is not None:
+        removed = store.prune(args.prune)
+        print(f"已删除 {removed} 条旧运行记录，保留最近 {args.prune} 条")
+    if args.prune_days:
+        removed = store.prune_older_than(args.prune_days)
+        print(f"已删除 {removed} 条超过 {args.prune_days} 天的运行记录")
+    rows = store.recent(args.limit)
     print(json.dumps(rows, ensure_ascii=False, indent=2))
     return 0
 
 
 def cmd_eval(args: argparse.Namespace) -> int:
-    from evals.run_eval import main as eval_main
+    try:
+        from evals.run_eval import main as eval_main
+    except ImportError:
+        print(
+            "eval 需要源码仓库（evals/ 不随 wheel 发布）："
+            "请在项目根目录运行 python -m evals.run_eval",
+            file=sys.stderr,
+        )
+        return 1
 
     return eval_main(
         ["--write-report"] if args.write_report else []
@@ -183,6 +199,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("history", help="查看最近运行记录")
     p.add_argument("--limit", type=int, default=20)
+    p.add_argument(
+        "--prune", type=int, default=None,
+        help="先只保留最近 N 条运行记录（SQLite 体积治理）",
+    )
+    p.add_argument(
+        "--prune-days", type=int, default=None,
+        help="先删除超过 N 天的运行记录（也可用 SHOTPLAN_RETENTION_DAYS 在启动时自动执行）",
+    )
     p.set_defaults(func=cmd_history)
 
     p = sub.add_parser("eval", help="运行评测集")
@@ -208,6 +232,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
+        configure_logging(get_settings())
         return args.func(args)
     except ShotplanError as exc:
         print(f"shotplan error: {exc}", file=sys.stderr)

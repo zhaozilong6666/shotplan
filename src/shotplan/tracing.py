@@ -10,13 +10,21 @@ from __future__ import annotations
 import time
 from typing import Any
 
+from .domain.constraints import rules_fingerprint
 from .domain.models import RunTrace, TraceEvent
+from .knowledge.loader import knowledge_version
 
 
 class TraceCollector:
     def __init__(self, provider: str, prompt_version: str) -> None:
         self.trace = RunTrace(provider=provider, prompt_version=prompt_version)
+        self.trace.kb_version = knowledge_version()
+        self.trace.rules_version = rules_fingerprint()
         self._started = time.perf_counter()
+
+    def set_config(self, **values: Any) -> None:
+        """Record the request-level settings that shaped this run."""
+        self.trace.config = {key: value for key, value in values.items() if value is not None}
 
     def record(
         self,
@@ -46,6 +54,12 @@ class TraceCollector:
 
     def finish(self, *, success: bool, repair_count: int = 0) -> RunTrace:
         self.trace.total_duration_ms = sum(e.duration_ms for e in self.trace.events)
+        # End-to-end wall clock. The event sum above intentionally keeps the
+        # provider-reported durations, which exclude orchestration overhead and
+        # the parse/validate work done inside repair rounds.
+        self.trace.wall_duration_ms = round(
+            (time.perf_counter() - self._started) * 1000, 2
+        )
         self.trace.total_cost_cny = sum(e.cost_cny for e in self.trace.events)
         self.trace.repair_count = repair_count
         self.trace.success = success
@@ -53,11 +67,12 @@ class TraceCollector:
 
 
 def trace_to_markdown(trace: RunTrace) -> str:
+    versions = f"kb={trace.kb_version or 'unknown'} / rules={trace.rules_version or 'unknown'}"
     lines = [
         f"### Run `{trace.run_id}`",
         "",
-        f"- provider: `{trace.provider}` / `{trace.prompt_version}`",
-        f"- duration: {trace.total_duration_ms:.1f} ms",
+        f"- provider: `{trace.provider}` / `{trace.prompt_version}` / {versions}",
+        f"- duration: {trace.wall_duration_ms or trace.total_duration_ms:.1f} ms",
         f"- estimated cost: {trace.total_cost_cny:.6f} CNY",
         f"- repairs: {trace.repair_count}",
         "",

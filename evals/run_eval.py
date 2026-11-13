@@ -101,13 +101,13 @@ def build_report(
     thresholds: dict[str, Any],
     prompt_version: str = PROMPT_VERSION,
 ) -> str:
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     infeasible = [o for o in good_cases if o.group == "infeasible"]
     infeasible_passed = sum(o.passed for o in infeasible)
     lines = [
         "# shotplan 评测报告",
         "",
-        f"生成时间：{now}  ｜  命令：`python -m evals.run_eval --write-report`",
+        "命令：`python -m evals.run_eval --write-report`"
+        " ｜ 机器相关数字只进 `evals/out/latest.json`，本文件保持可提交、可 diff",
         f"评测用例：{good['case_count']} 个  ｜  prompt 版本：`{prompt_version}`",
         "",
         "## 结论摘要",
@@ -205,9 +205,10 @@ def build_report(
         "## 运行成本与延迟", "",
         "| 指标 | 规则 Agent | 对照基线 |",
         "| --- | ---: | ---: |",
-        f"| 平均耗时 ms | {good['avg_duration_ms']} | {naive['avg_duration_ms']} |",
-        f"| P50 / P95 耗时 ms | {good['p50_duration_ms']} / {good['p95_duration_ms']} | "
-        f"{naive['p50_duration_ms']} / {naive['p95_duration_ms']} |",
+        # Wall-clock numbers are machine-dependent. Committing them makes every
+        # `make eval` dirty the tree, so the report states the order of
+        # magnitude and leaves the exact measurements in evals/out/latest.json.
+        "| 耗时（本机，离线 mock） | 亚毫秒级；原始数字见 `evals/out/latest.json` | 同左 |",
         f"| 修复轮次合计 | {good['total_repairs']} | {naive['total_repairs']} |",
         f"| token in / out | {good['total_tokens_in']} / {good['total_tokens_out']} | "
         f"{naive['total_tokens_in']} / {naive['total_tokens_out']} |",
@@ -357,7 +358,7 @@ def main(argv: list[str] | None = None) -> int:
         good, naive, min_score, args.min_hard_pass_rate, min_delta=args.min_delta
     )
 
-    payload = {
+    payload: dict[str, Any] = {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "prompt_version": prompt_version,
         "thresholds": {

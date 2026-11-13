@@ -6,9 +6,18 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
+    name: lint + unit tests (py${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -23,13 +32,35 @@ jobs:
           cache: pip
 
       - name: Install
-        run: python -m pip install -e ".[api,dev]" pytest-cov
+        run: python -m pip install -e ".[api,dev]"
 
       - name: Lint
         run: python -m ruff check src tests evals scripts
 
       - name: Unit tests
         run: python -m pytest --cov=src/shotplan --cov-report=term-missing --cov-fail-under=85
+
+  gates:
+    # The heavy gates are statistical/performance experiments. Running them on
+    # every interpreter multiplies CI time and flakiness without adding signal:
+    # their thresholds do not depend on the Python minor version.
+    name: quality gates (py3.12)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: python -m pip install -e ".[api,dev]"
+
+      - name: Type check
+        run: python -m mypy
 
       - name: Evaluation gate
         run: python -m evals.run_eval --write-report
@@ -83,7 +114,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: eval-${{ matrix.python-version }}
+          name: eval-py3.12
           path: |
             evals/out/latest.json
             docs/eval-report.md

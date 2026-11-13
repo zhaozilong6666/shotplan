@@ -24,17 +24,26 @@ from __future__ import annotations
 import atexit
 import contextlib
 import json
+import logging
 import queue
 import sqlite3
 import threading
 import time
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Protocol
 
 from .domain.errors import StorageError
 from .domain.models import PlanResult
+
+logger = logging.getLogger(__name__)
+
+# Bump together with a migration. `PRAGMA user_version` is the only schema
+# marker SQLite stores for us; without it, adding a column silently breaks
+# every existing database at runtime.
+_SCHEMA_VERSION = 2
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS runs (
@@ -43,6 +52,7 @@ CREATE TABLE IF NOT EXISTS runs (
     request_id    TEXT NOT NULL,
     provider      TEXT NOT NULL,
     prompt_version TEXT NOT NULL,
+    status        TEXT NOT NULL DEFAULT 'ok',
     score         REAL NOT NULL,
     hard_pass     INTEGER NOT NULL,
     repair_count  INTEGER NOT NULL,
@@ -55,9 +65,9 @@ CREATE INDEX IF NOT EXISTS idx_runs_created ON runs(created_at DESC);
 
 _INSERT = """
 INSERT OR REPLACE INTO runs
-    (run_id, created_at, request_id, provider, prompt_version,
+    (run_id, created_at, request_id, provider, prompt_version, status,
      score, hard_pass, repair_count, duration_ms, cost_cny, payload)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 """
 
 
@@ -94,7 +104,24 @@ class RunStore:
                     # ~209ms to ~55ms and throughput roughly doubled. See
                     # docs/loadtest.md for the full table.
                     conn.execute("PRAGMA journal_mode=WAL")
+                    version = int(conn.execute("PRAGMA user_version").fetchone()[0])
+                    if version > _SCHEMA_VERSION:
+                        raise StorageError(
+                            f"database {self.path} was written by a newer schema "
+                            f"(v{version} > v{_SCHEMA_VERSION}); upgrade shotplan"
+                        )
                     conn.executescript(_SCHEMA)
+                    columns = {
+                        row[1] for row in conn.execute("PRAGMA table_info(runs)").fetchall()
+                    }
+                    if "status" not in columns:
+                        # v1 databases predate the status column. The whole
+                        # payload is already stored, so the backfill is exact.
+                        conn.execute(
+                            "ALTER TABLE runs ADD COLUMN status TEXT NOT NULL DEFAULT 'ok'"
+                        )
+                    if version < _SCHEMA_VERSION:
+                        conn.execute(f"PRAGMA user_version = {_SCHEMA_VERSION}")
                 self._INITIALISED.add(key)
             except (OSError, sqlite3.Error) as exc:
                 raise StorageError(
@@ -146,10 +173,13 @@ class RunStore:
             result.request.request_id,
             trace.provider,
             trace.prompt_version,
+            result.status,
             validation.score,
             int(validation.hard_pass),
             trace.repair_count,
-            trace.total_duration_ms,
+            # Wall clock, not the sum of stage timers: this column backs the
+            # latency dashboards, so it must match what a caller experiences.
+            trace.wall_duration_ms or trace.total_duration_ms,
             trace.total_cost_cny,
             json.dumps(result.to_dict(), ensure_ascii=False),
         )
@@ -171,8 +201,71 @@ class RunStore:
         )
         return [dict(zip(keys, row, strict=False)) for row in rows]
 
+    def stats_rows(self, limit: int = 200) -> list[dict[str, Any]]:
+        """Lightweight rows for the dashboard: no payload parsing.
+
+        `/api/stats` used to load up to 1000 full JSON documents, parse them and
+        aggregate in Python. The columns below are all the dashboard needs, so
+        the query stays cheap as the history grows.
+        """
+        capped = min(max(limit, 1), 1000)
+        keys = (
+            "provider", "prompt_version", "status", "score", "hard_pass",
+            "repairs", "duration_ms", "cost_cny",
+        )
+        try:
+            with self._connect() as conn:
+                rows = conn.execute(
+                    "SELECT provider, prompt_version, status, score, hard_pass, "
+                    "repair_count AS repairs, duration_ms, cost_cny "
+                    "FROM runs ORDER BY created_at DESC LIMIT ?",
+                    (capped,),
+                ).fetchall()
+        except sqlite3.Error as exc:
+            raise StorageError(f"cannot read run statistics: {exc}") from exc
+        return [dict(zip(keys, row, strict=False)) for row in rows]
+
+    def prune(self, keep_last: int) -> int:
+        """Delete all but the newest N runs. Returns the number of rows removed."""
+        if keep_last <= 0:
+            return 0
+        try:
+            with self._WRITE_LOCK:
+                with contextlib.closing(self._connect()) as conn, conn:
+                    cursor = conn.execute(
+                        "DELETE FROM runs WHERE run_id NOT IN ("
+                        "SELECT run_id FROM runs ORDER BY created_at DESC LIMIT ?"
+                        ")",
+                        (keep_last,),
+                    )
+                    return cursor.rowcount
+        except sqlite3.Error as exc:
+            raise StorageError(f"cannot prune run history: {exc}") from exc
+
+    def prune_older_than(self, days: int) -> int:
+        """Delete runs created more than `days` days ago. Returns rows removed.
+
+        `created_at` is a UTC ISO-8601 string with a fixed precision, so a
+        lexicographic comparison is a chronological one. 0 disables pruning:
+        an audit trail must never disappear because of an unset variable.
+        """
+        if days <= 0:
+            return 0
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat(
+            timespec="seconds"
+        )
+        try:
+            with self._WRITE_LOCK:
+                with contextlib.closing(self._connect()) as conn, conn:
+                    cursor = conn.execute(
+                        "DELETE FROM runs WHERE created_at < ?", (cutoff,)
+                    )
+                    return cursor.rowcount
+        except sqlite3.Error as exc:
+            raise StorageError(f"cannot prune run history: {exc}") from exc
+
     def recent_payloads(self, limit: int = 200) -> list[dict[str, Any]]:
-        """Full stored results, newest first. Used by the observability dashboard."""
+        """Full stored results, newest first. Used by detail views."""
         capped = min(max(limit, 1), 1000)
         try:
             with self._connect() as conn:
@@ -383,10 +476,13 @@ class RunWriter:
         for attempt in range(2):
             try:
                 self.store.save_many(batch)
-            except StorageError:
+            except StorageError as exc:
                 if attempt:
                     with self._lock:
                         self.stats.failed += len(batch)
+                    logger.warning(
+                        "write-behind batch of %d run(s) failed: %s", len(batch), exc
+                    )
                     return
                 time.sleep(0.05)
                 continue

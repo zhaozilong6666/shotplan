@@ -7,6 +7,7 @@ from math import fsum
 
 from shotplan.agents.validator import SCORE_DECIMALS, validate
 from shotplan.domain.constraints import SCORE_WEIGHTS
+from shotplan.domain.models import PlanRequest
 
 
 def codes(plan, brief, tools):
@@ -120,6 +121,44 @@ def test_soft_issues_do_not_break_hard_pass(valid_plan, brief, tools):
     report = validate(plan, brief, tools)
     assert report.hard_pass is True
     assert report.score < 1.0
+
+
+def test_missing_required_location_is_hard(valid_plan, tools):
+    brief = PlanRequest(must_include=["qinglong_temple"])
+    assert "MISSING_REQUIRED_LOCATION" in codes(valid_plan, brief, tools)
+
+
+def test_required_location_satisfied_by_a_shoot_block(valid_plan, tools):
+    brief = PlanRequest(must_include=["qinglong_temple"])
+    plan = copy.deepcopy(valid_plan)
+    plan.slots[2].location_id = "qinglong_temple"
+    assert "MISSING_REQUIRED_LOCATION" not in codes(plan, brief, tools)
+
+
+def test_avoided_location_is_hard(valid_plan, tools):
+    brief = PlanRequest(avoid=["city_wall"])
+    report = validate(valid_plan, brief, tools)
+    assert "AVOIDED_LOCATION" in {issue.code for issue in report.issues}
+    assert report.hard_pass is False
+
+
+def test_unused_avoid_entry_is_not_an_issue(valid_plan, tools):
+    brief = PlanRequest(avoid=["qinglong_temple"])
+    assert "AVOIDED_LOCATION" not in codes(valid_plan, brief, tools)
+
+
+def test_unknown_source_ref_is_hard(valid_plan, brief, tools):
+    plan = copy.deepcopy(valid_plan)
+    plan.source_refs = ["locations.json#invented_palace", "styles.json#tang"]
+    report = validate(plan, brief, tools)
+    assert "UNKNOWN_SOURCE_REF" in {issue.code for issue in report.issues}
+    assert report.hard_pass is False
+
+
+def test_valid_source_refs_are_accepted(valid_plan, brief, tools):
+    plan = copy.deepcopy(valid_plan)
+    plan.source_refs = ["locations.json#city_wall", "styles.json#tang"]
+    assert "UNKNOWN_SOURCE_REF" not in codes(plan, brief, tools)
 
 
 def test_score_degrades_with_each_hard_issue(valid_plan, brief, tools):

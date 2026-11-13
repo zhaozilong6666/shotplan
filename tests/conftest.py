@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -13,6 +14,20 @@ import pytest
 
 from shotplan.domain.models import Plan, PlanRequest, TimeSlot
 from shotplan.knowledge.tools import get_tools
+
+
+@pytest.fixture(autouse=True)
+def hermetic_env(monkeypatch):
+    """Stop a developer's local `.env` or shell exports from changing results.
+
+    Without this, `api_key_set` flipped from False to True the moment someone
+    pointed the project at a real provider, and the unit suite failed for a
+    reason that had nothing to do with the code under test.
+    """
+    monkeypatch.setenv("SHOTPLAN_SKIP_DOTENV", "1")
+    for name in [key for key in os.environ if key.startswith("SHOTPLAN_")]:
+        if name != "SHOTPLAN_SKIP_DOTENV":
+            monkeypatch.delenv(name, raising=False)
 
 
 @pytest.fixture

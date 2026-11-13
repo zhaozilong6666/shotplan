@@ -2,7 +2,7 @@
 
 - 状态：已采纳
 - 日期：2026-11-13
-- 相关：[0011 对照实验优先于归因推断](0011-controlled-experiment-over-inference.md)、[0007 生成前可行性判定](0007-preflight-feasibility.md)
+- 相关：[0011 对照实验优先于归因推断](0011-controlled-experiment-over-inference.md)、[0007 生成前可行性判定](0007-feasibility-before-generation.md)
 
 ## 背景
 
