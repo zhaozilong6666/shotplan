@@ -19,7 +19,7 @@ jobs:
         run: python -m evals.run_eval --write-report --compare evals/baselines/v6-naive.json
       - name: Upload report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: weekly-eval-report
           path: |
