@@ -74,3 +74,14 @@ def test_serve_delegates_to_uvicorn(monkeypatch):
     monkeypatch.setattr(uvicorn, "run", lambda *args, **kwargs: called.setdefault("ok", True))
     assert cli.main(["serve", "--port", "9999"]) == 0
     assert called["ok"] is True
+
+
+def test_serve_persist_mode_reaches_the_app_environment(monkeypatch):
+    import os
+
+    import uvicorn
+
+    monkeypatch.setattr(uvicorn, "run", lambda *a, **k: None)
+    monkeypatch.setenv("SHOTPLAN_PERSIST_MODE", "sync")
+    assert cli.main(["serve", "--persist-mode", "async"]) == 0
+    assert os.environ["SHOTPLAN_PERSIST_MODE"] == "async"

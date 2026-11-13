@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from typing import Any
 
@@ -142,6 +143,12 @@ def cmd_serve(args: argparse.Namespace) -> int:
     except ImportError:
         print("serve 需要可选依赖：python -m pip install -e '.[api]'", file=sys.stderr)
         return 1
+    if getattr(args, "persist_mode", None):
+        # Export before uvicorn imports the app (also covers --reload, whose
+        # worker subprocess inherits this environment).
+        os.environ["SHOTPLAN_PERSIST_MODE"] = args.persist_mode
+    cfg = get_settings()
+    print(f"persist_mode={cfg.persist_mode}；async 模式下「运行统计」页可看写入积压")
     uvicorn.run("shotplan.api:app", host=args.host, port=args.port, reload=args.reload)
     return 0
 
@@ -190,6 +197,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=8000)
     p.add_argument("--reload", action="store_true")
+    p.add_argument(
+        "--persist-mode", choices=["off", "sync", "async"],
+        help="运行历史写入策略；async 时「运行统计」页可视化写入积压",
+    )
     p.set_defaults(func=cmd_serve)
     return parser
 

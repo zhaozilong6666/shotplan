@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### Added
+
+- **`serve --persist-mode off|sync|async`**：演示异步写库不再需要改环境变量；CLI 会在启动时打印当前模式。配套测试断言该值真的进入应用进程环境。
+- **[docs/interview-onepager.md](docs/interview-onepager.md)**：面试一页纸（30 秒开场、数字卡片、5 个必考问答、边界与现场可跑命令），由面试笔记压缩而来，每个数字带出处链接。
+
 阶段 4 剩余项：接真实模型跑 `openai_compatible`、记录 prompt v1/v2 的实测差异。详见 `docs/ROADMAP.md`。
 
 ## [0.10.1] - 2026-11-13
