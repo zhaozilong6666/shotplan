@@ -238,7 +238,7 @@
       <div class="metric good"><b>1000 / 1000</b><span>真实请求 / 成功落库</span></div>
     </div>
     <p class="section-note http-note">
-      4 个 worker 的吞吐只有单 worker 的 0.52×：真实服务里每个请求都要写一条运行记录，多进程共享同一个 SQLite 文件，本机最佳是 2 worker。下节的对照实验显示关掉同步写库可让 1 worker 提速约 2.5×，写锁归因在本批数据下得到支持，但结论依赖负载稳定复现。吞吐与 P95 只写进报告，不进 CI 门禁；门禁只查 0 错误、0 丢写与服务没挂住。
+      4 个 worker 的吞吐只有单 worker 的 0.52×：真实服务里每个请求都要写一条运行记录，多进程共享同一个 SQLite 文件，本机最佳是 2 worker。下节的对照实验显示关掉同步写库可让 1 worker 提速 2.48×，写锁归因在本批数据下得到支持，但结论依赖负载稳定复现。吞吐与 P95 只写进报告，不进 CI 门禁；门禁只查 0 错误、0 丢写与服务没挂住。
     </p>
   </section>
 
@@ -253,6 +253,20 @@
     </div>
     <p class="section-note worker-note">
       同一份产品代码、同一个服务，只切 <code>SHOTPLAN_PERSIST_RUNS</code> 开关；2 轮 × 1/2/4 worker × 开/关取中位数。有写入组 4w/1w 的逐轮比值是 0.86× / 0.92×，两组最佳点分别是 2 / 4 worker。结论只作定性证据：另一批独立运行里「4 worker 回落」本身没稳定复现，因此不写成普适规律。吞吐不进 CI 门禁，门禁只验证开关真的生效（开 = 全落库、关 = 0 落库）。
+    </p>
+  </section>
+
+  <section>
+    <h2>写入异步化：把运行历史移出关键路径</h2>
+    <p class="section-note">上一节确认了同步写库是请求关键路径上最大的单项开销，结论写的是「异步化，而不是删掉历史」。这一节把这条建议实现出来，再用三组对照（完全不写 / 同步写 / 写后置队列）量它到底还回多少、会不会丢写。</p>
+    <div class="metrics persist">
+      <div class="metric good"><b>2.96×</b><span>异步写入 vs 同步写入 · 1 worker</span></div>
+      <div class="metric good"><b>5.13×</b><span>完全不写的上限（不可交付）</span></div>
+      <div class="metric good"><b>186 → 93 ms</b><span>P95 · 同步 → 异步</span></div>
+      <div class="metric good"><b>0</b><span>三组丢写总数</span></div>
+    </div>
+    <p class="section-note persist-note">
+      同一份产品代码，只切 <code>SHOTPLAN_PERSIST_MODE</code>：<code>off</code> / <code>sync</code> / <code>async</code> 三组在同一批内交替执行。异步拿回了写库开销的 47%（4 worker 为 1.95×），排空窗口在 0.1s 量级，三组都没有丢写。默认仍是 <code>sync</code>：「每个被接受的请求都已落库」是既有承诺，异步是可选模式，它的持久性边界（进程被硬杀时队列里的行会丢）用 <code>os._exit</code> 真杀进程量过，不靠推断。吞吐与排空时间不进 CI 门禁，门禁只验证三组各自的落库契约。
     </p>
   </section>
 
@@ -306,7 +320,7 @@
           python -m evals.worker_lab --check<br>
           python -m shotplan.cli stats
         </p>
-        <p style="margin-top:10px">单元测试与 14 道质量门禁；CI 覆盖 Python 3.10 / 3.11 / 3.12 / 3.13。</p>
+        <p style="margin-top:10px">单元测试与 16 道质量门禁；CI 覆盖 Python 3.10 / 3.11 / 3.12 / 3.13。</p>
       </div>
       <div class="card">
         <h3>决策记录（ADR）</h3>

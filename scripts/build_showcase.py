@@ -271,19 +271,27 @@ def http_load_block(load: dict) -> str:
     )
 
 
-def http_note_block(load: dict) -> str:
+def http_note_block(load: dict, lab: dict | None = None) -> str:
     rows = load["scenarios"]
     single = next(r for r in rows if r["workers"] == 1 and r["concurrency"] == 8)
     curve = [r for r in rows if r["concurrency"] == 8]
     widest = max(curve, key=lambda r: r["workers"])
     ratio = widest["rps"] / single["rps"] if single["rps"] else 0.0
     best = max(curve, key=lambda r: r["rps"])
+    if lab:
+        # Read the number from the experiment snapshot instead of restating it
+        # here: a hard-coded "about 2.5x" is a second source of truth that
+        # silently becomes wrong the moment the experiment is re-run.
+        gain = lab["interpretation"]["persistence_gain_1w"]
+        evidence = f"下节的对照实验显示关掉同步写库可让 1 worker 提速 {gain}×"
+    else:
+        evidence = "下节的对照实验用开关检验了这个归因"
     return (
         '<p class="section-note http-note">\n'
         f'      {widest["workers"]} 个 worker 的吞吐只有单 worker 的 {ratio:.2f}×：'
         "真实服务里每个请求都要写一条运行记录，多进程共享同一个 SQLite 文件，"
         f'本机最佳是 {best["workers"]} worker。'
-        "下节的对照实验显示关掉同步写库可让 1 worker 提速约 2.5×，写锁归因在本批数据下得到支持，"
+        f"{evidence}，写锁归因在本批数据下得到支持，"
         "但结论依赖负载稳定复现。吞吐与 P95 只写进报告，不进 CI 门禁；门禁只查 0 错误、0 丢写与服务没挂住。\n"
         "    </p>"
     )
@@ -329,6 +337,38 @@ def worker_note_block(lab: dict) -> str:
     )
 
 
+def persist_block(lab: dict) -> str:
+    r = lab["interpretation"]
+    return (
+        '<div class="metrics persist">\n'
+        f'      <div class="metric good"><b>{r["async_recovery_1w"]}×</b>'
+        "<span>异步写入 vs 同步写入 · 1 worker</span></div>\n"
+        f'      <div class="metric good"><b>{r["write_cost_1w"]}×</b>'
+        "<span>完全不写的上限（不可交付）</span></div>\n"
+        f'      <div class="metric good"><b>{r["p95_sync_1w"]:.0f} → '
+        f'{r["p95_async_1w"]:.0f} ms</b><span>P95 · 同步 → 异步</span></div>\n'
+        f'      <div class="metric good"><b>{r["lost_writes"]}</b>'
+        "<span>三组丢写总数</span></div>\n"
+        "    </div>"
+    )
+
+
+def persist_note_block(lab: dict) -> str:
+    r = lab["interpretation"]
+    share = int(round(r["share_of_cost_recovered_1w"] * 100))
+    return (
+        '<p class="section-note persist-note">\n'
+        "      同一份产品代码，只切 <code>SHOTPLAN_PERSIST_MODE</code>："
+        "<code>off</code> / <code>sync</code> / <code>async</code> 三组在同一批内交替执行。"
+        f"异步拿回了写库开销的 {share}%（4 worker 为 {r['async_recovery_4w']}×），"
+        f"排空窗口在 0.1s 量级，三组都没有丢写。默认仍是 <code>sync</code>："
+        "「每个被接受的请求都已落库」是既有承诺，异步是可选模式，"
+        "它的持久性边界（进程被硬杀时队列里的行会丢）用 <code>os._exit</code> 真杀进程量过，"
+        "不靠推断。吞吐与排空时间不进 CI 门禁，门禁只验证三组各自的落库契约。\n"
+        "    </p>"
+    )
+
+
 def failures_block(failures: list[dict]) -> str:
     counts = Counter(record["code"] for record in failures)
     items = []
@@ -355,6 +395,7 @@ def main() -> int:
     # Single-machine loopback snapshot. Throughput is displayed, never gated.
     http_load = _load(ROOT / "evals" / "http_load.json")
     worker_lab = _load(ROOT / "evals" / "worker_lab.json")
+    persist_lab = _load(ROOT / "evals" / "persist_lab.json")
     # Benchmark numbers are machine-specific and cannot be regenerated identically
     # in CI, so the page reads a committed snapshot instead of evals/out/.
     # Refresh it with: python -m evals.benchmark --out evals/benchmark.json
@@ -441,7 +482,7 @@ def main() -> int:
         html,
         r'<div class="metrics http-load">.*?</div>\s*'
         r'<p class="section-note http-note">.*?</p>',
-        http_load_block(http_load) + "\n    " + http_note_block(http_load),
+        http_load_block(http_load) + "\n    " + http_note_block(http_load, worker_lab),
         "http load",
     )
     html = replace_block(
@@ -450,6 +491,13 @@ def main() -> int:
         r'<p class="section-note worker-note">.*?</p>',
         worker_block(worker_lab) + "\n    " + worker_note_block(worker_lab),
         "worker lab",
+    )
+    html = replace_block(
+        html,
+        r'<div class="metrics persist">.*?</div>\s*'
+        r'<p class="section-note persist-note">.*?</p>',
+        persist_block(persist_lab) + "\n    " + persist_note_block(persist_lab),
+        "persist lab",
     )
     page.write_text(html, encoding="utf-8")
     print(f"wrote {page}")

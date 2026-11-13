@@ -1,0 +1,135 @@
+{
+  "version": 1,
+  "machine_dependent": true,
+  "note": "throughput/drain are reported, never gated; loss and switch semantics are",
+  "python": "3.13.14",
+  "platform": "Windows",
+  "cpu_count": 18,
+  "arms": [
+    "off",
+    "sync",
+    "async"
+  ],
+  "workers": [
+    1,
+    4
+  ],
+  "concurrency": 8,
+  "requests_per_run": 150,
+  "repeats": 2,
+  "cells": [
+    {
+      "mode": "async",
+      "workers": 1,
+      "median_rps": 130.43,
+      "median_p95_ms": 92.86,
+      "median_drain_s": 0.093,
+      "rps_runs": [
+        127.47,
+        133.39
+      ],
+      "p95_runs": [
+        91.84,
+        93.88
+      ],
+      "errors": 0,
+      "lost_writes": 0
+    },
+    {
+      "mode": "async",
+      "workers": 4,
+      "median_rps": 269.88,
+      "median_p95_ms": 68.06,
+      "median_drain_s": 0.112,
+      "rps_runs": [
+        272.68,
+        267.09
+      ],
+      "p95_runs": [
+        62.08,
+        74.04
+      ],
+      "errors": 0,
+      "lost_writes": 0
+    },
+    {
+      "mode": "off",
+      "workers": 1,
+      "median_rps": 226.39,
+      "median_p95_ms": 86.59,
+      "median_drain_s": 0.0,
+      "rps_runs": [
+        220.15,
+        232.63
+      ],
+      "p95_runs": [
+        91.25,
+        81.92
+      ],
+      "errors": 0,
+      "lost_writes": 0
+    },
+    {
+      "mode": "off",
+      "workers": 4,
+      "median_rps": 311.35,
+      "median_p95_ms": 71.05,
+      "median_drain_s": 0.0,
+      "rps_runs": [
+        296.31,
+        326.39
+      ],
+      "p95_runs": [
+        65.08,
+        77.01
+      ],
+      "errors": 0,
+      "lost_writes": 0
+    },
+    {
+      "mode": "sync",
+      "workers": 1,
+      "median_rps": 44.11,
+      "median_p95_ms": 186.12,
+      "median_drain_s": 0.038,
+      "rps_runs": [
+        44.62,
+        43.6
+      ],
+      "p95_runs": [
+        184.28,
+        187.97
+      ],
+      "errors": 0,
+      "lost_writes": 0
+    },
+    {
+      "mode": "sync",
+      "workers": 4,
+      "median_rps": 138.38,
+      "median_p95_ms": 124.29,
+      "median_drain_s": 0.041,
+      "rps_runs": [
+        143.41,
+        133.34
+      ],
+      "p95_runs": [
+        116.79,
+        131.79
+      ],
+      "errors": 0,
+      "lost_writes": 0
+    }
+  ],
+  "interpretation": {
+    "verdict": "confirmed",
+    "write_cost_1w": 5.13,
+    "write_cost_4w": 2.25,
+    "async_recovery_1w": 2.96,
+    "async_recovery_4w": 1.95,
+    "share_of_cost_recovered_1w": 0.474,
+    "p95_sync_1w": 186.12,
+    "p95_async_1w": 92.86,
+    "lost_writes": 0
+  }
+}

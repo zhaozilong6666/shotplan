@@ -21,7 +21,7 @@ Hanfu travel photography was chosen because its constraints are real: golden-hou
 | Quality | Try another prompt | 12 deterministic rules + dimension scores |
 | Impossible brief | Fabricate a plan anyway | Pre-generation check returns reasons, gaps, suggestions and theoretical minimums |
 | Failure handling | Regenerate once | Validation report becomes a repair hint; **worse drafts are rejected** |
-| Evidence | Screenshots | 80 regression cases + 200 holdout briefs + real HTTP load test + persistence A/B experiment + 14 CI gates |
+| Evidence | Screenshots | 80 regression cases + 200 holdout briefs + real HTTP load test + three-arm persistence experiment + 16 CI gates |
 | Gate validity | "CI is green" | 8 injected mutations must all be caught by the real gate |
 | Unseen inputs | One hand-written suite | 200 mined holdout briefs, kept separate so baselines stay comparable |
 | Grounding | None | Every location id must exist in the knowledge base |
@@ -113,6 +113,20 @@ The HTTP load test *inferred* that several workers contending for one SQLite wri
 
 But the verdict is computed, not hard-coded: another independent run had 4 workers **2.42x faster** than 1, so the fall-off itself did not reproduce and the logic can return `inconclusive`. Only "synchronous persistence is the largest single cost" reproduces reliably. See [ADR 0011](docs/adr/0011-controlled-experiment-over-inference.md). `--check` gates only the switch semantics (on = all persisted, off = 0 persisted), as CI gate #14.
 
+## Write-behind persistence: implementing the recommendation
+
+The experiment above ended with a recommendation — move the run-history write off the request path, do not delete history — which had never been implemented or tested. [persistence.md](docs/persistence.md) does both. `SHOTPLAN_PERSIST_MODE=off|sync|async` selects between no write, the status quo, and a per-process writer thread that batches up to 32 rows per transaction.
+
+Same product code, three arms interleaved in one batch: async is **2.96x** faster than sync at 1 worker and **1.95x** at 4 workers, recovering about **47%** of the write cost, with P95 falling from 186 ms to 93 ms and **zero lost writes** across all three arms. (Another independent batch measured 5.5x and 45%: the recovered share is stable, the absolute multiple is not.) The default stays `sync`: "every accepted request is stored" is an existing promise, and `async` trades a bounded loss window on a hard kill for that speed. The window is not hand-waved — a child process calls `os._exit` mid-queue and the parent counts the rows, so both the committed survivor set and the loss are measured.
+
+The queue never drops on saturation: it falls back to a synchronous write and counts `sync_fallbacks`. Failed batches retry once, then increment `failed` instead of killing the writer thread. `/api/config` exposes `pending / written / failed / sync_fallbacks`. `--check` is CI gate #15 and asserts only the three arms' storage contracts — a saturated queue is a latency problem, not a durability one.
+
+## Pipeline contract: a stage table, a wall-clock budget, and a trust boundary
+
+The flow used to exist only as a hand-drawn diagram, and the repair loop was bounded by a retry count only. Both are now structural. `STAGES` in `pipeline.py` declares all six nodes with inputs, outputs and failure transitions; `scripts/build_pipeline_doc.py` **generates** [pipeline-contract.md](docs/pipeline-contract.md) from it, and CI fails when the document drifts. A test asserts every trace event emitted at runtime is a declared stage, so adding a step without declaring it fails the build rather than the review.
+
+The retry count alone does not bound latency: two generations x three HTTP attempts x a 30 s timeout is a 183 s worst case. `SHOTPLAN_PIPELINE_BUDGET_S` adds a wall-clock deadline that stops opening new repair rounds and **returns the best draft so far**, with a `REPAIR_BUDGET_EXCEEDED` soft issue, instead of discarding work that already passes most rules. The parser at the trust boundary was also hardened: braces inside strings, prose after the JSON, two objects, trailing commas, and `"免费"` where an int belongs are all handled, and the last one used to escape as a bare `ValueError` — an HTTP 500. See [ADR 0013](docs/adr/0013-explicit-stage-table-and-budget.md).
+
 ## More verifiable evidence
 
 1. **[Repair-loop experiment](docs/repair-experiment.md)** — three constructed providers over the same 69 satisfiable briefs. A repairable provider goes from 0% to 100% hard-pass in one round (69/69); all 69 "repairs" from a provider that ignores hints are rejected; all 69 worse-than-original repairs are blocked by the monotonic guard. Every accept/reject decision is read from the run trace.
@@ -163,6 +177,9 @@ The core uses only the Python standard library; FastAPI / pytest / ruff are opti
 | [0008](docs/adr/0008-fuzz-and-benchmark-gates.md) | Fuzzing and benchmarks as gates | "Never crashes" and "never slow" must be testable, not reviewed by hand |
 | [0009](docs/adr/0009-gate-sensitivity.md) | Test the gates themselves with mutations | A green CI run does not prove the checks work |
 | [0010](docs/adr/0010-holdout-challenge-set.md) | Keep the holdout challenge set separate | Regression baselines must stay comparable across versions |
+| [0011](docs/adr/0011-controlled-experiment-over-inference.md) | Controlled experiments before causal claims | A plausible mechanism is not an intervention |
+| [0012](docs/adr/0012-write-behind-persistence.md) | Write-behind queue for run history | The write is the bottleneck, but speed must not silently drop rows |
+| [0013](docs/adr/0013-explicit-stage-table-and-budget.md) | Stage table plus a wall-clock budget | Diagrams drift; retry counts do not bound latency |
 
 ## Optional: real model, UI, deployment
 
@@ -178,7 +195,7 @@ Any OpenAI-compatible endpoint works (OpenAI, DeepSeek, local Ollama / vLLM). Wi
 
 ## Roadmap
 
-- [x] Phases 1–3: domain, knowledge base, validator, pipeline, tracing, API/Web, eval suite, CI gates
+- [x] Phases 1–3: domain, knowledge base, validator, pipeline, tracing, API/Web, eval suite, write-behind persistence, CI gates
 - [x] Phase 4 offline work: 80 cases, `INFEASIBLE` branch, repair lab, failure library, prompt v1/v2 framework, cost/latency reporting, gate-sensitivity lab, 200-brief holdout challenge set, real HTTP load test with multiple uvicorn workers
 - [ ] Phase 4 remaining: real-model comparison experiments (needs an API key)
 - [ ] Phase 5: public online demo, bilingual polish, final resume materials

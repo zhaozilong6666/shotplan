@@ -19,7 +19,7 @@ flowchart TB
     subgraph Orchestration["编排层"]
         PIPE["pipeline.py"]
         TRACE["tracing.py"]
-        STORE["storage.py (SQLite)"]
+        STORE["storage.py (SQLite: sync / write-behind)"]
     end
     subgraph Agent["Agent 层"]
         PROV["providers: mock / openai_compatible"]
@@ -56,6 +56,8 @@ flowchart TB
 
 ## 一次请求的完整数据流
 
+流水线本身写成一张状态表（`STAGES`）：图与逐节点契约由代码生成，见 [pipeline-contract.md](pipeline-contract.md)。每一步的失败转移与降级方式都在那张表里，不靠读语句顺序推断。
+
 0. `check_feasibility()` 在**调用 provider 之前**判断 brief 是否可能满足。不可行时直接返回 `status="infeasible"` + 结构化原因，trace 只记录 `preflight`，不生成、不修复。
 1. `PlanRequest.normalized()` 把模糊输入规范化并夹紧到合法区间（时长 1–12 小时、预算 ≥ 0）。
 2. `KnowledgeTools.context_for()` 做结构化检索，产出**紧凑、可引用**的上下文：候选地点、风格详情、黄金光线窗口、室内兜底、转场最短时长。
@@ -63,7 +65,7 @@ flowchart TB
 4. `parse_plan()` 是信任边界：抽取 JSON（容忍 markdown 围栏和前后解释）、校验字段、统一时间格式、按时间排序、计算成本。任何不合法都抛 `ParseError`。
 5. `validate()` 执行 12 条规则，产出问题清单、5 个维度分与用 `math.fsum` 聚合的加权总分。
 6. 若存在硬约束问题且还有修复轮次，`build_repair_hint()` 把报告转成精确修复指令再生成一次。**只有当新草稿严格更优时才替换**，避免修复把方案改坏。
-7. `TraceCollector` 汇总每步耗时 / token / 成本；`RunStore` 把完整结果写入 SQLite。
+7. `TraceCollector` 汇总每步耗时 / token / 成本。运行历史有两种写入策略，共用同一张表：`RunStore` 同步提交（默认，响应返回前已落库）；`RunWriter` 交给进程内单写线程批量提交，`flush()` 才是「已落库」的屏障（ADR 0012）。
 
 ## 关键不变量
 
@@ -74,6 +76,8 @@ flowchart TB
 - 任何 `location_id` 都必须在知识库中存在（travel 块允许 `-` 占位），否则判硬失败。
 - 评分用 `math.fsum` + 固定 6 位精度，跨 Python 3.10–3.13 逐位一致（ADR 0006）。
 - 不可行结果同样写入运行历史，且 `status` / `feasibility` 会随 JSON 一起返回给 CLI、API 与 Web。
+- 一次请求的墙钟受 `SHOTPLAN_PIPELINE_BUDGET_S` 约束：超预算停止开启新的修复轮次，返回当前最优草稿并记 `REPAIR_BUDGET_EXCEEDED`，不丢弃已算出的结果。
+- 解析层是唯一允许「修」模型输出的地方，且每次修复都写进 trace 的 `notes`；数字读不出就 `ParseError`，绝不默认成 0（否则预算规则会对超支方案判通过）。
 - 评测集同时跑 `good` 与 `naive`：均值接近、对照组分数异常升高，或对照组不再命中某条已知缺陷，都判定测量失效。门禁实现只有 `evals.scorers.eval_gate_problems` 一处，并由 `evals/mutation_lab.py` 注入受控故障反向验证（ADR 0009）。
 
 ## 依赖策略

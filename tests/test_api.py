@@ -96,3 +96,37 @@ def test_plan_endpoint_reports_infeasible_brief(client):
     assert data["feasibility"]["feasible"] is False
     assert data["plan"]["slots"] == []
     assert data["validation"]["issues"][0]["code"] == "INFEASIBLE"
+
+
+def test_async_persist_mode_flushes_on_shutdown(tmp_path, monkeypatch):
+    """The API hands the row to the writer and the lifespan drains it."""
+    from shotplan.storage import RunStore
+
+    monkeypatch.setenv("SHOTPLAN_DB_PATH", str(tmp_path / "async.db"))
+    monkeypatch.setenv("SHOTPLAN_PROVIDER", "mock")
+    monkeypatch.setenv("SHOTPLAN_PERSIST_MODE", "async")
+
+    with TestClient(app) as client:
+        for _ in range(3):
+            response = client.post("/api/plan", json={"mock_mode": "good"})
+            assert response.status_code == 200
+        body = client.get("/api/config").json()
+        assert body["persist_mode"] == "async"
+        assert body["writer"]["submitted"] == 3
+        assert body["writer"]["sync_fallbacks"] == 0
+
+    # After the context manager exits, lifespan has drained the queue.
+    assert RunStore(tmp_path / "async.db").summary()["total_runs"] == 3
+
+
+def test_off_persist_mode_stores_nothing(tmp_path, monkeypatch):
+    from shotplan.storage import RunStore
+
+    monkeypatch.setenv("SHOTPLAN_DB_PATH", str(tmp_path / "off.db"))
+    monkeypatch.setenv("SHOTPLAN_PROVIDER", "mock")
+    monkeypatch.setenv("SHOTPLAN_PERSIST_MODE", "off")
+
+    with TestClient(app) as client:
+        assert client.post("/api/plan", json={"mock_mode": "good"}).status_code == 200
+
+    assert RunStore(tmp_path / "off.db").summary()["total_runs"] == 0

@@ -25,3 +25,13 @@ class ParseError(ShotplanError):
 
 class StorageError(ShotplanError):
     """Persistence layer failed."""
+
+
+class DeadlineExceeded(ShotplanError):
+    """The wall-clock budget for one plan request ran out.
+
+    Distinct from ProviderError: the provider may be healthy, it is the whole
+    pipeline (generate x retries x repairs) that cannot finish in time. The
+    retry counter alone does not bound wall-clock time, because each retry can
+    take up to the provider timeout.
+    """

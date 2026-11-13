@@ -106,6 +106,6 @@ python scripts/push_via_api.py             # 推送当前 HEAD 到 origin 当前
 5. `python -m evals.http_load --check`（真实服务 0 错误、0 丢写）
 6. `python -m evals.worker_lab --check`（持久化开关语义）
 7. `python -m ruff check src tests evals scripts`（风格）
-8. `make gates` 跑完 CI 的全部 14 道质量门禁（含覆盖率、模糊测试、盲测、真实 HTTP、对照实验、并发、扩展性与展示页一致性）
+8. `make gates` 跑完 CI 的全部 16 道质量门禁（含覆盖率、模糊测试、盲测、真实 HTTP、对照实验、写入异步化、流水线契约、并发、扩展性与展示页一致性）
 9. `python -m shotplan.cli plan` 与 `python -m shotplan.cli plan --budget 100`（正常路径 + 拒绝路径冒烟）
 10. `git status` 确认没有把 `.env` / `.db` / `evals/out/` 加进去

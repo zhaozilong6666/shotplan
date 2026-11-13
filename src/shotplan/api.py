@@ -7,6 +7,7 @@ The core engine has no dependency on this file.
 
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from typing import Any
 
 try:
@@ -21,23 +22,46 @@ except ImportError as exc:  # pragma: no cover
 
 from . import __version__
 from .agents import MockProvider, build_provider
-from .config import ROOT, get_settings
+from .config import ROOT, Settings, get_settings
 from .domain.constraints import RULES
 from .domain.errors import ShotplanError
 from .domain.models import PlanRequest
 from .pipeline import run_plan
-from .storage import RunStore
+from .storage import RunSink, RunStore, close_all_writers, get_writer
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    """Drain the write-behind queue on shutdown.
+
+    Without this, SIGTERM would stop the process with rows still queued, which
+    is exactly the failure mode that makes people distrust background writes.
+    """
+    try:
+        yield
+    finally:
+        close_all_writers(timeout=10.0)
+
 
 app = FastAPI(
     title="shotplan",
     version=__version__,
     description="可评测、带硬约束校验的旅拍方案 Agent",
+    lifespan=lifespan,
 )
 WEB_DIR = ROOT / "web"
 
 
 def _store() -> RunStore:
     return RunStore(get_settings().db_path)
+
+
+def _sink(cfg: Settings) -> RunSink | None:
+    """Where a finished run goes: nowhere, disk now, or the write-behind queue."""
+    if cfg.persist_mode == "off":
+        return None
+    store = _store()
+    return get_writer(store) if cfg.persist_mode == "async" else store
 
 
 @app.get("/api/health")
@@ -48,7 +72,13 @@ def health() -> dict[str, Any]:
 
 @app.get("/api/config")
 def config() -> dict[str, Any]:
-    return get_settings().masked()
+    cfg = get_settings()
+    payload = cfg.masked()
+    if cfg.persist_mode == "async":
+        # Make the queue observable: pending rows are the honest answer to
+        # "did my write land?", and sync_fallbacks means it is saturated.
+        payload["writer"] = get_writer(_store()).stats.to_dict()
+    return payload
 
 
 @app.get("/api/rules")
@@ -70,6 +100,7 @@ async def create_plan(request: Request) -> JSONResponse:
             else build_provider()
         )
         cfg = get_settings()
+        sink = _sink(cfg)
         # The pipeline is synchronous CPU work (and, with a real provider, blocking
         # network I/O). Calling it directly from an async endpoint would block the
         # event loop and serialise every request. Hand it to the threadpool.
@@ -77,7 +108,7 @@ async def create_plan(request: Request) -> JSONResponse:
             lambda: run_plan(
                 brief,
                 provider=provider,
-                store=_store() if cfg.persist_runs else None,
+                store=sink,
                 settings=cfg,
                 max_repairs=cfg.max_repairs,
             )

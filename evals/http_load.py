@@ -69,6 +69,7 @@ CHECK_CONCURRENCY = 4
 # performance. Real numbers are reported in docs/http-load.md.
 MAX_P95_MS = 3000.0
 READY_TIMEOUT_S = 40.0
+DRAIN_TIMEOUT_S = 5.0
 
 
 @dataclass(frozen=True)
@@ -89,6 +90,14 @@ class Scenario:
     runs_after: int = 0
     startup_s: float = 0.0
     persist: bool = True
+    # off | sync | async. Kept separate from `persist` because the two-arm
+    # worker experiment only needs on/off, while the persistence experiment
+    # needs to tell "committed inline" from "committed by the writer thread".
+    mode: str = "sync"
+    # How long after the last response the rows took to appear. Non-zero means
+    # the write really was moved off the request path.
+    drain_s: float = 0.0
+    drain_timeout: bool = False
 
     @property
     def latencies(self) -> list[float]:
@@ -122,12 +131,15 @@ class Scenario:
             "concurrency": self.concurrency,
             "requests": self.requests,
             "persist": self.persist,
+            "mode": self.mode,
             "ok": self.ok_count,
             "errors": len(self.errors),
             "error_samples": self.errors[:3],
             "kinds": dict(sorted(kinds.items())),
             "wall_s": round(self.wall_s, 3),
             "startup_s": round(self.startup_s, 2),
+            "drain_s": round(self.drain_s, 3),
+            "drain_timeout": self.drain_timeout,
             "rps": round(self.requests / self.wall_s, 2) if self.wall_s else 0.0,
             "p50_ms": round(percentile(latencies, 50), 2),
             "p95_ms": round(percentile(latencies, 95), 2),
@@ -168,14 +180,15 @@ def _stop(proc: subprocess.Popen) -> None:
 
 @contextlib.contextmanager
 def server(
-    workers: int, db_path: Path, persist: bool = True
+    workers: int, db_path: Path, persist: bool = True, mode: str | None = None
 ) -> Iterator[tuple[str, float]]:
     """Start real uvicorn in a subprocess; always tear it down."""
     port = free_port()
     env = os.environ.copy()
     env["SHOTPLAN_DB_PATH"] = str(db_path)
     env["SHOTPLAN_PROVIDER"] = "mock"
-    env["SHOTPLAN_PERSIST_RUNS"] = "1" if persist else "0"
+    # mode wins when given: it is the finer-grained arm label.
+    env["SHOTPLAN_PERSIST_MODE"] = mode or ("sync" if persist else "off")
     env["PYTHONPATH"] = str(ROOT / "src") + os.pathsep + env.get("PYTHONPATH", "")
     command = [
         sys.executable, "-m", "uvicorn", "shotplan.api:app",
@@ -243,14 +256,25 @@ def one(client: httpx.Client, index: int) -> Result:
 
 
 def run_scenario(
-    workers: int, concurrency: int, requests: int, persist: bool = True
+    workers: int,
+    concurrency: int,
+    requests: int,
+    persist: bool = True,
+    mode: str | None = None,
+    drain_timeout: float = DRAIN_TIMEOUT_S,
 ) -> Scenario:
-    scenario = Scenario(workers, concurrency, requests, persist=persist)
+    arm = mode or ("sync" if persist else "off")
+    scenario = Scenario(
+        workers, concurrency, requests,
+        persist=(arm != "off"), mode=arm,
+    )
     with tempfile.TemporaryDirectory(
         prefix="shotplan-http-", ignore_cleanup_errors=True
     ) as tmp:
         db_path = Path(tmp) / "runs.db"
-        with server(workers, db_path, persist) as (base_url, startup_s):
+        with server(workers, db_path, persist=scenario.persist, mode=arm) as (
+            base_url, startup_s
+        ):
             scenario.startup_s = startup_s
             limits = httpx.Limits(
                 max_connections=max(8, concurrency * 2),
@@ -266,7 +290,19 @@ def run_scenario(
                         pool.map(lambda i: one(client, i), range(requests))
                     )
                 scenario.wall_s = time.perf_counter() - started
+                # "Response returned" is not "row committed" once the write is
+                # off the request path. Poll instead of pretending, and record
+                # how long the drain took: that is the real cost of async.
+                if scenario.persist:
+                    drain_started = time.perf_counter()
+                    deadline = drain_started + drain_timeout
+                    while time.perf_counter() < deadline:
+                        if total_runs(client) - scenario.runs_before >= scenario.ok_count:
+                            break
+                        time.sleep(0.02)
+                    scenario.drain_s = time.perf_counter() - drain_started
                 scenario.runs_after = total_runs(client)
+                scenario.drain_timeout = scenario.lost_writes > 0
     return scenario
 
 
@@ -449,10 +485,10 @@ def print_summary(scenario: Scenario) -> None:
     m = scenario.metrics()
     print(
         f"workers={scenario.workers} concurrency={scenario.concurrency} "
-        f"persist={int(scenario.persist)} requests={scenario.requests}: rps={m['rps']} "
+        f"mode={scenario.mode} requests={scenario.requests}: rps={m['rps']} "
         f"p50/p95={m['p50_ms']}/{m['p95_ms']}ms "
         f"errors={m['errors']} persisted={scenario.runs_delta}/{scenario.ok_count} "
-        f"startup={m['startup_s']}s"
+        f"drain={m['drain_s']}s startup={m['startup_s']}s"
     )
 
 

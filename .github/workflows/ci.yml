@@ -64,6 +64,12 @@ jobs:
       - name: Worker/persistence controlled experiment
         run: python -m evals.worker_lab --check
 
+      - name: Write-behind persistence gate
+        run: python -m evals.persist_lab --check
+
+      - name: Pipeline contract doc is generated from code
+        run: python scripts/build_pipeline_doc.py --check
+
       - name: Examples are up to date
         run: python -m evals.examples --check
 

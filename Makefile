@@ -1,4 +1,4 @@
-.PHONY: help install test lint eval mutation mine report fuzz bench load httpload workerlab scale examples gates showcase serve plan smoke clean
+.PHONY: help install test lint eval mutation mine report fuzz bench load httpload workerlab persistlab pipelinedoc scale examples gates showcase serve plan smoke clean
 
 PYTHON ?= python
 
@@ -16,6 +16,8 @@ help:
 	@echo "  load      并发负载测试（错误数、丢写、饱和点）"
 	@echo "  httpload  真实 uvicorn 服务 + 多 worker 的 HTTP 压测"
 	@echo "  workerlab 持久化开/关对照实验，验证多 worker 瓶颈归因"
+	@echo "  persistlab 写入 off/sync/async 三组对照，验证异步化收益与不丢写"
+	@echo "  pipelinedoc 从代码里的状态表重新生成流水线契约文档"
 	@echo "  scale     线程 vs 进程扩展性对比"
 	@echo "  examples  重新生成 docs/examples.md 真实输出示例"
 	@echo "  gates     本地跑一遍 CI 的全部质量门禁"
@@ -61,6 +63,14 @@ workerlab:
 	$(PYTHON) -m evals.worker_lab --write
 	$(PYTHON) -m evals.worker_lab --check
 
+persistlab:
+	$(PYTHON) -m evals.persist_lab --write
+	$(PYTHON) -m evals.persist_lab --check
+
+pipelinedoc:
+	$(PYTHON) scripts/build_pipeline_doc.py --write
+	$(PYTHON) scripts/build_pipeline_doc.py --check
+
 gates:
 	$(PYTHON) -m evals.run_eval --write-report
 	$(PYTHON) -m evals.mutation_lab --check
@@ -72,6 +82,8 @@ gates:
 	$(PYTHON) -m evals.loadtest --check
 	$(PYTHON) -m evals.http_load --check
 	$(PYTHON) -m evals.worker_lab --check
+	$(PYTHON) -m evals.persist_lab --check
+	$(PYTHON) scripts/build_pipeline_doc.py --check
 	$(PYTHON) -m evals.scaling --check --requests 300
 	$(PYTHON) -m evals.examples --check
 

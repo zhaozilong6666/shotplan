@@ -6,6 +6,40 @@
 
 阶段 4 剩余项：接真实模型跑 `openai_compatible`、记录 prompt v1/v2 的实测差异、用真实数据填满成本/延迟表。阶段 5 剩余项：可交互的在线 Demo、简历与面试材料定稿。详见 `docs/ROADMAP.md`。
 
+## [0.10.0] - 2026-11-13
+
+**把上一版留下的建议实现出来，并给「解析信任边界」补上真实缺陷的修复**：v0.9.0 的结论是「同步写库是最大开销，应异步化而不是删掉历史」——这条建议当时既没实现也没验证。这一版实现三模式写入、量出收益与丢失窗口；同时把流水线从「顺序代码 + 手绘图」改成代码生成的状态表，并加墙钟预算。
+
+### Added
+
+- **`SHOTPLAN_PERSIST_MODE=off|sync|async`**（`Settings.persist_mode`，默认 `sync`）：`off` 完全不写；`sync` 沿用 v0.9.0 行为；`async` 交给进程内写线程批量提交，退出时排空。旧的 `SHOTPLAN_PERSIST_RUNS=0` 继续有效（映射到 `off`）。
+- **`RunWriter`**（`storage.py`）：有界队列 + 单写线程 + `save_many` 批量事务；队列满时**退化为同步写**并计入 `sync_fallbacks`（不丢行）；批次失败重试一次、再失败计入 `failed` 而不杀线程；`flush()` 是真正的屏障。`get_writer()` 按数据库路径做进程级单例。
+- **`/api/config` 暴露写队列状态**（`submitted / written / pending / failed / batches / max_batch / sync_fallbacks`），`lifespan` 在 shutdown 时排空队列。
+- **三组对照实验**（`evals/persist_lab.py`）：`off / sync / async` × `1 / 4 worker` × 2 轮同批交替；压测框架新增 drain 轮询（响应返回 ≠ 行已提交），产物 [docs/persistence.md](docs/persistence.md) 与 `evals/persist_lab.json`。
+- **`--check` 作为 CI 第 15 道门禁**：断言三组 0 错误、`off` 落库增量为 0、`sync`/`async` 增量等于成功请求数、服务端回报的模式与分组一致。吞吐与排空时间不进门禁。
+- **`STAGES` 状态表 + 生成式契约文档**（`scripts/build_pipeline_doc.py` → [docs/pipeline-contract.md](docs/pipeline-contract.md)）：6 个节点的输入/输出/失败转移由代码生成，Mermaid 图同源；`--check` 比对文档漂移，是 CI 第 16 道门禁。
+- **`SHOTPLAN_PIPELINE_BUDGET_S`**（默认 60s，0 关闭）：墙钟预算。超预算时停止开启新的修复轮次，**返回当前最优草稿**并追加 `REPAIR_BUDGET_EXCEEDED` 软问题；只有连第一次生成都没开始才返回 `status=error` + `DEADLINE_EXCEEDED`。
+- **解析器硬化**（`planner.py`）：括号配平扫描替代 `find/rfind`；支持多个 JSON 对象时逐个尝试构建、跳过示例对象；末尾逗号与全角引号做**有记录的**修复（写进 trace 的 `notes`）；BOM / 零宽字符 / bytes 载荷；数字只接受无歧义形式（`300` / `"¥300"` / `"免费"`），读不出就 `ParseError`。
+- [ADR 0012 写后置队列与可测量的持久性边界](docs/adr/0012-write-behind-persistence.md)、[ADR 0013 状态表与墙钟预算](docs/adr/0013-explicit-stage-table-and-budget.md)。
+- 新测试 50 个（共 **261** 个，覆盖率 90%）：写后置队列 11 个（含子进程 `os._exit` 硬杀两条）、解析对抗 25 个（含 300 次确定性变异）、流水线契约 12 个、API 异步/关闭模式 2 个。
+
+### Fixed
+
+- **信任边界漏成 500**：`parse_plan` 里 `int(item.get("cost_cny") or 0)` 在模型返回 `"免费"` 时抛 `ValueError`；流水线只 catch `ShotplanError`，于是单个脏数字让 `/api/plan` 返回 500。现在解析层把一切异常收敛为 `ParseError` → `status=error` 的结构化失败。
+- **JSON 定位错误**：`text.find("{")` + `text.rfind("}")` 在字符串值含 `}`、或 JSON 之后的说明文字含 `}` 时会切错；改为字符串与转义感知的括号配平扫描。
+
+### Measured
+
+- 异步相对同步：1 worker **2.96×**、4 worker **1.95×**；P95 186ms → 93ms；拿回约 **47%** 的写库开销；三组 **0 丢写**，排空窗口 0.04–0.13s。另一批独立运行得到 5.5× / 45%：**拿回比例稳定，绝对倍数随机器负载变化**。
+- 同批内关掉写库比同步写快 **5.13×**。这个绝对值在三次测量里分别是 2.48× / 11× / 5.13×，说明差异来自磁盘、临时目录与后台负载而非代码。报告因此只做同批内相对比较。
+- 硬杀窗口：子进程先 flush 再 `os._exit` → 父进程读到全部 N 条；不 flush 直接退出 → 读到 N−pending 条，与 `pending` 一致。
+
+### Changed
+
+- CI 新增 write-behind gate 与 pipeline-doc gate（共 16 道）；Makefile 新增 `persistlab` / `pipelinedoc` 并纳入 `gates`。
+- 展示页新增「写入异步化」区块，数据全部读自 `evals/persist_lab.json`；`README` / `README.en` / `ROADMAP` / `runbook` / 面试笔记同步更新。
+
+
 ## [0.9.0] - 2026-11-13
 
 **给上一版的性能归因补上对照实验**：v0.8.0 从一次测量推断「4 worker 变慢是共享 SQLite 写锁」，那是机制解释，不是受控实验。这一版加开关、做干预，并允许实验判定「不确定」。

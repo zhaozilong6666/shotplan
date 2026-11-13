@@ -30,6 +30,10 @@ PRICE_PER_1K: dict[str, tuple[float, float]] = {
 DEFAULT_PRICE = (0.0070, 0.0210)
 
 _RETRYABLE_STATUS = {408, 429, 500, 502, 503, 504}
+# Exposed so docs/pipeline-contract.md can compute the worst-case latency
+# from the same numbers the code uses instead of restating them by hand.
+MAX_ATTEMPTS = 3
+BACKOFF_BASE_S = 0.5
 
 
 def _estimate_cost(model: str, tokens_in: int, tokens_out: int) -> float:
@@ -91,7 +95,7 @@ class OpenAICompatibleProvider:
         last_error: ProviderError | None = None
         data: dict[str, Any] | None = None
 
-        for attempt in range(3):
+        for attempt in range(MAX_ATTEMPTS):
             try:
                 data = self._post(body, self.settings.llm_timeout)
                 break
@@ -105,9 +109,9 @@ class OpenAICompatibleProvider:
                 if not any(f"HTTP {code}" in message for code in _RETRYABLE_STATUS):
                     if "network failure" not in message:
                         raise
-                if attempt == 2:
+                if attempt == MAX_ATTEMPTS - 1:
                     raise
-                time.sleep(0.5 * (2**attempt))
+                time.sleep(BACKOFF_BASE_S * (2**attempt))
 
         if data is None:
             raise last_error or ProviderError("empty provider response")

@@ -13,6 +13,7 @@ from pathlib import Path
 from .domain.errors import ConfigError
 
 ROOT = Path(__file__).resolve().parents[2]
+PERSIST_MODES = ("off", "sync", "async")
 
 
 def _env(name: str, default: str) -> str:
@@ -53,9 +54,19 @@ class Settings:
     max_repairs: int = 1
     eval_min_score: float = 0.80
     log_level: str = "INFO"
-    # Set SHOTPLAN_PERSIST_RUNS=0 for stateless/read-only deployments, or for
-    # the controlled experiment in evals/worker_lab.py. Default keeps history.
-    persist_runs: bool = True
+    # off | sync | async. `sync` stays the default because the project promises
+    # "every accepted request is stored" and that promise must not silently
+    # become "mostly stored". `async` moves the write off the request path and
+    # is measurably faster; it is opt-in because it trades a bounded, measured
+    # loss window on a hard kill. See ADR 0012 and docs/persistence.md.
+    persist_mode: str = "sync"
+    # Wall-clock ceiling for one plan request, repairs included. 0 disables it.
+    pipeline_budget_s: float = 60.0
+
+    @property
+    def persist_runs(self) -> bool:
+        """Back-compatible view of the v0.9.0 boolean switch."""
+        return self.persist_mode != "off"
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -63,6 +74,15 @@ class Settings:
         provider = _env("SHOTPLAN_PROVIDER", "mock").lower()
         if provider not in ("mock", "openai_compatible"):
             raise ConfigError(f"unknown SHOTPLAN_PROVIDER: {provider}")
+        raw_mode = _env("SHOTPLAN_PERSIST_MODE", "").lower()
+        if not raw_mode:
+            # v0.9.0 shipped a boolean switch; keep it working rather than
+            # breaking every script and doc that used it.
+            raw_mode = "sync" if _env_bool("SHOTPLAN_PERSIST_RUNS", True) else "off"
+        if raw_mode not in PERSIST_MODES:
+            raise ConfigError(
+                f"SHOTPLAN_PERSIST_MODE must be one of {PERSIST_MODES}, got {raw_mode!r}"
+            )
         return cls(
             provider=provider,
             llm_base_url=_env("SHOTPLAN_LLM_BASE_URL", "https://api.openai.com/v1").rstrip("/"),
@@ -73,7 +93,8 @@ class Settings:
             max_repairs=max(0, _env_int("SHOTPLAN_MAX_REPAIRS", 1)),
             eval_min_score=_env_float("SHOTPLAN_EVAL_MIN_SCORE", 0.80),
             log_level=_env("SHOTPLAN_LOG_LEVEL", "INFO").upper(),
-            persist_runs=_env_bool("SHOTPLAN_PERSIST_RUNS", True),
+            persist_mode=raw_mode,
+            pipeline_budget_s=max(0.0, _env_float("SHOTPLAN_PIPELINE_BUDGET_S", 60.0)),
         )
 
     def masked(self) -> dict[str, object]:
@@ -86,6 +107,8 @@ class Settings:
             "max_repairs": self.max_repairs,
             "eval_min_score": self.eval_min_score,
             "persist_runs": self.persist_runs,
+            "persist_mode": self.persist_mode,
+            "pipeline_budget_s": self.pipeline_budget_s,
         }
 
 
