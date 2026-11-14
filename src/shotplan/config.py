@@ -69,6 +69,10 @@ class Settings:
     # Which system prompt to send. Empty means "the current default", so a
     # deployment does not pin itself to an old prompt by accident.
     prompt_version: str = ""
+    # Use planner-v3 only for briefs that are likely to waste golden light.
+    # Evidence: on light-sensitive cases v3 scored +0.0431 (CI excludes 0);
+    # on ordinary cases it showed no gain and cost 42-53% more.
+    prompt_router: bool = False
     # Cost levers. All default to "unset" so behaviour is unchanged unless a
     # deployment opts in; the eval suite sets them explicitly when measuring.
     llm_max_tokens: int = 0  # 0 = let the provider decide
@@ -135,6 +139,7 @@ class Settings:
             llm_timeout=_env_int("SHOTPLAN_LLM_TIMEOUT", 30),
             llm_attempts=max(1, _env_int("SHOTPLAN_LLM_ATTEMPTS", 3)),
             prompt_version=_env("SHOTPLAN_PROMPT_VERSION", ""),
+            prompt_router=_env_bool("SHOTPLAN_PROMPT_ROUTER", False),
             llm_max_tokens=max(0, _env_int("SHOTPLAN_LLM_MAX_TOKENS", 0)),
             llm_temperature=_env_float("SHOTPLAN_LLM_TEMPERATURE", 0.2),
             llm_reasoning_effort=effort,

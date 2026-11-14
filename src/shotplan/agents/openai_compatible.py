@@ -49,6 +49,30 @@ def _finish_reason(data: dict[str, Any]) -> str:
         return ""
 
 
+# Morning- or night-only locations from the knowledge base: a brief that pins
+# one of these is a candidate for the light-aware prompt.
+_LIGHT_SENSITIVE_LOCATIONS = {
+    "shuyuanmen",
+    "sun_yat_sen_mausoleum",
+    "humble_administrator_garden",
+    "jinji_lake",
+    "leifeng_pagoda",
+}
+_LIGHT_SENSITIVE_WORDS = (
+    "上午", "中午", "正午", "晨光", "黄金", "傍晚", "夜景",
+    "室内为主", "下午不出外景",
+)
+
+
+def _wants_light_aware_prompt(request: PlanRequest) -> bool:
+    if request.hours > 10:
+        return False  # a full day has room for both windows; no pressure
+    preferences = " ".join(request.preferences or [])
+    if any(word in preferences for word in _LIGHT_SENSITIVE_WORDS):
+        return True
+    return bool(set(request.must_include or []) & _LIGHT_SENSITIVE_LOCATIONS)
+
+
 def _estimate_cost(model: str, tokens_in: int, tokens_out: int) -> float:
     price_in, price_out = PRICE_PER_1K.get(model, DEFAULT_PRICE)
     return (tokens_in / 1000) * price_in + (tokens_out / 1000) * price_out
@@ -141,8 +165,11 @@ class OpenAICompatibleProvider:
         context: dict[str, Any],
         repair_hint: str | None = None,
     ) -> GenerationResult:
+        prompt_used = self.prompt_version
+        if self.settings.prompt_router and _wants_light_aware_prompt(request):
+            prompt_used = "planner-v3"
         messages: list[dict[str, str]] = [
-            {"role": "system", "content": self._system_prompt},
+            {"role": "system", "content": get_system_prompt(prompt_used)},
             {"role": "user", "content": build_user_prompt(request, context, repair_hint)},
         ]
         base: dict[str, Any] = {
@@ -188,7 +215,7 @@ class OpenAICompatibleProvider:
             duration_ms=elapsed,
             model=self.settings.llm_model,
             metadata={
-                "prompt_version": self.prompt_version,
+                "prompt_version": prompt_used,
                 "repair": bool(repair_hint),
                 "output_budget": budget_used,
                 "truncated_retries": truncated,
