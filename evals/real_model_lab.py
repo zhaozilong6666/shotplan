@@ -20,8 +20,10 @@ import json
 import random
 import statistics
 import sys
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
@@ -294,6 +296,55 @@ def _source_label(path: str | Path) -> str:
         return resolved.relative_to(ROOT).as_posix()
     except ValueError:
         return resolved.as_posix()
+
+
+def _checkpoint_meta(settings: Any, repeat: int) -> dict[str, Any]:
+    return {
+        "model": settings.llm_model,
+        "prompt_version": settings.prompt_version or PROMPT_VERSION,
+        "repeat": repeat,
+    }
+
+
+def load_checkpoint(
+    path: Path, meta: dict[str, Any]
+) -> dict[tuple[str, int], CaseOutcome]:
+    """Read finished calls from a previous attempt.
+
+    A relay that dies at call 120 of 240 should cost one restart, not one full
+    re-run. The metadata line is checked first: resuming a run under a
+    different model would silently mix two populations into one number.
+    """
+    if not path.exists():
+        return {}
+    lines = [line for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    if not lines:
+        return {}
+    stored = json.loads(lines[0])
+    if stored != meta:
+        raise ValueError(
+            f"checkpoint {path} was written for {stored}, refusing to mix it with {meta}"
+        )
+    done: dict[tuple[str, int], CaseOutcome] = {}
+    for line in lines[1:]:
+        record = json.loads(line)
+        done[(record["case_id"], int(record["index"]))] = CaseOutcome(**record["outcome"])
+    return done
+
+
+def append_checkpoint(path: Path, meta: dict[str, Any], case_id: str, index: int, outcome: CaseOutcome) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    new_file = not path.exists() or path.stat().st_size == 0
+    with path.open("a", encoding="utf-8") as handle:
+        if new_file:
+            handle.write(json.dumps(meta, ensure_ascii=False) + "\n")
+        handle.write(
+            json.dumps(
+                {"case_id": case_id, "index": index, "outcome": asdict(outcome)},
+                ensure_ascii=False,
+            )
+            + "\n"
+        )
 
 
 def stratified_sample(
@@ -570,6 +621,12 @@ def main(argv: list[str] | None = None) -> int:
         default=8,
         help="how many calls to observe before the error-rate guard can fire",
     )
+    parser.add_argument(
+        "--checkpoint",
+        type=Path,
+        default=Path("evals/out/checkpoint.jsonl"),
+        help="append each finished call here so an interrupted run can resume",
+    )
     parser.add_argument("--progress-every", type=int, default=10, help="print progress every N calls")
     parser.add_argument(
         "--retry-errors",
@@ -644,6 +701,24 @@ def main(argv: list[str] | None = None) -> int:
     jobs = [(case, index) for case in cases for index in range(repeat)]
     raw: list[tuple[str, int, CaseOutcome]] = []
     aborted_reason = ""
+
+    meta = _checkpoint_meta(settings, repeat)
+    done_calls: dict[tuple[str, int], CaseOutcome] = {}
+    if args.checkpoint:
+        try:
+            done_calls = load_checkpoint(args.checkpoint, meta)
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+        if done_calls:
+            raw = [(cid, index, outcome) for (cid, index), outcome in done_calls.items()]
+            jobs = [job for job in jobs if (job[0]["id"], job[1]) not in done_calls]
+            print(
+                f"resuming: {len(done_calls)} call(s) already done, {len(jobs)} left",
+                file=sys.stderr,
+            )
+    write_lock = threading.Lock()
+
     with ThreadPoolExecutor(max_workers=concurrency) as pool:
         futures = [
             pool.submit(lambda job: (job[0]["id"], job[1], _run_one(job[0], settings)), job)
@@ -651,15 +726,19 @@ def main(argv: list[str] | None = None) -> int:
         ]
         try:
             for done, future in enumerate(as_completed(futures), start=1):
-                raw.append(future.result())
+                cid, index, outcome = future.result()
+                raw.append((cid, index, outcome))
+                if args.checkpoint and not outcome.error:
+                    with write_lock:
+                        append_checkpoint(args.checkpoint, meta, cid, index, outcome)
                 if done % args.progress_every == 0 or done == len(futures):
                     elapsed = time.perf_counter() - started
                     rate = done / elapsed
                     eta = (len(futures) - done) / rate if rate else 0.0
                     errors = sum(1 for _, _, o in raw if o.error)
                     print(
-                        f"  {done}/{len(futures)} done  errors={errors}  "
-                        f"elapsed={elapsed:.0f}s  eta={eta:.0f}s",
+                        f"  {len(done_calls) + done}/{len(done_calls) + len(futures)} done  "
+                        f"errors={errors}  elapsed={elapsed:.0f}s  eta={eta:.0f}s",
                         file=sys.stderr,
                     )
                 # A dead endpoint looks exactly like a bad model: every call
@@ -714,8 +793,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if aborted_reason:
         print(
-            f"ABORTED after {len(raw)}/{len(futures)} calls: {aborted_reason}\n"
-            "No snapshot written: a run that measures an outage is worse than no run.",
+            f"ABORTED after {len(raw)} calls: {aborted_reason}\n"
+            "Checkpoint kept: rerun the same command to resume instead of restarting.",
             file=sys.stderr,
         )
         return 3
@@ -728,6 +807,10 @@ def main(argv: list[str] | None = None) -> int:
     snapshot["concurrency"] = concurrency
     snapshot["wall_seconds"] = round(elapsed, 1)
     snapshot["sampled_case_ids"] = [case["id"] for case in cases]
+
+    if args.checkpoint and args.checkpoint.exists():
+        args.checkpoint.unlink()
+        print(f"checkpoint cleared: {args.checkpoint}", file=sys.stderr)
 
     print(
         f"hard_pass {snapshot['hard_pass_rate']:.3f} mean {snapshot['mean_score']:.4f} "
