@@ -9,6 +9,7 @@ Any OpenAI-compatible endpoint works (OpenAI, DeepSeek, local Ollama, vLLM).
 from __future__ import annotations
 
 import json
+import math
 import time
 import urllib.error
 import urllib.request
@@ -34,6 +35,14 @@ _RETRYABLE_STATUS = {408, 429, 500, 502, 503, 504}
 # from the same numbers the code uses instead of restating them by hand.
 MAX_ATTEMPTS = 3
 BACKOFF_BASE_S = 0.5
+
+
+def _finish_reason(data: dict[str, Any]) -> str:
+    """Why the model stopped. `length` means our budget cut it off."""
+    try:
+        return str(data["choices"][0].get("finish_reason") or "")
+    except (KeyError, IndexError, TypeError, AttributeError):
+        return ""
 
 
 def _estimate_cost(model: str, tokens_in: int, tokens_out: int) -> float:
@@ -75,39 +84,29 @@ class OpenAICompatibleProvider:
         except (urllib.error.URLError, TimeoutError) as exc:
             raise ProviderError(f"network failure calling {url}: {exc}") from exc
 
-    def generate(
-        self,
-        request: PlanRequest,
-        context: dict[str, Any],
-        repair_hint: str | None = None,
-    ) -> GenerationResult:
-        messages: list[dict[str, str]] = [
-            {"role": "system", "content": self._system_prompt},
-            {"role": "user", "content": build_user_prompt(request, context, repair_hint)},
-        ]
-        body: dict[str, Any] = {
-            "model": self.settings.llm_model,
-            "messages": messages,
-            "temperature": self.settings.llm_temperature,
-            "response_format": {"type": "json_object"},
-        }
-        # Cost levers, off by default. A plan is ~700-900 tokens of JSON, so an
-        # endpoint emitting 4-5k output tokens is spending most of the budget on
-        # reasoning we never read. Capping it is a trade, not a free win: it can
-        # truncate a valid answer, which is why the eval measures both cost and
-        # parse failures instead of assuming the cap is harmless.
-        if self.settings.llm_max_tokens > 0:
-            body["max_tokens"] = self.settings.llm_max_tokens
-        if self.settings.llm_reasoning_effort:
-            body["reasoning_effort"] = self.settings.llm_reasoning_effort
-        started = time.perf_counter()
-        last_error: ProviderError | None = None
-        data: dict[str, Any] | None = None
+    def _budget_ladder(self, request: PlanRequest) -> list[int | None]:
+        """Output budgets to try, cheapest first.
 
+        A plan is roughly `520 + 300 × slots` tokens of JSON. The model happily
+        writes 4-5k because nothing stops it, and output is ~90% of the bill.
+        So: estimate, cap, and only pay more when the answer was actually cut
+        off (`finish_reason == "length"`). Worst case is one extra call; usual
+        case saves several thousand output tokens per case.
+        """
+        explicit = self.settings.llm_max_tokens or None
+        if not self.settings.llm_adaptive_budget:
+            return [explicit]
+        slots = max(4, min(8, math.ceil(request.hours / 1.5) + 2))
+        estimate = 520 + 300 * slots
+        first = min(explicit, estimate) if explicit else estimate
+        return [first, first * 2, None]
+
+    def _complete(self, body: dict[str, Any]) -> dict[str, Any]:
+        """One request with the existing retry / capability-fallback policy."""
+        last_error: ProviderError | None = None
         for attempt in range(MAX_ATTEMPTS):
             try:
-                data = self._post(body, self.settings.llm_timeout)
-                break
+                return self._post(body, self.settings.llm_timeout)
             except ProviderError as exc:
                 last_error = exc
                 message = str(exc)
@@ -129,9 +128,42 @@ class OpenAICompatibleProvider:
                 if attempt == MAX_ATTEMPTS - 1:
                     raise
                 time.sleep(BACKOFF_BASE_S * (2**attempt))
+        raise last_error or ProviderError("empty provider response")
 
+    def generate(
+        self,
+        request: PlanRequest,
+        context: dict[str, Any],
+        repair_hint: str | None = None,
+    ) -> GenerationResult:
+        messages: list[dict[str, str]] = [
+            {"role": "system", "content": self._system_prompt},
+            {"role": "user", "content": build_user_prompt(request, context, repair_hint)},
+        ]
+        base: dict[str, Any] = {
+            "model": self.settings.llm_model,
+            "messages": messages,
+            "temperature": self.settings.llm_temperature,
+            "response_format": {"type": "json_object"},
+        }
+        if self.settings.llm_reasoning_effort:
+            base["reasoning_effort"] = self.settings.llm_reasoning_effort
+
+        started = time.perf_counter()
+        data: dict[str, Any] | None = None
+        truncated = 0
+        budget_used: int | None = None
+        for budget in self._budget_ladder(request):
+            body = dict(base)
+            if budget:
+                body["max_tokens"] = budget
+            data = self._complete(body)
+            budget_used = budget
+            if _finish_reason(data) != "length":
+                break
+            truncated += 1
         if data is None:
-            raise last_error or ProviderError("empty provider response")
+            raise ProviderError("empty provider response")
 
         try:
             content = data["choices"][0]["message"]["content"]
@@ -150,5 +182,10 @@ class OpenAICompatibleProvider:
             cost_cny=_estimate_cost(self.settings.llm_model, tokens_in, tokens_out),
             duration_ms=elapsed,
             model=self.settings.llm_model,
-            metadata={"prompt_version": self.prompt_version, "repair": bool(repair_hint)},
+            metadata={
+                "prompt_version": self.prompt_version,
+                "repair": bool(repair_hint),
+                "output_budget": budget_used,
+                "truncated_retries": truncated,
+            },
         )

@@ -68,6 +68,10 @@ class Settings:
     llm_max_tokens: int = 0  # 0 = let the provider decide
     llm_temperature: float = 0.2
     llm_reasoning_effort: str = ""  # "", low | medium | high (provider-dependent)
+    # Estimate an output budget from the plan size, and only raise it when the
+    # answer was actually truncated. One extra call in the worst case, several
+    # thousand saved output tokens in the usual one.
+    llm_adaptive_budget: bool = False
     db_path: Path = field(default_factory=_default_db_path)
     max_repairs: int = 1
     eval_min_score: float = 0.80
@@ -126,6 +130,7 @@ class Settings:
             llm_max_tokens=max(0, _env_int("SHOTPLAN_LLM_MAX_TOKENS", 0)),
             llm_temperature=_env_float("SHOTPLAN_LLM_TEMPERATURE", 0.2),
             llm_reasoning_effort=effort,
+            llm_adaptive_budget=_env_bool("SHOTPLAN_LLM_ADAPTIVE_BUDGET", False),
             db_path=Path(raw_db) if Path(raw_db).is_absolute() else ROOT / raw_db,
             max_repairs=max(0, _env_int("SHOTPLAN_MAX_REPAIRS", 1)),
             eval_min_score=_env_float("SHOTPLAN_EVAL_MIN_SCORE", 0.80),

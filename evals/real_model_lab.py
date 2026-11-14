@@ -296,6 +296,51 @@ def _source_label(path: str | Path) -> str:
         return resolved.as_posix()
 
 
+def stratified_sample(
+    cases: list[dict[str, Any]], limit: int, seed: int = 20261113
+) -> list[dict[str, Any]]:
+    """Pick `limit` cases that keep the group × city mix of the full set.
+
+    `cases[:limit]` is not a smaller experiment, it is a different one: the
+    file is ordered by group, so the first 30 cases contain zero `normal`
+    briefs. A cheap run that silently changes the population is worse than an
+    expensive one, because the number it produces still looks like a result.
+    """
+    if limit <= 0 or limit >= len(cases):
+        return list(cases)
+
+    strata: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    for case in cases:
+        key = (case["group"], case["request"].get("city", "?"))
+        strata.setdefault(key, []).append(case)
+    keys = sorted(strata)
+    total = len(cases)
+
+    # Proportional allocation by largest remainder, at least one per stratum
+    # when the budget allows it.
+    exact = {key: len(strata[key]) * limit / total for key in keys}
+    alloc = {key: int(exact[key]) for key in keys}
+    if limit >= len(keys):
+        for key in keys:
+            alloc[key] = max(1, alloc[key])
+    while sum(alloc.values()) > limit:
+        key = max((k for k in keys if alloc[k] > 1), key=lambda k: alloc[k], default=None)
+        if key is None:
+            break
+        alloc[key] -= 1
+    while sum(alloc.values()) < limit:
+        key = max(keys, key=lambda k: exact[k] - alloc[k])
+        if alloc[key] >= len(strata[key]):
+            break
+        alloc[key] += 1
+
+    rng = random.Random(seed)
+    picked: list[dict[str, Any]] = []
+    for key in keys:
+        picked.extend(rng.sample(strata[key], min(alloc[key], len(strata[key]))))
+    return sorted(picked, key=lambda case: case["id"])
+
+
 def build_report(
     snapshot: dict[str, Any],
     baseline: dict[str, Any] | None,
@@ -496,6 +541,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--limit", type=int, default=None, help="run only the first N cases")
     parser.add_argument("--concurrency", type=int, default=None)
     parser.add_argument(
+        "--sample",
+        choices=("stratified", "first"),
+        default="stratified",
+        help="how --limit picks cases: keep the group×city mix (default) or take the head",
+    )
+    parser.add_argument(
         "--profile",
         choices=sorted(PROFILES),
         default=None,
@@ -572,11 +623,15 @@ def main(argv: list[str] | None = None) -> int:
         1, args.concurrency if args.concurrency is not None else profile.get("concurrency", 4)
     )
     if limit:
-        cases = cases[:limit]
+        cases = (
+            stratified_sample(cases, limit)
+            if args.sample == "stratified"
+            else cases[:limit]
+        )
     calls = len(cases) * repeat
     print(
         f"running {len(cases)} cases × {repeat} repeat(s) = {calls} calls "
-        f"(concurrency {concurrency}) against {settings.llm_model} …",
+        f"(concurrency {concurrency}, sample={args.sample}) against {settings.llm_model} …",
         file=sys.stderr,
     )
     started = time.perf_counter()
@@ -636,6 +691,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     snapshot["concurrency"] = concurrency
     snapshot["wall_seconds"] = round(elapsed, 1)
+    snapshot["sampled_case_ids"] = [case["id"] for case in cases]
 
     print(
         f"hard_pass {snapshot['hard_pass_rate']:.3f} mean {snapshot['mean_score']:.4f} "

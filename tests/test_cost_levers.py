@@ -82,3 +82,51 @@ def test_unsupported_lever_is_dropped_instead_of_failing(monkeypatch):
     assert "reasoning_effort" in seen[0]
     assert "reasoning_effort" not in seen[1], "rejected lever must be retried without it"
     assert seen[1]["max_tokens"] == 1200, "unrelated lever must survive the retry"
+
+
+def test_adaptive_budget_escalates_only_when_truncated(monkeypatch):
+    provider = OpenAICompatibleProvider(_settings(llm_adaptive_budget=True))
+    seen: list[dict] = []
+
+    def fake_post(body, timeout):
+        seen.append(dict(body))
+        reason = "length" if len(seen) == 1 else "stop"
+        return {
+            "choices": [{"message": {"content": json.dumps({"slots": []})}, "finish_reason": reason}],
+            "usage": {"prompt_tokens": 10, "completion_tokens": 5},
+        }
+
+    monkeypatch.setattr(provider, "_post", fake_post)
+    result = provider.generate(PlanRequest(), _context())
+
+    assert len(seen) == 2, "a truncated answer must be retried exactly once more"
+    assert seen[1]["max_tokens"] == seen[0]["max_tokens"] * 2
+    assert result.metadata["truncated_retries"] == 1
+
+
+def test_adaptive_budget_stops_at_the_first_cap_when_the_answer_fits(monkeypatch):
+    provider = OpenAICompatibleProvider(_settings(llm_adaptive_budget=True))
+    seen: list[dict] = []
+
+    def fake_post(body, timeout):
+        seen.append(dict(body))
+        return {
+            "choices": [{"message": {"content": json.dumps({"slots": []})}, "finish_reason": "stop"}],
+            "usage": {"prompt_tokens": 10, "completion_tokens": 5},
+        }
+
+    monkeypatch.setattr(provider, "_post", fake_post)
+    result = provider.generate(PlanRequest(), _context())
+
+    assert len(seen) == 1, "no reason to pay twice when the first answer was complete"
+    assert seen[0]["max_tokens"] > 0
+    assert result.metadata["truncated_retries"] == 0
+
+
+def test_adaptive_budget_scales_with_the_request():
+    provider = OpenAICompatibleProvider(_settings(llm_adaptive_budget=True))
+    short = provider._budget_ladder(PlanRequest(hours=3))
+    long = provider._budget_ladder(PlanRequest(hours=9))
+    assert short[0] < long[0], "a longer shoot needs more room for slots"
+    assert short[1] == short[0] * 2
+    assert short[-1] is None, "the last rung must be uncapped, or a plan can never finish"
