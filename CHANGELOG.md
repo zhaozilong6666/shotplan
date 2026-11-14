@@ -6,6 +6,7 @@
 
 ### Added
 
+- **P0 架构修复的端到端复测（¥0.24）**：router 开启下真实跑 4 条 holdout，快照给出 `{planner-v2: 2, planner-v3: 2}` 的逐例分布；CLI 两次 `--persist` 在 DB 分别落 v3 / v2；往 DB 注入一条 `status=error` 后 `hard_pass_rate` 仍为 1.0、`error_rate=0.5`（旧实现会报 0.5）。证据与剩余风险见 [docs/architecture-review.md](docs/architecture-review.md) 末节。**P1-1 配置双路径仍未解决，下一轮真实评测前处理。**
 - **宏观架构评审 + 三项 P0 修复**：全仓只读扫描后写下 [docs/architecture-review.md](docs/architecture-review.md)——项目最强的「测量层」与「运行时层」已经分叉：一条请求有两个 Settings 对象、逐请求 prompt 版本没落库、我们在评测报告里修过的「断供不算质量差」在生产指标里原样保留、墙钟预算管不住 `generate`（今天三次卡死的根因）。全部 P0 已修，19/19 门禁，零 API 花费：
   - `GenerationResult.prompt_version` / `RunTrace.prompt_version_effective` / DB 列 / 评测快照分布，逐例可复现实际用的 prompt；
   - 质量指标只统计 `status=ok`，新增 error/infeasible 计数与比率、`/metrics` 两个新 gauge；

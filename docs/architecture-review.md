@@ -130,3 +130,20 @@ API 在 lifespan 固定一份 `app.state.settings` 传给 pipeline，却用无�
 P0 完成前不跑新 A/B 的约束已解除。建议用余额做**一次端到端一致性复测**：同一批用例分别经 CLI 与 eval 两条路径，核对配置、指标、有效 prompt 版本三者一致。这比再加一组 A/B 更能回答「我们的数字可信吗」。
 
 **P1-1（两个 Settings 对象 / 配置双路径）仍是最高优先级的剩余风险**：它决定评测结论能不能迁移到生产，建议在下一轮真实评测之前处理。
+
+---
+
+## 端到端复测（2026-11-14 22:30，¥0.24）
+
+P0 修完后的验证目标不是「再测一次质量」，而是**证明三条链路现在说同一种话**。
+
+| 验证项 | 做法 | 结果 |
+| --- | --- | --- |
+| 逐例有效 prompt 版本 | `SHOTPLAN_PROMPT_ROUTER=1` 下用 eval harness 跑 4 条 holdout（2 光线 + 2 普通） | 快照顶层仍是 `planner-v2`，但 `prompt_version_distribution` = `{v2:2, v3:2}`；逐例 H01/H04 = v3、H09/H10 = v2；报告头部打印实际分布 |
+| CLI → DB | 同一 router 开关下走 `shotplan.cli plan --persist` 两次（一条「务必中午前收工」、一条「人少」） | DB 两行分别是 `planner-v3` / `planner-v2`，与 router 判定一致；旧实现会两行都写 v2 |
+| 生产侧分母 | 往该 DB 注入一条 `status=error`（模拟 502），再看 dashboard | `runs=2, ok_runs=1, error_rate=0.5`，而 `hard_pass_rate` 仍是 **1.0**、`avg_score` 只算存活的 ok 行（0.9625）。旧实现会报 0.5 / 0.48 |
+| P0-3 | 4 个单测 + mypy/lint 全绿；真实链路 6 次调用无卡死 | 每次 `_post` 超时被剩余预算裁剪，ladder/退避不再越过 deadline |
+
+**花费**：eval 4 次 ¥0.17 + CLI 2 次约 ¥0.07 ≈ **¥0.24**。没有跑新的 A/B，因为这轮问的是「数字可信吗」，不是「哪个 prompt 更好」。
+
+**仍未解决**：P1-1 配置双路径。本次复测中 eval harness 与 CLI 各自解析配置，恰好一致，但这是本机 `.env` 与环境变量恰好对齐的结果，不是结构保证。下一轮真实评测前应先统一 `Settings` 入口。

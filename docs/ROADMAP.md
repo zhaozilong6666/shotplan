@@ -120,7 +120,7 @@
 
 - [x] 指标导出（Prometheus 文本格式）：`GET /metrics` 输出请求量、通过率、P95、修复率、花费、错误分类，并按 provider + prompt_version 下钻。全部标为 gauge（滑动窗口，不是累计计数），空库也输出完整 HELP/TYPE；见 [observability.md](observability.md)
 - [x] **架构评审与 P0 真相源收敛**：见 [architecture-review.md](architecture-review.md)。有效 prompt 版本逐例落库、断供不再污染质量分母、墙钟预算真正约束 generate。剩余 P1-1（配置双路径 / 两个 Settings 对象）是评测结论能否迁移到生产的最高风险，**应在下一轮真实评测前处理**
-- [ ] 端到端一致性复测：同批用例分别经 CLI/API 与 eval 两条路径，核对配置、指标、有效 prompt 版本三者一致（需要少量 API 预算）
+- [x] 端到端一致性复测（¥0.24）：router 开启下 4 条 holdout 的快照给出 `{v2:2, v3:2}` 逐例分布；CLI 两次 `--persist` 在 DB 中分别落 v3/v2；注入一条 502 后生产侧 `hard_pass_rate` 仍是 1.0、`error_rate=0.5`。见 [architecture-review.md](architecture-review.md) 末节
 - [ ] 故障注入：provider 超时/429、SQLite 锁、磁盘满，验证降级路径与告警
 - [ ] 定义 SLO（如「95% 请求在 30s 内返回且不 5xx」）并写对应监控查询
 - [ ] 部署到公网，跑一周真实流量，回收延迟与失败分布
