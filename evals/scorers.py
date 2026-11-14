@@ -42,6 +42,7 @@ class CaseOutcome:
     scores: dict[str, float] = field(default_factory=dict)
     issues: list[str] = field(default_factory=list)
     hard_issue_count: int = 0
+    soft_issue_count: int = 0
     duration_ms: float = 0.0
     repair_count: int = 0
     expected_hard_pass: bool = True
@@ -118,6 +119,7 @@ def evaluate_case(case: dict[str, Any], result: PlanResult) -> CaseOutcome:
         scores={k: round(v, 4) for k, v in result.validation.scores.items()},
         issues=[i.code for i in result.validation.issues],
         hard_issue_count=len(result.validation.hard_issues),
+        soft_issue_count=len(result.validation.soft_issues),
         expected_hard_pass=expected_hard,
         expected_min_score=expected_score,
         passed=bool(hard_ok and score_ok),

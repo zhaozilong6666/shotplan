@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from evals.real_model_lab import bootstrap_ci, build_report, summarise_repeats
+from evals.real_model_lab import bootstrap_ci, build_report, summarise, summarise_repeats
 from evals.scorers import CaseOutcome
 
 
@@ -120,6 +120,23 @@ def test_preflight_refusals_are_counted_per_case_not_per_repeat():
     summary = summarise_repeats(runs, _settings(), repeat=3)
     assert summary["preflight_cases"] == 1
     assert summary["preflight_refused"] == 1, "3 repeats must not look like 3 refusals"
+
+
+def test_soft_issue_rate_counts_cases_not_issues():
+    """Five soft issues in one plan is still one case that looks bad."""
+    def outcome(case_id, soft):
+        return CaseOutcome(
+            case_id=case_id,
+            group="normal",
+            description="",
+            provider="fake",
+            hard_pass=True,
+            score=0.9,
+            soft_issue_count=soft,
+        )
+
+    summary = summarise([outcome("C01", 5), outcome("C02", 0), outcome("C03", 1)], _settings())
+    assert summary["soft_issue_rate"] == 0.6667
 
 
 def test_repair_breakdown_separates_rescued_from_stuck():

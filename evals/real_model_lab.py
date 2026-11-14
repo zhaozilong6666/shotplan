@@ -162,6 +162,9 @@ def summarise_repeats(
                 "mean_score": round(statistics.fmean(o.score for o in outcomes), 4),
                 "error_rate": round(sum(1 for o in outcomes if o.error) / len(outcomes), 4),
                 "max_repairs": max(o.repair_count for o in outcomes),
+                "mean_soft_issues": round(
+                    statistics.fmean(o.soft_issue_count for o in outcomes), 2
+                ),
             }
         )
 
@@ -250,6 +253,9 @@ def summarise_repeats(
         "tokens_out": sum(o.tokens_out for o in all_outcomes),
         "cost_cny": round(sum(o.cost_cny for o in all_outcomes), 4),
         "top_issue_codes": dict(sorted(issue_codes.items(), key=lambda kv: -kv[1])[:8]),
+        "soft_issue_rate": round(
+            sum(1 for r in per_case if r.get("mean_soft_issues", 0) > 0) / len(per_case), 4
+        ) if per_case else 0.0,
         "per_case": per_case,
     }
 
@@ -295,6 +301,9 @@ def summarise(outcomes: list[CaseOutcome], settings: Any) -> dict[str, Any]:
         # actually matters for structured output; repairs hide it in the score.
         "first_attempt_clean": sum(1 for o in planned if not o.error and o.repair_count == 0),
         "repaired": sum(1 for o in planned if o.repair_count > 0),
+        "soft_issue_rate": round(
+            sum(1 for o in planned if o.soft_issue_count) / len(planned), 4
+        ) if planned else 0.0,
         "repair_fixed_codes": _repair_breakdown(planned)[0],
         "repair_failed_codes": _repair_breakdown(planned)[1],
         "p50_ms": _pct(durations, 0.50),
@@ -446,11 +455,18 @@ def build_report(
         "",
     ]
     if snapshot["cases"] < 80:
-        lines += [
-            f"> **部分取样**：本次只跑了主集 80 例中的 {snapshot['cases']} 例，"
-            "样本构成与全量不同，不能与全量结果直接比较，也不代表整体通过率。",
-            "",
-        ]
+        if snapshot.get("cases_dir", "evals/cases") != "evals/cases":
+            lines += [
+                f"> **另一套题集**：本次跑的是 `{snapshot['cases_dir']}` 的 "
+                f"{snapshot['cases']} 例，不是主集抽样，两者不能直接比较。",
+                "",
+            ]
+        else:
+            lines += [
+                f"> **部分取样**：本次只跑了主集 80 例中的 {snapshot['cases']} 例，"
+                "样本构成与全量不同，不能与全量结果直接比较，也不代表整体通过率。",
+                "",
+            ]
     if snapshot.get("repeat", 1) > 1:
         rate_lo, rate_hi = snapshot["hard_pass_ci"]
         score_lo, score_hi = snapshot["mean_score_ci"]
@@ -483,6 +499,13 @@ def build_report(
         f"（{snapshot['first_attempt_clean']}/{planned} 未触发修复），"
         f"发生修复 {snapshot['repaired']} 次，异常 {snapshot['errors']} 次。"
         "这个数字比平均分更能说明结构化输出的稳定性：修复循环会把一次失败掩盖成一个还不错的分数。"
+        + (
+            f" 软问题涉及 {snapshot['soft_issue_rate'] * 100:.1f}% 的用例"
+            f"（{sum(1 for case in snapshot.get('per_case', []) if case.get('mean_soft_issues', 0) > 0)}"
+            f"/{planned}）——硬约束通过不等于拍得好看。"
+            if snapshot.get("soft_issue_rate")
+            else ""
+        )
         + (
             f" 异常用例：{', '.join(snapshot['error_cases'])}（流水线降级为 error，"
             "既不是好方案也不是坏方案，所以不计入最低分）。"
