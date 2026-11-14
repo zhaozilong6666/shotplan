@@ -27,6 +27,10 @@ PRICE_PER_1K: dict[str, tuple[float, float]] = {
     "gpt-4o-mini": (0.0011, 0.0043),
     "gpt-4o": (0.0180, 0.0720),
     "deepseek-chat": (0.0020, 0.0080),
+    # Relay list price seen 2026-11: $0.132 / 1M input on weekends, output
+    # assumed at the usual 4x ratio. Still an estimate, not a bill.
+    "deepseek-v4.1-flash": (0.0010, 0.0040),
+    "deepseek-v4.1-flash-261017": (0.0010, 0.0040),
 }
 DEFAULT_PRICE = (0.0070, 0.0210)
 
@@ -104,7 +108,8 @@ class OpenAICompatibleProvider:
     def _complete(self, body: dict[str, Any]) -> dict[str, Any]:
         """One request with the existing retry / capability-fallback policy."""
         last_error: ProviderError | None = None
-        for attempt in range(MAX_ATTEMPTS):
+        attempts = max(1, self.settings.llm_attempts)
+        for attempt in range(attempts):
             try:
                 return self._post(body, self.settings.llm_timeout)
             except ProviderError as exc:
@@ -125,7 +130,7 @@ class OpenAICompatibleProvider:
                 if not any(f"HTTP {code}" in message for code in _RETRYABLE_STATUS):
                     if "network failure" not in message:
                         raise
-                if attempt == MAX_ATTEMPTS - 1:
+                if attempt == attempts - 1:
                     raise
                 time.sleep(BACKOFF_BASE_S * (2**attempt))
         raise last_error or ProviderError("empty provider response")

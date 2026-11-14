@@ -571,6 +571,12 @@ def main(argv: list[str] | None = None) -> int:
         help="how many calls to observe before the error-rate guard can fire",
     )
     parser.add_argument("--progress-every", type=int, default=10, help="print progress every N calls")
+    parser.add_argument(
+        "--retry-errors",
+        type=int,
+        default=1,
+        help="after the main pass, re-run calls that failed (flaky relays)",
+    )
     parser.add_argument("--write", action="store_true", help="refresh snapshot and report")
     parser.add_argument("--check", action="store_true", help="verify the report matches the snapshot")
     parser.add_argument(
@@ -674,6 +680,36 @@ def main(argv: list[str] | None = None) -> int:
             aborted_reason = "interrupted"
             for pending in futures:
                 pending.cancel()
+
+    # Flaky relays fail in bursts. Re-running only the failed calls is much
+    # cheaper than re-running the batch, and it keeps the surviving sample
+    # instead of trading it for a fresh one with a different error rate.
+    if not aborted_reason and args.retry_errors > 0:
+        by_id = {case["id"]: case for case in cases}
+        for round_index in range(args.retry_errors):
+            failed = [(by_id[cid], index) for cid, index, o in raw if o.error and cid in by_id]
+            if not failed:
+                break
+            print(
+                f"  retrying {len(failed)} failed call(s), round {round_index + 1}",
+                file=sys.stderr,
+            )
+            with ThreadPoolExecutor(max_workers=concurrency) as pool:
+                retried = list(
+                    pool.map(
+                        lambda job: (job[0]["id"], job[1], _run_one(job[0], settings)),
+                        failed,
+                    )
+                )
+            merged = {(cid, index): (cid, index, outcome) for cid, index, outcome in raw}
+            recovered = 0
+            for cid, index, outcome in retried:
+                if not outcome.error:
+                    merged[(cid, index)] = (cid, index, outcome)
+                    recovered += 1
+            raw = list(merged.values())
+            print(f"  recovered {recovered}/{len(retried)}", file=sys.stderr)
+
     elapsed = time.perf_counter() - started
 
     if aborted_reason:
