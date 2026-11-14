@@ -6,6 +6,7 @@
 
 ### Added
 
+- **首份三轮重复测量**：80 例 × 3 轮（240 次调用，¥4.36，86 分钟）。通过率 94.2%（65/69，95% CI 88.4–98.6%），三轮极差 0.0pp、得分极差 1.38pp。关键发现：4 个用例三轮全部 502 断供、从未响应，把通过率从「已响应用例 100%」拉到 94.2%——**分母里有什么，比极差多大更重要**。见 [docs/real-model-repeat3.md](docs/real-model-repeat3.md) 与 [measurement.md](docs/measurement.md)。
 - **prompt A/B 与一个被否决的版本**：新增 `planner-v3`（枚举、60 分钟下限、光线时段对齐、输出前自检）与运行时开关 `SHOTPLAN_PROMPT_VERSION`；`make ab-prompt` 一条命令跑两臂并做配对比较。结果：22 个可生成用例上得分 +0.0115（95% CI [−0.020, +0.043]，测不出差异），成本却高 53%、输出长 56%、P50 慢 31%，**故不设为默认**。分析见 [docs/prompt-ab.md](docs/prompt-ab.md)。
 - **成本杠杆与分档跑法**：新增 `SHOTPLAN_LLM_MAX_TOKENS` / `SHOTPLAN_LLM_TEMPERATURE` / `SHOTPLAN_LLM_REASONING_EFFORT`（默认关闭，端点不支持时自动丢弃字段并重试一次，设置写入 `trace.config`）；评测新增 `--profile smoke|iterate|full`（8×1 / 30×1 / 80×3）。实测账单显示输出 token 占九成，详见 [docs/cost.md](docs/cost.md)。
 - **重复测量与可检测下限**：`real_model_lab --repeat N` 每例跑 N 轮，报告同时给「用例级 95% CI」与「轮次间极差」两类不确定性；新增 `evals/power.py` 计算样本量（69 例只能检测 8–11pp，检测 3pp 需 492–984 例）与 `evals/pair_compare.py` 做配对比较（区间跨 0 即拒绝下结论，退出码可直接当门禁）。方法见 [docs/measurement.md](docs/measurement.md)。
@@ -31,6 +32,7 @@
 
 ### Fixed
 
+- **重复模式的三个聚合错误**：`min_score` 把「从未响应」（502）的用例按 0 分算进最低分；`preflight_refused` 把 3 轮累加成 33 次（实际 11 个用例）；只有不可行用例时通过率会除零崩溃。三处均已修正并有单测。
 - `must_include` 被忽略仍能拿高分：C18 等 9 个用例此前是空转，现已真正覆盖。
 - `source_refs` 只计数不校验：伪造引用此前仍能拿溯源分，现在直接硬失败。
 - `SHOTPLAN_LOG_LEVEL` 是死配置；现在 CLI 与 API 启动时生效。

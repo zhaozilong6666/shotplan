@@ -85,6 +85,43 @@ def test_bootstrap_is_seeded_and_brackets_the_mean():
     assert low <= mean <= high
 
 
+def test_min_score_ignores_cases_that_never_answered():
+    """A 502 is not a bad plan; letting it set the floor hides the real one."""
+    runs = [
+        _outcome("C01", 0, True, 0.90),
+        _outcome("C01", 1, True, 0.80),
+        _outcome("C02", 0, False, 0.0),
+        _outcome("C02", 1, False, 0.0),
+    ]
+    runs[2][2].status = "error"
+    runs[2][2].error = "HTTP 502"
+    runs[3][2].status = "error"
+    runs[3][2].error = "HTTP 502"
+
+    summary = summarise_repeats(runs, _settings(), repeat=2)
+    assert summary["min_score"] == 0.85, "only answered cases belong in the floor"
+    assert summary["errors"] == 2
+
+
+def test_preflight_refusals_are_counted_per_case_not_per_repeat():
+    runs = []
+    for index in range(3):
+        outcome = CaseOutcome(
+            case_id="C99",
+            group="infeasible",
+            description="",
+            provider="fake",
+            hard_pass=True,
+            score=1.0,
+            status="infeasible",
+        )
+        runs.append(("C99", index, outcome))
+
+    summary = summarise_repeats(runs, _settings(), repeat=3)
+    assert summary["preflight_cases"] == 1
+    assert summary["preflight_refused"] == 1, "3 repeats must not look like 3 refusals"
+
+
 def test_repair_breakdown_separates_rescued_from_stuck():
     def outcome(case_id, hard_pass, repairs, codes):
         return (

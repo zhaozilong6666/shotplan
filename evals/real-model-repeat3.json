@@ -1,0 +1,766 @@
+{
+  "generated_by": "evals.real_model_lab",
+  "model": "deepseek-v4.1-flash-261017",
+  "base_url": "https://sub.7740.cn/v1",
+  "prompt_version": "planner-v2",
+  "temperature": 0.2,
+  "cases": 80,
+  "repeat": 3,
+  "cases_needing_a_plan": 69,
+  "preflight_cases": 11,
+  "preflight_refused": 11,
+  "hard_pass_rate": 0.942,
+  "hard_pass_ci": [
+    0.8841,
+    0.9855
+  ],
+  "mean_score": 0.8284,
+  "mean_score_ci": [
+    0.7735,
+    0.8716
+  ],
+  "min_score": 0.79,
+  "errors": 12,
+  "error_rate": 0.05,
+  "error_cases": [
+    "C71",
+    "C72",
+    "C73",
+    "C74"
+  ],
+  "error_messages": {
+    "规划流水线失败：HTTP 502 from https://sub.7740.cn/v1/chat/completions: {\"error\":{\"message\":\"Upstream service temporarily unavail": 12
+  },
+  "first_attempt_clean": 62,
+  "repaired": 7,
+  "run_pass_rate": [
+    0.942,
+    0.942,
+    0.942
+  ],
+  "run_mean_score": [
+    0.8219,
+    0.8357,
+    0.8276
+  ],
+  "run_pass_spread_pp": 0.0,
+  "p50_ms": 67613.1,
+  "p95_ms": 112163.2,
+  "tokens_in": 401275,
+  "tokens_out": 990221,
+  "cost_cny": 4.3622,
+  "top_issue_codes": {
+    "LIGHT_MISUSE": 84,
+    "SHOOT_TOO_SHORT": 19,
+    "PIPELINE_ERROR": 12,
+    "STYLE_MISMATCH": 2,
+    "NO_SOURCE_REF": 1
+  },
+  "per_case": [
+    {
+      "id": "C01",
+      "group": "normal",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.9684,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C02",
+      "group": "normal",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.8787,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C03",
+      "group": "normal",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.875,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C04",
+      "group": "normal",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.845,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C05",
+      "group": "normal",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.83,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C06",
+      "group": "conflict",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.86,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C07",
+      "group": "conflict",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.9475,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C08",
+      "group": "conflict",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.8742,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C09",
+      "group": "conflict",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.8708,
+      "error_rate": 0.0,
+      "max_repairs": 1
+    },
+    {
+      "id": "C10",
+      "group": "edge",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.7967,
+      "error_rate": 0.0,
+      "max_repairs": 1
+    },
+    {
+      "id": "C11",
+      "group": "edge",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.83,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C12",
+      "group": "edge",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.8533,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C13",
+      "group": "normal",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.8975,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C14",
+      "group": "normal",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.83,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C15",
+      "group": "normal",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.83,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C16",
+      "group": "normal",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.9646,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C17",
+      "group": "normal",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.83,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C18",
+      "group": "normal",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.9204,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C19",
+      "group": "normal",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.9708,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C20",
+      "group": "normal",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.8617,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C21",
+      "group": "conflict",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.9646,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C22",
+      "group": "conflict",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.79,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C23",
+      "group": "conflict",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.9396,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C24",
+      "group": "conflict",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.9542,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C25",
+      "group": "conflict",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.83,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C26",
+      "group": "conflict",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.83,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C27",
+      "group": "edge",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.9133,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C28",
+      "group": "edge",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.8617,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C29",
+      "group": "edge",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.8658,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C30",
+      "group": "edge",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.83,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C37",
+      "group": "normal",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.9292,
+      "error_rate": 0.0,
+      "max_repairs": 1
+    },
+    {
+      "id": "C38",
+      "group": "normal",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.83,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C39",
+      "group": "normal",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.85,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C40",
+      "group": "normal",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.8933,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C41",
+      "group": "normal",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.9687,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C42",
+      "group": "conflict",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.9625,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C43",
+      "group": "conflict",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.8033,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C44",
+      "group": "conflict",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.84,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C45",
+      "group": "conflict",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.8742,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C46",
+      "group": "edge",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.81,
+      "error_rate": 0.0,
+      "max_repairs": 1
+    },
+    {
+      "id": "C47",
+      "group": "edge",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.9562,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C48",
+      "group": "edge",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.85,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C51",
+      "group": "normal",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.87,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C52",
+      "group": "normal",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.8617,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C53",
+      "group": "normal",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.8871,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C54",
+      "group": "normal",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.8642,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C55",
+      "group": "conflict",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.8533,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C56",
+      "group": "conflict",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.81,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C57",
+      "group": "conflict",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.8721,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C58",
+      "group": "edge",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.79,
+      "error_rate": 0.0,
+      "max_repairs": 1
+    },
+    {
+      "id": "C59",
+      "group": "edge",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.9542,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C61",
+      "group": "normal",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.8742,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C62",
+      "group": "normal",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.9142,
+      "error_rate": 0.0,
+      "max_repairs": 1
+    },
+    {
+      "id": "C63",
+      "group": "normal",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.95,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C64",
+      "group": "normal",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.8617,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C65",
+      "group": "conflict",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.85,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C66",
+      "group": "conflict",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.9667,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C67",
+      "group": "conflict",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.83,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C68",
+      "group": "edge",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.9396,
+      "error_rate": 0.0,
+      "max_repairs": 1
+    },
+    {
+      "id": "C69",
+      "group": "edge",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.9208,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C71",
+      "group": "normal",
+      "repeat": 3,
+      "pass_rate": 0.0,
+      "mean_score": 0.0,
+      "error_rate": 1.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C72",
+      "group": "normal",
+      "repeat": 3,
+      "pass_rate": 0.0,
+      "mean_score": 0.0,
+      "error_rate": 1.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C73",
+      "group": "normal",
+      "repeat": 3,
+      "pass_rate": 0.0,
+      "mean_score": 0.0,
+      "error_rate": 1.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C74",
+      "group": "normal",
+      "repeat": 3,
+      "pass_rate": 0.0,
+      "mean_score": 0.0,
+      "error_rate": 1.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C75",
+      "group": "conflict",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.83,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C76",
+      "group": "conflict",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.83,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C77",
+      "group": "conflict",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.85,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C78",
+      "group": "edge",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.975,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    },
+    {
+      "id": "C79",
+      "group": "edge",
+      "repeat": 3,
+      "pass_rate": 1.0,
+      "mean_score": 0.925,
+      "error_rate": 0.0,
+      "max_repairs": 0
+    }
+  ],
+  "concurrency": 3,
+  "wall_seconds": 5169.9,
+  "sampled_case_ids": [
+    "C06",
+    "C07",
+    "C08",
+    "C09",
+    "C21",
+    "C22",
+    "C23",
+    "C24",
+    "C25",
+    "C26",
+    "C42",
+    "C43",
+    "C44",
+    "C45",
+    "C55",
+    "C56",
+    "C57",
+    "C65",
+    "C66",
+    "C67",
+    "C75",
+    "C76",
+    "C77",
+    "C10",
+    "C11",
+    "C12",
+    "C27",
+    "C28",
+    "C29",
+    "C30",
+    "C46",
+    "C47",
+    "C48",
+    "C58",
+    "C59",
+    "C68",
+    "C69",
+    "C78",
+    "C79",
+    "C31",
+    "C32",
+    "C33",
+    "C34",
+    "C35",
+    "C36",
+    "C49",
+    "C50",
+    "C60",
+    "C70",
+    "C80",
+    "C01",
+    "C02",
+    "C03",
+    "C04",
+    "C05",
+    "C13",
+    "C14",
+    "C15",
+    "C16",
+    "C17",
+    "C18",
+    "C19",
+    "C20",
+    "C37",
+    "C38",
+    "C39",
+    "C40",
+    "C41",
+    "C51",
+    "C52",
+    "C53",
+    "C54",
+    "C61",
+    "C62",
+    "C63",
+    "C64",
+    "C71",
+    "C72",
+    "C73",
+    "C74"
+  ]
+}

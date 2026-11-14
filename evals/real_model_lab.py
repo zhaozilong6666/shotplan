@@ -182,8 +182,9 @@ def summarise_repeats(
             outcome = next(o for i, o in by_case[cid] if i == index)
             flags.append(1.0 if outcome.hard_pass else 0.0)
             scores.append(outcome.score)
-        run_pass.append(sum(flags) / len(flags))
-        run_score.append(statistics.fmean(scores))
+        if flags:  # a suite of only-infeasible cases has no pass rate
+            run_pass.append(sum(flags) / len(flags))
+            run_score.append(statistics.fmean(scores))
 
     all_outcomes = [o for _, _, o in runs]
     fixed_codes, failed_codes = _repair_breakdown(all_outcomes)
@@ -206,16 +207,25 @@ def summarise_repeats(
         "cases": len(by_case),
         "repeat": repeat,
         "cases_needing_a_plan": len(per_case),
-        "preflight_cases": len(by_case) - len(per_case),
-        "preflight_refused": sum(
-            1 for cid in by_case if groups[cid] == _PREFLIGHT_ONLY
-            for _, o in by_case[cid] if o.status == "infeasible"
+        "preflight_cases": sum(1 for cid in by_case if groups[cid] == _PREFLIGHT_ONLY),
+        # Count cases, not calls: with 3 repeats the same refusal would
+        # otherwise be reported as three separate refusals.
+        "preflight_refused": len(
+            {
+                cid
+                for cid in by_case
+                if groups[cid] == _PREFLIGHT_ONLY
+                for _, outcome in by_case[cid]
+                if outcome.status == "infeasible"
+            }
         ),
         "hard_pass_rate": round(statistics.fmean(pass_values), 4) if pass_values else 0.0,
         "hard_pass_ci": [round(rate_lo, 4), round(rate_hi, 4)],
         "mean_score": round(statistics.fmean(score_values), 4) if score_values else 0.0,
         "mean_score_ci": [round(score_lo, 4), round(score_hi, 4)],
-        "min_score": round(min((r["mean_score"] for r in per_case), default=0.0), 4),
+        "min_score": round(
+            min((r["mean_score"] for r in per_case if r["error_rate"] < 1.0), default=0.0), 4
+        ),
         "errors": len(errors),
         "error_rate": round(len(errors) / len(all_outcomes), 4) if all_outcomes else 0.0,
         "error_cases": sorted({o.case_id for o in errors}),
@@ -532,7 +542,12 @@ def build_report(
         "## 成本与延迟",
         "",
         f"- 总 token：输入 {snapshot['tokens_in']:,} ／ 输出 {snapshot['tokens_out']:,}",
-        f"- 总成本：¥{snapshot['cost_cny']:.2f}（{snapshot['cases']} 个用例，含失败的调用）",
+        f"- 总成本：¥{snapshot['cost_cny']:.2f}"
+        + (
+            f"（{snapshot['cases']} 个用例 × {snapshot['repeat']} 轮，含失败的调用）"
+            if snapshot.get("repeat", 1) > 1
+            else f"（{snapshot['cases']} 个用例，含失败的调用）"
+        ),
         f"- 单次 P50：{snapshot['p50_ms'] / 1000:.1f}s ／ P95：{snapshot['p95_ms'] / 1000:.1f}s",
         (
             f"- 前置可行性判定在模型之前执行：{snapshot['preflight_cases']} 个不可行用例中 "
