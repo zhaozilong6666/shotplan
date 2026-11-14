@@ -449,6 +449,10 @@ def run_plan(
             cost_cny=fixed.cost_cny,
             hard_issues_before=len(report.hard_issues),
             hard_issues_after=len(candidate_report.hard_issues),
+            # Codes, not just counts: "the repair loop fixed 3 hard issues" says
+            # nothing about whether it can fix a budget overrun or only a typo.
+            before_codes=[issue.code for issue in report.hard_issues][:6],
+            after_codes=[issue.code for issue in candidate_report.hard_issues][:6],
             accepted=accepted,
         )
         if accepted:

@@ -83,3 +83,36 @@ def test_bootstrap_is_seeded_and_brackets_the_mean():
     low, high = bootstrap_ci(values)
     mean = sum(values) / len(values)
     assert low <= mean <= high
+
+
+def test_repair_breakdown_separates_rescued_from_stuck():
+    def outcome(case_id, hard_pass, repairs, codes):
+        return (
+            case_id,
+            0,
+            CaseOutcome(
+                case_id=case_id,
+                group="normal",
+                description="",
+                provider="fake",
+                hard_pass=hard_pass,
+                score=0.9 if hard_pass else 0.4,
+                repair_count=repairs,
+                initial_hard_codes=codes,
+            ),
+        )
+
+    runs = [
+        outcome("C01", True, 1, ["BUDGET_EXCEEDED"]),
+        outcome("C02", True, 1, ["BUDGET_EXCEEDED", "TIME_OVERRUN"]),
+        outcome("C03", False, 2, ["TRANSFER_BUFFER"]),
+        outcome("C04", True, 0, []),
+    ]
+    summary = summarise_repeats(runs, _settings(), repeat=1)
+
+    assert summary["repair_fixed_codes"]["BUDGET_EXCEEDED"] == 2
+    assert summary["repair_fixed_codes"]["TIME_OVERRUN"] == 1
+    assert summary["repair_failed_codes"] == {"TRANSFER_BUFFER": 1}
+    report = build_report({**summary, "concurrency": 2}, baseline=None)
+    assert "修复循环救回了什么" in report
+    assert "`BUDGET_EXCEEDED`" in report

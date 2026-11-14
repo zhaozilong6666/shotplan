@@ -106,6 +106,23 @@ def bootstrap_ci(values: list[float], rounds: int = 2000, seed: int = 20261113) 
     return (means[int(0.025 * rounds)], means[int(0.975 * rounds) - 1])
 
 
+def _repair_breakdown(outcomes: list[CaseOutcome]) -> tuple[dict[str, int], dict[str, int]]:
+    """Which hard issues the repair loop rescued, and which it could not.
+
+    A single "3 repairs" number hides the interesting part: a loop that fixes
+    missing fields is not the same as one that fixes a budget overrun.
+    """
+    fixed: dict[str, int] = {}
+    failed: dict[str, int] = {}
+    for outcome in outcomes:
+        if not outcome.repair_count:
+            continue
+        target = fixed if outcome.hard_pass else failed
+        for code in outcome.initial_hard_codes:
+            target[code] = target.get(code, 0) + 1
+    return fixed, failed
+
+
 def summarise_repeats(
     runs: list[tuple[str, int, CaseOutcome]],
     settings: Any,
@@ -169,6 +186,7 @@ def summarise_repeats(
         run_score.append(statistics.fmean(scores))
 
     all_outcomes = [o for _, _, o in runs]
+    fixed_codes, failed_codes = _repair_breakdown(all_outcomes)
     errors = [o for o in all_outcomes if o.error]
     durations = [o.duration_ms for o in all_outcomes if not o.error]
     issue_codes: dict[str, int] = {}
@@ -211,6 +229,8 @@ def summarise_repeats(
         ),
         "first_attempt_clean": sum(1 for r in per_case if r["max_repairs"] == 0),
         "repaired": sum(1 for r in per_case if r["max_repairs"] > 0),
+        "repair_fixed_codes": fixed_codes,
+        "repair_failed_codes": failed_codes,
         "run_pass_rate": [round(value, 4) for value in run_pass],
         "run_mean_score": [round(value, 4) for value in run_score],
         "run_pass_spread_pp": round((max(run_pass) - min(run_pass)) * 100, 1) if run_pass else 0.0,
@@ -265,6 +285,8 @@ def summarise(outcomes: list[CaseOutcome], settings: Any) -> dict[str, Any]:
         # actually matters for structured output; repairs hide it in the score.
         "first_attempt_clean": sum(1 for o in planned if not o.error and o.repair_count == 0),
         "repaired": sum(1 for o in planned if o.repair_count > 0),
+        "repair_fixed_codes": _repair_breakdown(planned)[0],
+        "repair_failed_codes": _repair_breakdown(planned)[1],
         "p50_ms": _pct(durations, 0.50),
         "p95_ms": _pct(durations, 0.95),
         "tokens_in": sum(o.tokens_in for o in outcomes),
@@ -541,6 +563,29 @@ def build_report(
             "上游故障与模型失败在计数上无法区分，只能靠这里的原文分辨："
             "`INSUFFICIENT_BALANCE`、`401`、`timeout` 属于前者，"
             "字段缺失与非法枚举属于后者。",
+        ]
+
+    fixed_codes = snapshot.get("repair_fixed_codes") or {}
+    failed_codes = snapshot.get("repair_failed_codes") or {}
+    if fixed_codes or failed_codes:
+        lines += [
+            "",
+            "## 修复循环救回了什么",
+            "",
+            "| 初始硬问题 | 修好 | 没修好 |",
+            "| --- | ---: | ---: |",
+        ]
+        for code in sorted(
+            set(fixed_codes) | set(failed_codes),
+            key=lambda c: (-fixed_codes.get(c, 0), c),
+        ):
+            lines.append(
+                f"| `{code}` | {fixed_codes.get(code, 0)} | {failed_codes.get(code, 0)} |"
+            )
+        lines += [
+            "",
+            "「修好」= 该用例修复后通过硬约束；「没修好」= 修了但最终仍失败。"
+            "只有初始错误码被记录时才会计入，所以老快照可能为空。",
         ]
 
     lines += [

@@ -100,6 +100,14 @@ def test_persistence_failure_does_not_veto_a_valid_plan():
     assert "PERSISTENCE_FAILED" in {i.code for i in result.validation.issues}
 
 
+def test_repair_event_records_the_codes_it_tried_to_fix():
+    """A repair count without codes cannot tell a typo fix from a budget fix."""
+    result = run_plan(PlanRequest(), provider=MockProvider("naive"), max_repairs=1)
+    repairs = [e for e in result.trace.events if e.name.startswith("repair_")]
+    assert repairs, "the naive provider must trigger at least one repair"
+    assert repairs[0].detail["before_codes"], "the event must name the codes it saw"
+
+
 def test_parse_repair_hint_matches_the_parser_enum():
     """A repair hint that disagrees with the parser teaches a new failure."""
     from shotplan.agents.planner import _VALID_ACTIVITIES

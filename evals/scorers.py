@@ -52,6 +52,10 @@ class CaseOutcome:
     tokens_out: int = 0
     cost_cny: float = 0.0
     status: str = "ok"
+    # Hard-issue codes from before the first repair. Without them, a repaired
+    # pass is indistinguishable from a clean one when you ask "what does the
+    # repair loop actually fix?"
+    initial_hard_codes: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -67,6 +71,12 @@ def _trace_totals(result: PlanResult) -> tuple[int, int]:
 
 def evaluate_case(case: dict[str, Any], result: PlanResult) -> CaseOutcome:
     tokens_in, tokens_out = _trace_totals(result)
+    initial_codes: list[str] = []
+    for event in result.trace.events:
+        codes = (event.detail or {}).get("before_codes")
+        if event.name.startswith("repair_") and codes:
+            initial_codes = list(codes)
+            break
     common = {
         "case_id": case["id"],
         "group": case.get("group", "default"),
@@ -79,6 +89,7 @@ def evaluate_case(case: dict[str, Any], result: PlanResult) -> CaseOutcome:
         "cost_cny": round(result.trace.total_cost_cny, 6),
         "status": getattr(result, "status", "ok"),
         "error": "",
+        "initial_hard_codes": initial_codes,
     }
 
     if bool(case.get("expect_infeasible", False)):
