@@ -687,6 +687,12 @@ def main(argv: list[str] | None = None) -> int:
         default=Path("evals/out/checkpoint.jsonl"),
         help="append each finished call here so an interrupted run can resume",
     )
+    parser.add_argument(
+        "--cases-dir",
+        type=Path,
+        default=None,
+        help="run a different case set, e.g. evals/redteam",
+    )
     parser.add_argument("--progress-every", type=int, default=10, help="print progress every N calls")
     parser.add_argument(
         "--retry-errors",
@@ -738,7 +744,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 2
 
-    cases = load_cases()
+    cases = load_cases(args.cases_dir)
     profile = PROFILES.get(args.profile or "", {})
     limit = args.limit if args.limit is not None else profile.get("limit", 0)
     repeat = max(1, args.repeat if args.repeat is not None else profile.get("repeat", 1))
@@ -867,6 +873,7 @@ def main(argv: list[str] | None = None) -> int:
     snapshot["concurrency"] = concurrency
     snapshot["wall_seconds"] = round(elapsed, 1)
     snapshot["sampled_case_ids"] = [case["id"] for case in cases]
+    snapshot["cases_dir"] = str(args.cases_dir) if args.cases_dir else "evals/cases"
 
     if args.checkpoint and args.checkpoint.exists():
         args.checkpoint.unlink()
