@@ -153,3 +153,4 @@ python -m pytest tests/test_scorers.py -q
 - [可观测性说明](observability.md)：评测报告是实验，运行统计是实际使用记录，两者不能互相替代。
 - [测量方法](measurement.md)：区间怎么算、配对为什么省样本、69 个用例能检测多大差异；配套工具 `evals/power.py` 与 `evals/pair_compare.py`。
 - [规则地图](rule-map.md)：每条校验规则守什么、真实触发过多少次、哪个测试会在删除它时报错；由 `scripts/build_rule_map.py` 生成并纳入门禁。
+- [修复循环归因](repair-attribution.md)：哪些初始失败被修复救回、哪些救不回、修过一次的最终通过率；由 `evals/repair_attribution.py` 汇总全部快照并纳入门禁。

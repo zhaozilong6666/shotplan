@@ -6,6 +6,7 @@
 
 ### Added
 
+- **修复循环归因（离线，零成本）**：`evals/repair_attribution.py` 汇总 8 份快照、315 条逐例记录，生成 `docs/repair-attribution.md` 并纳入门禁。结论：未触发修复的用例通过率 96.6%，修过 1 次的只有 80%；`MISSING_REQUIRED_LOCATION` 修复成功率 71%（5/7），`UNKNOWN_SOURCE_REF` 3/3、UNKNOWN_LOCATION 2/2，但样本 <10 一律标注「不下结论」——**没有任何一种失败被证明救不了**。未来快照的 `per_case` 新增 `initial_hard_codes` / `final_issue_codes`，可逐例追溯。
 - **prompt 路由的前瞻验证（未通过）**：另造 16 条 holdout（8 光线敏感 + 8 普通，与调参集无重合），两臂各跑一轮。整体得分 +0.0007（95% CI [−0.0343, +0.0338]，测不出差异），光线组仅 +0.0025，`LIGHT_MISUSE` 7→8、软问题用例 43.8%→50%。**调参集上的 +0.0431 没迁移，是选择偏差**。`SHOTPLAN_PROMPT_ROUTER` 保持默认关闭。holdout 集、两臂快照与报告均已归档。见 [docs/router-validation.md](docs/router-validation.md)。
 - **按 brief 选 prompt（默认关闭）**：`SHOTPLAN_PROMPT_ROUTER=1` 时，偏好出现「上午 / 正午 / 不拍傍晚 / 室内为主」或必去晨光、夜景限定地点，且时长 ≤10 小时，就改用 `planner-v3`；其余仍用 v2。实际使用的版本写入该次调用的 `metadata.prompt_version`，可逐例审计。**这还只是实现，不是结论**：必须在一批新用例上前瞻验证，不能用挑出这 12 条的同一批数据自证（选择偏差）。
 - **红队 v2 与一次结论翻案**：12 条光线敏感 brief 让 `LIGHT_MISUSE` 触发 9/12（75%，主集 38%）。用这批题重测此前被否决的 `planner-v3`：得分 0.8279 → 0.8710，配对差值 **+0.0431（95% CI [+0.0127, +0.0763]，6 胜 0 负）**，`LIGHT_MISUSE` 9 → 7。结论修正为「**v3 对光线敏感 brief 有效、对普通 brief 无效且更贵**」，仍不设默认。方法论收获：A/B 样本必须让被检验的机制有机会失败。见 [docs/redteam-analysis.md](docs/redteam-analysis.md) 与 [docs/prompt-ab.md](docs/prompt-ab.md)。

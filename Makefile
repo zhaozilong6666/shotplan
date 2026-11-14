@@ -89,6 +89,7 @@ gates:
 	$(PYTHON) -m evals.persist_lab --check
 	$(PYTHON) scripts/build_pipeline_doc.py --check
 	$(PYTHON) scripts/build_rule_map.py --check
+	$(PYTHON) -m evals.repair_attribution --check
 	$(PYTHON) -m evals.scaling --check --requests 300
 	$(PYTHON) -m evals.examples --check
 

@@ -99,7 +99,7 @@
 ### 阶段 7 · 失败驱动的改进闭环（2 周）
 
 - [x] 失败分类学升级为**可执行清单**：每类失败对应一个修复策略与一个回归用例（见 [rule-map.md](rule-map.md)，由 `scripts/build_rule_map.py` 生成并纳入门禁）
-- [ ] 统计「修复轮次 × 失败类型 × 是否修好」，找出哪些失败修复循环根本救不了
+- [x] 统计「修复轮次 × 失败类型 × 是否修好」：8 份快照 / 315 条逐例记录 / 25 条触发修复。未修复用例通过率 96.6%，修过 1 次的只有 80%；`MISSING_REQUIRED_LOCATION` 修复成功率 71%（5/7），`UNKNOWN_SOURCE_REF` 3/3。**没有哪种失败被证明救不了**（样本都 <10，明确拒绝下结论）。见 [repair-attribution.md](repair-attribution.md)
 - [x] 红队集：30 条「语义合理但可执行性紧张」的 brief（光线/多地点/预算贴底/排除冲突/输入噪声 + 6 条预检拒绝）。先离线验证难度再花钱：naive 0/24、规则 Agent 21/24、真实模型 23/24（95.8%）。结论：**硬约束已饱和，真正的弱点是 `LIGHT_MISUSE` 这类软问题**。见 [redteam-analysis.md](redteam-analysis.md)
 - [x] 下一版红队瞄准软问题：12 条光线敏感 brief，`LIGHT_MISUSE` 触发 9/12（75%，主集 38%）。用这批题重测 `planner-v3`：得分 +0.0431（95% CI [+0.0127, +0.0763]），**第一次 A/B 的「v3 无效」是被饱和样本骗了**。见 [redteam-analysis.md](redteam-analysis.md) 与 [prompt-ab.md](prompt-ab.md)
 - [x] 实现按 brief 特征路由（`SHOTPLAN_PROMPT_ROUTER=1`：偏好含上午/正午/不拍傍晚/室内为主，或必去晨光/夜景限定地点时用 v3）。**默认关闭，未做前瞻验证**

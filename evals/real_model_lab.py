@@ -165,6 +165,9 @@ def summarise_repeats(
                 "mean_soft_issues": round(
                     statistics.fmean(o.soft_issue_count for o in outcomes), 2
                 ),
+                "initial_hard_codes": sorted(
+                    {code for o in outcomes for code in o.initial_hard_codes}
+                ),
             }
         )
 
@@ -326,6 +329,8 @@ def summarise(outcomes: list[CaseOutcome], settings: Any) -> dict[str, Any]:
                 "tokens_in": o.tokens_in,
                 "tokens_out": o.tokens_out,
                 "error": o.error[:200],
+                "initial_hard_codes": o.initial_hard_codes,
+                "final_issue_codes": o.issues[:8],
             }
             for o in sorted(outcomes, key=lambda o: o.case_id)
         ],
