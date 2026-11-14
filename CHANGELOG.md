@@ -6,6 +6,7 @@
 
 ### Added
 
+- **红队 v2 与一次结论翻案**：12 条光线敏感 brief 让 `LIGHT_MISUSE` 触发 9/12（75%，主集 38%）。用这批题重测此前被否决的 `planner-v3`：得分 0.8279 → 0.8710，配对差值 **+0.0431（95% CI [+0.0127, +0.0763]，6 胜 0 负）**，`LIGHT_MISUSE` 9 → 7。结论修正为「**v3 对光线敏感 brief 有效、对普通 brief 无效且更贵**」，仍不设默认。方法论收获：A/B 样本必须让被检验的机制有机会失败。见 [docs/redteam-analysis.md](docs/redteam-analysis.md) 与 [docs/prompt-ab.md](docs/prompt-ab.md)。
 - **红队集 v1 与一个反直觉结论**：30 条更难用例（长白天光线、多地点挤压、预算贴底、排除冲突、输入噪声 + 6 条预检拒绝），离线先验证「naive 0/24 全败、规则 Agent 21/24 可解」再花钱。真实模型 **23/24（95.8%）**，高于主集——**硬约束层已饱和**，真正的弱点是 `LIGHT_MISUSE`（红队 8 次、主集 26 次，比例一致）。报告新增 `soft_issue_rate` 指标，下一版红队将瞄准软问题。见 [docs/redteam-analysis.md](docs/redteam-analysis.md)。
 - **首份三轮重复测量**：80 例 × 3 轮（240 次调用，¥4.36，86 分钟）。通过率 94.2%（65/69，95% CI 88.4–98.6%），三轮极差 0.0pp、得分极差 1.38pp。关键发现：4 个用例三轮全部 502 断供、从未响应，把通过率从「已响应用例 100%」拉到 94.2%——**分母里有什么，比极差多大更重要**。见 [docs/real-model-repeat3.md](docs/real-model-repeat3.md) 与 [measurement.md](docs/measurement.md)。
 - **prompt A/B 与一个被否决的版本**：新增 `planner-v3`（枚举、60 分钟下限、光线时段对齐、输出前自检）与运行时开关 `SHOTPLAN_PROMPT_VERSION`；`make ab-prompt` 一条命令跑两臂并做配对比较。结果：22 个可生成用例上得分 +0.0115（95% CI [−0.020, +0.043]，测不出差异），成本却高 53%、输出长 56%、P50 慢 31%，**故不设为默认**。分析见 [docs/prompt-ab.md](docs/prompt-ab.md)。
