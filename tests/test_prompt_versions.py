@@ -107,3 +107,48 @@ def test_router_is_off_by_default(monkeypatch):
     result = provider.generate(request, get_tools().context_for(request))
     assert result.metadata["prompt_version"] == "planner-v2"
     assert len(seen) == 1
+
+
+def test_effective_prompt_version_is_recorded_not_the_constructor_value(tmp_path):
+    """A router can pick v3 per request; provenance must follow the actual call."""
+    from shotplan.agents import MockProvider
+    from shotplan.domain.models import PlanRequest
+    from shotplan.pipeline import run_plan
+    from shotplan.storage import RunStore
+
+    class Relabelled(MockProvider):
+        def generate(self, *args, **kwargs):
+            result = super().generate(*args, **kwargs)
+            result.prompt_version = "planner-v3"
+            return result
+
+    provider = Relabelled("good")
+    result = run_plan(PlanRequest(), provider=provider, max_repairs=0)
+
+    assert provider.prompt_version != "planner-v3"
+    assert result.trace.prompt_version_effective == "planner-v3"
+    assert result.to_dict()["trace"]["prompt_version_effective"] == "planner-v3"
+
+    store = RunStore(tmp_path / "provenance.db")
+    store.save(result)
+    assert store.recent(1)[0]["prompt_version"] == "planner-v3"
+
+
+def test_eval_snapshot_records_the_version_distribution():
+    from evals.real_model_lab import summarise
+    from evals.scorers import CaseOutcome
+
+    def outcome(case_id, version):
+        return CaseOutcome(
+            case_id=case_id, group="normal", description="", provider="fake",
+            hard_pass=True, score=0.9, prompt_version_effective=version,
+        )
+
+    snapshot = summarise(
+        [outcome("C01", "planner-v2"), outcome("C02", "planner-v3"), outcome("C03", "planner-v3")],
+        _settings(),
+    )
+    assert snapshot["prompt_version_distribution"] == {"planner-v2": 1, "planner-v3": 2}
+    assert [c["prompt_version_effective"] for c in snapshot["per_case"]] == [
+        "planner-v2", "planner-v3", "planner-v3"
+    ]

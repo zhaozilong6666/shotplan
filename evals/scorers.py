@@ -53,6 +53,9 @@ class CaseOutcome:
     tokens_out: int = 0
     cost_cny: float = 0.0
     status: str = "ok"
+    # Which prompt actually produced this plan. Recording the global setting
+    # makes A/B snapshots unreproducible when a router is involved.
+    prompt_version_effective: str = ""
     # Hard-issue codes from before the first repair. Without them, a repaired
     # pass is indistinguishable from a clean one when you ask "what does the
     # repair loop actually fix?"
@@ -91,6 +94,9 @@ def evaluate_case(case: dict[str, Any], result: PlanResult) -> CaseOutcome:
         "status": getattr(result, "status", "ok"),
         "error": "",
         "initial_hard_codes": initial_codes,
+        "prompt_version_effective": (
+            result.trace.prompt_version_effective or result.trace.prompt_version
+        ),
     }
 
     if bool(case.get("expect_infeasible", False)):

@@ -22,6 +22,7 @@ import statistics
 import sys
 import threading
 import time
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict
 from pathlib import Path
@@ -168,6 +169,9 @@ def summarise_repeats(
                 "initial_hard_codes": sorted(
                     {code for o in outcomes for code in o.initial_hard_codes}
                 ),
+                "prompt_versions": sorted(
+                    {o.prompt_version_effective for o in outcomes if o.prompt_version_effective}
+                ),
             }
         )
 
@@ -257,6 +261,13 @@ def summarise_repeats(
         "tokens_out": sum(o.tokens_out for o in all_outcomes),
         "cost_cny": round(sum(o.cost_cny for o in all_outcomes), 4),
         "top_issue_codes": dict(sorted(issue_codes.items(), key=lambda kv: -kv[1])[:8]),
+        "prompt_version_distribution": dict(
+            sorted(
+                Counter(
+                    o.prompt_version_effective or "unknown" for o in all_outcomes
+                ).items()
+            )
+        ),
         "soft_issue_rate": round(
             sum(1 for r in per_case if r.get("mean_soft_issues", 0) > 0) / len(per_case), 4
         ) if per_case else 0.0,
@@ -317,6 +328,13 @@ def summarise(outcomes: list[CaseOutcome], settings: Any) -> dict[str, Any]:
         "tokens_out": sum(o.tokens_out for o in outcomes),
         "cost_cny": round(sum(o.cost_cny for o in outcomes), 4),
         "top_issue_codes": dict(sorted(issue_codes.items(), key=lambda kv: -kv[1])[:8]),
+        "prompt_version_distribution": dict(
+            sorted(
+                Counter(
+                    o.prompt_version_effective or "unknown" for o in outcomes
+                ).items()
+            )
+        ),
         "per_case": [
             {
                 "id": o.case_id,
@@ -331,6 +349,7 @@ def summarise(outcomes: list[CaseOutcome], settings: Any) -> dict[str, Any]:
                 "error": o.error[:200],
                 "initial_hard_codes": o.initial_hard_codes,
                 "final_issue_codes": o.issues[:8],
+                "prompt_version_effective": o.prompt_version_effective,
             }
             for o in sorted(outcomes, key=lambda o: o.case_id)
         ],
@@ -458,6 +477,14 @@ def build_report(
         f"{snapshot['temperature']}，并发 {snapshot.get('concurrency', '?')}）｜ prompt "
         f"`{snapshot['prompt_version']}`"
         + (" + 路由（光线敏感用 v3）" if snapshot.get("prompt_router") else "")
+        + (
+            " ｜ 实际分布："
+            + ", ".join(
+                f"`{k}` × {v}" for k, v in (snapshot.get("prompt_version_distribution") or {}).items()
+            )
+            if snapshot.get("prompt_version_distribution")
+            else ""
+        )
         + f" ｜ "
         f"{snapshot['cases']} 个用例"
         + (f" × {snapshot['repeat']} 轮" if snapshot.get("repeat", 1) > 1 else "")

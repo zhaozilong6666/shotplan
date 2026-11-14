@@ -51,3 +51,25 @@ def test_recent_payloads_respects_limit(tmp_path):
         store.save(run_plan(PlanRequest(hours=hours), max_repairs=0))
     assert len(store.recent_payloads(2)) == 2
     assert "status" in store.recent_payloads(1)[0]
+
+
+def test_errors_and_refusals_do_not_grade_the_model():
+    """The eval reports already fixed this; the dashboard must match them."""
+    from shotplan.observability import _summarise
+
+    rows = [
+        {"status": "ok", "score": 0.9, "hard_pass": 1, "duration_ms": 10.0, "cost_cny": 0.1, "repairs": 0},
+        {"status": "ok", "score": 0.5, "hard_pass": 0, "duration_ms": 20.0, "cost_cny": 0.1, "repairs": 1},
+        {"status": "error", "score": 0.0, "hard_pass": 0, "duration_ms": 99999.0, "cost_cny": 0.3, "repairs": 0},
+        {"status": "infeasible", "score": 0.0, "hard_pass": 0, "duration_ms": 5.0, "cost_cny": 0.0, "repairs": 0},
+    ]
+    summary = _summarise(rows)
+    assert summary["runs"] == 4
+    assert summary["ok_runs"] == 2
+    assert summary["hard_pass_rate"] == 0.5, "1/2 of ok runs, not 1/4 of all runs"
+    assert summary["avg_score"] == 0.7
+    assert summary["p95_duration_ms"] <= 20.0, "an outage is not a slow plan"
+    assert summary["error_runs"] == 1
+    assert summary["infeasible_runs"] == 1
+    assert summary["error_rate"] == 0.25
+    assert summary["total_cost_cny"] == 0.5, "failed calls were still billed"

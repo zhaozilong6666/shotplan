@@ -25,21 +25,42 @@ def _percentile(values: list[float], q: float) -> float:
 
 
 def _summarise(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Quality metrics over successful runs only.
+
+    An `error` is a provider outage and `infeasible` is a structured refusal:
+    neither is a bad plan. Counting them as failures makes the infrastructure
+    grade the model -- the exact bug the eval reports already fixed.
+    """
     count = len(rows)
-    if count == 0:
+    ok = [r for r in rows if r["status"] == "ok"]
+    errors = sum(1 for r in rows if r["status"] == "error")
+    infeasible = sum(1 for r in rows if r["status"] == "infeasible")
+    if not ok:
         return {
-            "runs": 0, "hard_pass_rate": 0.0, "avg_score": 0.0,
+            "runs": count, "ok_runs": 0, "error_runs": errors,
+            "infeasible_runs": infeasible,
+            "error_rate": round(errors / count, 4) if count else 0.0,
+            "infeasible_rate": round(infeasible / count, 4) if count else 0.0,
+            "hard_pass_rate": 0.0, "avg_score": 0.0,
             "p50_duration_ms": 0.0, "p95_duration_ms": 0.0,
-            "total_cost_cny": 0.0, "total_repairs": 0,
+            "total_cost_cny": round(fsum(float(r["cost_cny"]) for r in rows), 6),
+            "total_repairs": sum(int(r["repairs"]) for r in rows),
         }
-    scores = [float(r["score"]) for r in rows]
-    durations = [float(r["duration_ms"]) for r in rows]
+    scores = [float(r["score"]) for r in ok]
+    durations = [float(r["duration_ms"]) for r in ok]
+    n_ok = len(ok)
     return {
         "runs": count,
-        "hard_pass_rate": round(sum(bool(r["hard_pass"]) for r in rows) / count, 4),
-        "avg_score": round(fsum(scores) / count, 4),
+        "ok_runs": n_ok,
+        "error_runs": errors,
+        "infeasible_runs": infeasible,
+        "error_rate": round(errors / count, 4),
+        "infeasible_rate": round(infeasible / count, 4),
+        "hard_pass_rate": round(sum(bool(r["hard_pass"]) for r in ok) / n_ok, 4),
+        "avg_score": round(fsum(scores) / n_ok, 4),
         "p50_duration_ms": _percentile(durations, 0.50),
         "p95_duration_ms": _percentile(durations, 0.95),
+        # Money was spent even on failed calls; latency is a quality metric only.
         "total_cost_cny": round(fsum(float(r["cost_cny"]) for r in rows), 6),
         "total_repairs": sum(int(r["repairs"]) for r in rows),
     }
@@ -63,9 +84,18 @@ def render_prometheus(dashboard: dict[str, Any]) -> str:
         "# HELP shotplan_runs Number of runs in the current observation window.",
         "# TYPE shotplan_runs gauge",
         f'shotplan_runs{{window="{window}"}} {overall.get("runs", 0)}',
-        "# HELP shotplan_hard_pass_rate Fraction of runs passing hard constraints.",
+        "# HELP shotplan_hard_pass_rate Fraction of successful runs passing hard constraints (status=ok only).",
         "# TYPE shotplan_hard_pass_rate gauge",
         f'shotplan_hard_pass_rate{{window="{window}"}} {overall.get("hard_pass_rate", 0.0)}',
+        "# HELP shotplan_ok_runs Runs that produced a plan (status=ok).",
+        "# TYPE shotplan_ok_runs gauge",
+        f'shotplan_ok_runs{{window="{window}"}} {overall.get("ok_runs", 0)}',
+        "# HELP shotplan_error_rate Fraction of runs that failed in the provider (not a bad plan).",
+        "# TYPE shotplan_error_rate gauge",
+        f'shotplan_error_rate{{window="{window}"}} {overall.get("error_rate", 0.0)}',
+        "# HELP shotplan_infeasible_rate Fraction of runs rejected by preflight.",
+        "# TYPE shotplan_infeasible_rate gauge",
+        f'shotplan_infeasible_rate{{window="{window}"}} {overall.get("infeasible_rate", 0.0)}',
         "# HELP shotplan_avg_score Mean validation score.",
         "# TYPE shotplan_avg_score gauge",
         f'shotplan_avg_score{{window="{window}"}} {overall.get("avg_score", 0.0)}',
@@ -132,6 +162,7 @@ def build_dashboard(store: RunStore, limit: int = 200) -> dict[str, Any]:
                 "provider": provider,
                 "prompt_version": version,
                 "infeasible": sum(1 for r in items if r["status"] == "infeasible"),
+                "errors": sum(1 for r in items if r["status"] == "error"),
             }
         )
         group_rows.append(summary)
@@ -143,7 +174,8 @@ def build_dashboard(store: RunStore, limit: int = 200) -> dict[str, Any]:
         "overall": _summarise(rows),
         "groups": group_rows,
         "notes": (
-            "infeasible runs count as hard_pass=false with score 0; "
-            "offline providers have zero estimated cost."
+            "Quality metrics (hard_pass_rate, avg_score, p50/p95) use status=ok runs only; "
+            "error=provider outage and infeasible=structured refusal are counted separately. "
+            "Cost and repairs cover all runs. Offline providers have zero estimated cost."
         ),
     }

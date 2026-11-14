@@ -150,3 +150,23 @@ def test_a_newer_schema_is_rejected(tmp_path):
         conn.execute("PRAGMA user_version = 999")
     with pytest.raises(StorageError, match="newer schema"):
         RunStore(path)
+
+
+def test_summary_quality_metrics_ignore_provider_outages(tmp_path):
+    from dataclasses import replace
+
+    store = RunStore(tmp_path / "outage.db")
+    good = run_plan(PlanRequest(), provider=MockProvider("good"), max_repairs=0)
+    store.save(good)
+    outage = replace(
+        good,
+        status="error",
+        trace=replace(good.trace, run_id="outage-1", wall_duration_ms=99999.0),
+    )
+    store.save(outage)
+
+    summary = store.summary()
+    assert summary["total_runs"] == 2
+    assert summary["error_runs"] == 1
+    assert summary["hard_pass_rate"] == 1.0, "the outage must not lower the pass rate"
+    assert summary["error_rate"] == 0.5

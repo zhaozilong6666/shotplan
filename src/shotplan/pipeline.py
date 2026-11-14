@@ -26,7 +26,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from .agents import MockProvider, parse_plan, validate
-from .agents.base import PlanProvider
+from .agents.base import GenerationResult, PlanProvider
 from .agents.prompts import build_parse_repair_hint, build_repair_hint
 from .config import Settings
 from .domain.errors import DeadlineExceeded, ShotplanError, StorageError
@@ -297,6 +297,20 @@ def run_plan(
     def expired() -> bool:
         return deadline is not None and time.perf_counter() > deadline
 
+    def call_generate(hint: str | None = None) -> GenerationResult:
+        """Only providers that declare support receive the absolute deadline.
+
+        Changing the PlanProvider signature would break every offline planner
+        and test double. This opt-in keeps the contract stable while letting
+        the real HTTP provider bound its ladder x retries x timeout product.
+        """
+        kwargs: dict[str, Any] = {}
+        if hint is not None:
+            kwargs["repair_hint"] = hint
+        if deadline is not None and getattr(agent, "accepts_deadline", False):
+            kwargs["deadline"] = deadline
+        return agent.generate(req, context, **kwargs)
+
     # 0. Preflight feasibility ---------------------------------------------------
     tick = time.perf_counter()
     feasibility = check_feasibility(req, kb)
@@ -325,11 +339,13 @@ def run_plan(
     # 2. Generation --------------------------------------------------------------
     tick = time.perf_counter()
     try:
-        generation = agent.generate(req, context)
+        generation = call_generate()
     except ShotplanError as exc:
         result = _error_result(req, agent, collector, tick, exc)
         _safe_save(store, result)
         return result
+    effective_prompt = generation.prompt_version or agent.prompt_version
+    collector.set_effective_prompt(effective_prompt)
     collector.record(
         "generate", tick,
         duration_ms=generation.duration_ms,
@@ -337,7 +353,17 @@ def run_plan(
         tokens_out=generation.tokens_out,
         cost_cny=generation.cost_cny,
         model=generation.model,
+        prompt_version=effective_prompt,
     )
+    # A provider that does not support deadlines can still overrun; do not
+    # spend the remaining budget parsing a plan that can never be delivered.
+    if expired():
+        result = _error_result(
+            req, agent, collector, tick,
+            DeadlineExceeded(f"在 {budget_s:g}s 预算内未完成生成"),
+        )
+        _safe_save(store, result)
+        return result
 
     # 3. Parsing -----------------------------------------------------------------
     # Parsing is a trust boundary, so how the payload was recovered is part of
@@ -348,7 +374,7 @@ def run_plan(
     parse_error: ShotplanError | None = None
     try:
         plan = parse_plan(
-            generation.payload, req, agent.name, agent.prompt_version, notes=parse_notes
+            generation.payload, req, agent.name, effective_prompt, notes=parse_notes
         )
     except ShotplanError as exc:
         parse_error = exc
@@ -367,12 +393,11 @@ def run_plan(
         repairs = 1
         tick = time.perf_counter()
         try:
-            fixed = agent.generate(
-                req, context, repair_hint=build_parse_repair_hint(parse_error)
-            )
+            fixed = call_generate(build_parse_repair_hint(parse_error))
             plan = parse_plan(
-                fixed.payload, req, agent.name, agent.prompt_version, notes=parse_notes
+                fixed.payload, req, agent.name, effective_prompt, notes=parse_notes
             )
+            collector.set_effective_prompt(fixed.prompt_version or effective_prompt)
             collector.record(
                 "repair_parse", tick,
                 duration_ms=fixed.duration_ms,
@@ -431,8 +456,8 @@ def run_plan(
         hint = build_repair_hint(report)
         tick = time.perf_counter()
         try:
-            fixed = agent.generate(req, context, repair_hint=hint)
-            candidate = parse_plan(fixed.payload, req, agent.name, agent.prompt_version)
+            fixed = call_generate(hint)
+            candidate = parse_plan(fixed.payload, req, agent.name, effective_prompt)
             candidate_report = validate(candidate, req, kb)
         except ShotplanError as exc:
             collector.record(f"repair_{repairs}", tick, outcome="error", reason=str(exc)[:120])
@@ -457,6 +482,8 @@ def run_plan(
         )
         if accepted:
             plan, report = candidate, candidate_report
+            # The accepted draft, not the last attempted one, defines provenance.
+            collector.set_effective_prompt(fixed.prompt_version or effective_prompt)
         if report.hard_pass:
             break
 

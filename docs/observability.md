@@ -83,9 +83,12 @@ curl -H 'X-API-Key: <key>' 'http://127.0.0.1:8000/metrics?limit=200'
 
 | 指标 | 类型 | 含义 |
 | --- | --- | --- |
-| `shotplan_runs{window}` | gauge | 观察窗口内运行数 |
-| `shotplan_hard_pass_rate{window}` | gauge | 硬约束通过率 |
-| `shotplan_avg_score{window}` | gauge | 平均得分 |
+| `shotplan_runs{window}` | gauge | 观察窗口内运行数（所有状态） |
+| `shotplan_ok_runs{window}` | gauge | 真正产出方案的运行数 |
+| `shotplan_hard_pass_rate{window}` | gauge | **仅 status=ok** 的硬约束通过率 |
+| `shotplan_error_rate{window}` | gauge | provider 故障占比（不是差方案） |
+| `shotplan_infeasible_rate{window}` | gauge | 预检拒绝占比 |
+| `shotplan_avg_score{window}` | gauge | 平均得分（仅 ok） |
 | `shotplan_duration_ms{window,quantile}` | gauge | P50 / P95 耗时（毫秒） |
 | `shotplan_repairs_total{window}` | gauge | 修复尝试次数 |
 | `shotplan_cost_cny_total{window}` | gauge | 估算花费（元） |
@@ -97,3 +100,15 @@ curl -H 'X-API-Key: <key>' 'http://127.0.0.1:8000/metrics?limit=200'
 标签值里的反斜杠、双引号、换行都会被转义，避免畸形文本或注入。空库也会输出完整的 HELP/TYPE 行与零值，抓取端不会拿到空响应。
 
 配 Prometheus 时：3.x 可用 `http_headers` 直接注入 `X-API-Key`；更早版本没有这个字段，需由反向代理注入该头，或让抓取端走一个带头的代理。未设置 `SHOTPLAN_API_KEY` 时，该端点与 `/api/health`、`/api/config`、`/api/rules` 一样匿名可读。
+
+### 分母口径（2026-11-14 修正）
+
+此前 `hard_pass_rate` / `avg_score` / P50 / P95 把 `error` 与 `infeasible` 一起算进分母，等于让 provider 断供给模型打分——**同一个错误，评测报告里早就修过**（三轮测量中 4 个用例 502 把通过率从 100% 拉到 94.2%），生产侧却一直保留。
+
+现在三处口径统一：
+
+- 质量指标只统计 `status='ok'`；`error`、`infeasible` 单独给计数与比率。
+- `total_cost_cny` / `total_repairs` 覆盖全部运行——失败的调用照样计费、照样消耗修复预算。
+- `/api/summary`（全表）与 `/api/stats`、`/metrics`（最近 N 条）窗口不同，但状态口径一致；`overall.runs` 仍是所有状态的总数。
+
+`build_dashboard()` 的分组也新增 `errors`，可以按 provider 定位是哪条链路在断供。

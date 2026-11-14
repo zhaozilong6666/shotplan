@@ -18,6 +18,9 @@ class GenerationResult:
     cost_cny: float = 0.0
     duration_ms: float = 0.0
     model: str = "unknown"
+    # The prompt actually used for THIS call. A router may choose a different
+    # system prompt per brief, so the provider's constructor value is not enough.
+    prompt_version: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
 
 

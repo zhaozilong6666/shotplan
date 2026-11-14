@@ -64,6 +64,7 @@ class MockProvider:
             cost_cny=0.0,
             duration_ms=elapsed,
             model=f"mock-{self.mode}",
+            prompt_version=self.prompt_version,
             metadata={"mode": self.mode, "repair_hint_applied": bool(repair_hint)},
         )
 

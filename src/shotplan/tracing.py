@@ -22,6 +22,10 @@ class TraceCollector:
         self.trace.rules_version = rules_fingerprint()
         self._started = time.perf_counter()
 
+    def set_effective_prompt(self, version: str) -> None:
+        """Record the prompt that actually produced the plan, not the default."""
+        self.trace.prompt_version_effective = version
+
     def set_config(self, **values: Any) -> None:
         """Record the request-level settings that shaped this run."""
         self.trace.config = {key: value for key, value in values.items() if value is not None}

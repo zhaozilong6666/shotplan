@@ -16,7 +16,7 @@ import urllib.request
 from typing import Any
 
 from ..config import Settings
-from ..domain.errors import ProviderError
+from ..domain.errors import DeadlineExceeded, ProviderError
 from ..domain.models import PlanRequest
 from .base import GenerationResult
 from .prompts import PROMPT_VERSION, build_user_prompt, get_system_prompt
@@ -80,6 +80,9 @@ def _estimate_cost(model: str, tokens_in: int, tokens_out: int) -> float:
 
 class OpenAICompatibleProvider:
     name = "openai_compatible"
+    # The pipeline only passes a deadline to providers that declare support,
+    # so test doubles and offline planners keep their existing signatures.
+    accepts_deadline = True
 
     def __init__(self, settings: Settings, prompt_version: str | None = None) -> None:
         if not settings.llm_api_key:
@@ -91,7 +94,7 @@ class OpenAICompatibleProvider:
         self.prompt_version = prompt_version or PROMPT_VERSION
         self._system_prompt = get_system_prompt(self.prompt_version)
 
-    def _post(self, body: dict[str, Any], timeout: int) -> dict[str, Any]:
+    def _post(self, body: dict[str, Any], timeout: float) -> dict[str, Any]:
         url = f"{self.settings.llm_base_url}/chat/completions"
         request = urllib.request.Request(
             url,
@@ -129,13 +132,24 @@ class OpenAICompatibleProvider:
         first = min(explicit, estimate) if explicit else estimate
         return [first, first * 2, None]
 
-    def _complete(self, body: dict[str, Any]) -> dict[str, Any]:
-        """One request with the existing retry / capability-fallback policy."""
+    def _complete(self, body: dict[str, Any], deadline: float | None = None) -> dict[str, Any]:
+        """One request with the existing retry / capability-fallback policy.
+
+        `deadline` is an absolute perf_counter value from the pipeline. Without
+        it, the budget ladder x attempts x timeout product can outlive the
+        entire pipeline budget by an order of magnitude.
+        """
+        def remaining() -> float:
+            return float("inf") if deadline is None else deadline - time.perf_counter()
+
         last_error: ProviderError | None = None
         attempts = max(1, self.settings.llm_attempts)
         for attempt in range(attempts):
+            left = remaining()
+            if left <= 0:
+                raise DeadlineExceeded("generate 阶段耗尽墙钟预算")
             try:
-                return self._post(body, self.settings.llm_timeout)
+                return self._post(body, min(self.settings.llm_timeout, left))
             except ProviderError as exc:
                 last_error = exc
                 message = str(exc)
@@ -156,7 +170,9 @@ class OpenAICompatibleProvider:
                         raise
                 if attempt == attempts - 1:
                     raise
-                time.sleep(BACKOFF_BASE_S * (2**attempt))
+                # Backoff must not outlive the pipeline deadline either.
+                nap = BACKOFF_BASE_S * (2**attempt)
+                time.sleep(min(nap, max(0.0, remaining())))
         raise last_error or ProviderError("empty provider response")
 
     def generate(
@@ -164,6 +180,7 @@ class OpenAICompatibleProvider:
         request: PlanRequest,
         context: dict[str, Any],
         repair_hint: str | None = None,
+        deadline: float | None = None,
     ) -> GenerationResult:
         prompt_used = self.prompt_version
         if self.settings.prompt_router and _wants_light_aware_prompt(request):
@@ -186,10 +203,12 @@ class OpenAICompatibleProvider:
         truncated = 0
         budget_used: int | None = None
         for budget in self._budget_ladder(request):
+            if deadline is not None and time.perf_counter() >= deadline:
+                raise DeadlineExceeded("generate 阶段耗尽墙钟预算")
             body = dict(base)
             if budget:
                 body["max_tokens"] = budget
-            data = self._complete(body)
+            data = self._complete(body, deadline)
             budget_used = budget
             if _finish_reason(data) != "length":
                 break
@@ -214,6 +233,7 @@ class OpenAICompatibleProvider:
             cost_cny=_estimate_cost(self.settings.llm_model, tokens_in, tokens_out),
             duration_ms=elapsed,
             model=self.settings.llm_model,
+            prompt_version=prompt_used,
             metadata={
                 "prompt_version": prompt_used,
                 "repair": bool(repair_hint),

@@ -248,6 +248,9 @@ class RunTrace:
     created_at: str = field(default_factory=utc_now)
     provider: str = "mock"
     prompt_version: str = "planner-v1"
+    # Set from GenerationResult: a per-request router can override the
+    # constructor value. This is the version that actually produced the plan.
+    prompt_version_effective: str = ""
     # What produced this score. Without these two, a historical run cannot be
     # re-interpreted after the knowledge base or the rule book changes.
     kb_version: str = ""
@@ -268,6 +271,7 @@ class RunTrace:
             "created_at": self.created_at,
             "provider": self.provider,
             "prompt_version": self.prompt_version,
+            "prompt_version_effective": self.prompt_version_effective,
             "kb_version": self.kb_version,
             "rules_version": self.rules_version,
             "config": dict(self.config),

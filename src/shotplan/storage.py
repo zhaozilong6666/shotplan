@@ -172,7 +172,9 @@ class RunStore:
             trace.created_at,
             result.request.request_id,
             trace.provider,
-            trace.prompt_version,
+            # The version that actually produced the plan. A per-request router
+            # can differ from the provider's constructor value.
+            trace.prompt_version_effective or trace.prompt_version,
             result.status,
             validation.score,
             int(validation.hard_pass),
@@ -288,21 +290,42 @@ class RunStore:
         return json.loads(row[0]) if row else None
 
     def summary(self) -> dict[str, Any]:
+        """All-time totals, with the same status accounting as the dashboard.
+
+        Quality metrics are computed over `status='ok'` only: a provider 502
+        is not a bad plan. `total_cost_cny` still covers every run, because a
+        failed call was still billed.
+        """
         try:
             with self._connect() as conn:
                 row = conn.execute(
-                    """SELECT COUNT(*), AVG(score), SUM(hard_pass), AVG(duration_ms),
-                              SUM(cost_cny) FROM runs"""
+                    """SELECT COUNT(*),
+                              SUM(CASE WHEN status='ok' THEN 1 ELSE 0 END),
+                              SUM(CASE WHEN status='error' THEN 1 ELSE 0 END),
+                              SUM(CASE WHEN status='infeasible' THEN 1 ELSE 0 END),
+                              AVG(CASE WHEN status='ok' THEN score END),
+                              SUM(CASE WHEN status='ok' THEN hard_pass ELSE 0 END),
+                              AVG(CASE WHEN status='ok' THEN duration_ms END),
+                              SUM(cost_cny)
+                       FROM runs"""
                 ).fetchone()
         except sqlite3.Error as exc:
             raise StorageError(f"cannot summarise runs: {exc}") from exc
         total = row[0] or 0
+        ok = row[1] or 0
+        errors = row[2] or 0
+        infeasible = row[3] or 0
         return {
             "total_runs": total,
-            "avg_score": round(row[1] or 0.0, 4),
-            "hard_pass_rate": round((row[2] or 0) / total, 4) if total else 0.0,
-            "avg_duration_ms": round(row[3] or 0.0, 2),
-            "total_cost_cny": round(row[4] or 0.0, 6),
+            "ok_runs": ok,
+            "error_runs": errors,
+            "infeasible_runs": infeasible,
+            "error_rate": round(errors / total, 4) if total else 0.0,
+            "infeasible_rate": round(infeasible / total, 4) if total else 0.0,
+            "avg_score": round(row[4] or 0.0, 4),
+            "hard_pass_rate": round((row[5] or 0) / ok, 4) if ok else 0.0,
+            "avg_duration_ms": round(row[6] or 0.0, 2),
+            "total_cost_cny": round(row[7] or 0.0, 6),
         }
 
 
