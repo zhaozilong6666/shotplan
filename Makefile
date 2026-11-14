@@ -102,6 +102,21 @@ serve:
 plan:
 	$(PYTHON) -m shotplan.cli plan --city xian --date 2026-10-04 --hours 6 --budget 1500 --style tang
 
+# 3 repeats of the full suite: run-to-run spread, ~90 min, costs real money.
+repeat:
+	$(PYTHON) -m evals.real_model_lab --repeat 3 --concurrency 3 --retry-errors 1 \
+		--write --out evals/real-model-repeat3.json --report-path docs/real-model-repeat3.md
+
+# Paired prompt A/B on a stratified 30-case subset (~60 calls).
+# Both arms must use the same cases: that is what makes the CI half as wide.
+ab-prompt:
+	SHOTPLAN_PROMPT_VERSION=planner-v2 $(PYTHON) -m evals.real_model_lab \
+		--profile iterate --write --out evals/out/ab-v2.json --report-path evals/out/ab-v2.md
+	SHOTPLAN_PROMPT_VERSION=planner-v3 $(PYTHON) -m evals.real_model_lab \
+		--profile iterate --write --out evals/out/ab-v3.json --report-path evals/out/ab-v3.md
+	-$(PYTHON) -m evals.pair_compare --a evals/out/ab-v2.json --b evals/out/ab-v3.json \
+		--out evals/out/prompt-ab.md
+
 smoke: lint typecheck test gates plan
 
 clean:

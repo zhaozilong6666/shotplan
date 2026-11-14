@@ -57,9 +57,11 @@
 # 单轮（原有行为，报告给用例级 CI）
 python -m evals.real_model_lab --write
 
-# 重复测量（报告给轮次极差 + 用例级 CI）
-python -m evals.real_model_lab --repeat 3 --concurrency 4 \
-  --write --out evals/real-model-repeat3.json --report-path docs/real-model-repeat3.md
+# 重复测量（报告给轮次极差 + 用例级 CI），约 90 分钟
+make repeat
+
+# prompt A/B：同一批 30 例、两个版本，最后自动做配对比较
+make ab-prompt
 
 # 样本量
 python -m evals.power --pass-rate 0.94 --score-sd 0.08 --paired

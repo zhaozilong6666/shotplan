@@ -90,7 +90,7 @@
 ### 阶段 6 · 测量严谨性（1–2 周）
 
 - [x] 真实模型评测支持 `--repeat N`，每个用例跑 N 次，报告用配对均值 ± 区间
-- [ ] prompt 版本 A/B：`planner-v2` vs `planner-v3`，同批用例、同温度、交替执行，报告差异区间（工具已就绪：`evals/pair_compare.py`，缺 v3 prompt）
+- [x] prompt 版本 A/B：`planner-v2` vs `planner-v3`，同批用例、同温度，报告差异区间。结论：+0.0115（95% CI [−0.020, +0.043]）测不出差异，成本 +53%，**不采纳 v3**。见 [prompt-ab.md](prompt-ab.md)
 - [x] 写清样本量：要检测 3pp 差异需要多少用例（功效分析），并说明本项目的 69 例能检测多大效应（见 [measurement.md](measurement.md)）
 - [x] 把「区间重叠 → 不下结论」写进评测文档，作为评审规则
 
