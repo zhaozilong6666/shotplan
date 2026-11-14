@@ -66,6 +66,9 @@ class Settings:
     # Attempts per request. A flaky relay can return 502 in bursts, where the
     # default 3 attempts all land inside the same bad second.
     llm_attempts: int = 3
+    # Which system prompt to send. Empty means "the current default", so a
+    # deployment does not pin itself to an old prompt by accident.
+    prompt_version: str = ""
     # Cost levers. All default to "unset" so behaviour is unchanged unless a
     # deployment opts in; the eval suite sets them explicitly when measuring.
     llm_max_tokens: int = 0  # 0 = let the provider decide
@@ -131,6 +134,7 @@ class Settings:
             llm_model=_env("SHOTPLAN_LLM_MODEL", "gpt-4o-mini"),
             llm_timeout=_env_int("SHOTPLAN_LLM_TIMEOUT", 30),
             llm_attempts=max(1, _env_int("SHOTPLAN_LLM_ATTEMPTS", 3)),
+            prompt_version=_env("SHOTPLAN_PROMPT_VERSION", ""),
             llm_max_tokens=max(0, _env_int("SHOTPLAN_LLM_MAX_TOKENS", 0)),
             llm_temperature=_env_float("SHOTPLAN_LLM_TEMPERATURE", 0.2),
             llm_reasoning_effort=effort,

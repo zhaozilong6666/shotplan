@@ -22,5 +22,5 @@ def build_provider(settings: Settings | None = None, *, mode: str = "good") -> P
     """Factory used by CLI, API and eval harness alike."""
     cfg = settings or Settings.from_env()
     if cfg.provider == "openai_compatible":
-        return OpenAICompatibleProvider(cfg)
+        return OpenAICompatibleProvider(cfg, prompt_version=cfg.prompt_version or None)
     return MockProvider(mode=mode)

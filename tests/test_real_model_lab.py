@@ -32,7 +32,11 @@ def _outcome(case_id: str, index: int, hard_pass: bool, score: float, repairs: i
 
 
 def _settings():
-    return SimpleNamespace(llm_model="fake-model", llm_base_url="https://example.invalid/v1")
+    return SimpleNamespace(
+        llm_model="fake-model",
+        llm_base_url="https://example.invalid/v1",
+        prompt_version="",
+    )
 
 
 def test_per_case_pass_rate_and_run_spread_are_computed_separately():

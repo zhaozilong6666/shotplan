@@ -9,7 +9,11 @@ from evals.scorers import CaseOutcome
 
 
 def _settings():
-    return SimpleNamespace(llm_model="fake-model", llm_base_url="https://example.invalid/v1")
+    return SimpleNamespace(
+        llm_model="fake-model",
+        llm_base_url="https://example.invalid/v1",
+        prompt_version="",
+    )
 
 
 def _bad(case_id: str, index: int, message: str):
