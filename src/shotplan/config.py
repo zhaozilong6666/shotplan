@@ -69,9 +69,8 @@ class Settings:
     # Which system prompt to send. Empty means "the current default", so a
     # deployment does not pin itself to an old prompt by accident.
     prompt_version: str = ""
-    # Use planner-v3 only for briefs that are likely to waste golden light.
-    # Evidence: on light-sensitive cases v3 scored +0.0431 (CI excludes 0);
-    # on ordinary cases it showed no gain and cost 42-53% more.
+    # Prospective holdout (docs/router-validation.md) showed no gain:
+    # +0.0007 overall, +0.0025 on light-sensitive cases. Keep off.
     prompt_router: bool = False
     # Cost levers. All default to "unset" so behaviour is unchanged unless a
     # deployment opts in; the eval suite sets them explicitly when measuring.

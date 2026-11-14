@@ -6,6 +6,7 @@
 
 ### Added
 
+- **prompt 路由的前瞻验证（未通过）**：另造 16 条 holdout（8 光线敏感 + 8 普通，与调参集无重合），两臂各跑一轮。整体得分 +0.0007（95% CI [−0.0343, +0.0338]，测不出差异），光线组仅 +0.0025，`LIGHT_MISUSE` 7→8、软问题用例 43.8%→50%。**调参集上的 +0.0431 没迁移，是选择偏差**。`SHOTPLAN_PROMPT_ROUTER` 保持默认关闭。holdout 集、两臂快照与报告均已归档。见 [docs/router-validation.md](docs/router-validation.md)。
 - **按 brief 选 prompt（默认关闭）**：`SHOTPLAN_PROMPT_ROUTER=1` 时，偏好出现「上午 / 正午 / 不拍傍晚 / 室内为主」或必去晨光、夜景限定地点，且时长 ≤10 小时，就改用 `planner-v3`；其余仍用 v2。实际使用的版本写入该次调用的 `metadata.prompt_version`，可逐例审计。**这还只是实现，不是结论**：必须在一批新用例上前瞻验证，不能用挑出这 12 条的同一批数据自证（选择偏差）。
 - **红队 v2 与一次结论翻案**：12 条光线敏感 brief 让 `LIGHT_MISUSE` 触发 9/12（75%，主集 38%）。用这批题重测此前被否决的 `planner-v3`：得分 0.8279 → 0.8710，配对差值 **+0.0431（95% CI [+0.0127, +0.0763]，6 胜 0 负）**，`LIGHT_MISUSE` 9 → 7。结论修正为「**v3 对光线敏感 brief 有效、对普通 brief 无效且更贵**」，仍不设默认。方法论收获：A/B 样本必须让被检验的机制有机会失败。见 [docs/redteam-analysis.md](docs/redteam-analysis.md) 与 [docs/prompt-ab.md](docs/prompt-ab.md)。
 - **红队集 v1 与一个反直觉结论**：30 条更难用例（长白天光线、多地点挤压、预算贴底、排除冲突、输入噪声 + 6 条预检拒绝），离线先验证「naive 0/24 全败、规则 Agent 21/24 可解」再花钱。真实模型 **23/24（95.8%）**，高于主集——**硬约束层已饱和**，真正的弱点是 `LIGHT_MISUSE`（红队 8 次、主集 26 次，比例一致）。报告新增 `soft_issue_rate` 指标，下一版红队将瞄准软问题。见 [docs/redteam-analysis.md](docs/redteam-analysis.md)。

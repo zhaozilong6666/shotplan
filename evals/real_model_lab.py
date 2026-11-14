@@ -206,6 +206,7 @@ def summarise_repeats(
         "model": settings.llm_model,
         "base_url": settings.llm_base_url,
         "prompt_version": settings.prompt_version or PROMPT_VERSION,
+        "prompt_router": bool(getattr(settings, "prompt_router", False)),
         "temperature": 0.2,
         "cases": len(by_case),
         "repeat": repeat,
@@ -277,6 +278,7 @@ def summarise(outcomes: list[CaseOutcome], settings: Any) -> dict[str, Any]:
         "model": settings.llm_model,
         "base_url": settings.llm_base_url,
         "prompt_version": settings.prompt_version or PROMPT_VERSION,
+        "prompt_router": bool(getattr(settings, "prompt_router", False)),
         "temperature": 0.2,
         "cases": len(outcomes),
         "cases_needing_a_plan": len(planned),
@@ -343,6 +345,7 @@ def _checkpoint_meta(settings: Any, repeat: int) -> dict[str, Any]:
     return {
         "model": settings.llm_model,
         "prompt_version": settings.prompt_version or PROMPT_VERSION,
+        "prompt_router": bool(getattr(settings, "prompt_router", False)),
         "repeat": repeat,
     }
 
@@ -448,7 +451,9 @@ def build_report(
         "",
         f"模型 `{snapshot['model']}`（{snapshot['base_url']}，temperature "
         f"{snapshot['temperature']}，并发 {snapshot.get('concurrency', '?')}）｜ prompt "
-        f"`{snapshot['prompt_version']}` ｜ "
+        f"`{snapshot['prompt_version']}`"
+        + (" + 路由（光线敏感用 v3）" if snapshot.get("prompt_router") else "")
+        + f" ｜ "
         f"{snapshot['cases']} 个用例"
         + (f" × {snapshot['repeat']} 轮" if snapshot.get("repeat", 1) > 1 else "")
         + f"，其中 {planned} 个需要生成方案",
