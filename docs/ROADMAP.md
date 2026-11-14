@@ -90,7 +90,7 @@
 ### 阶段 6 · 测量严谨性（1–2 周）
 
 - [x] 真实模型评测支持 `--repeat N`，每个用例跑 N 次，报告用配对均值 ± 区间。实测 3 轮：通过率 94.2%（极差 0.0pp）、得分极差 1.38pp；4 例因断供从未响应。见 [measurement.md](measurement.md#一点五实测三次重复跑出了-00pp-的极差)
-- [x] prompt 版本 A/B：`planner-v2` vs `planner-v3`，同批用例、同温度，报告差异区间。结论：+0.0115（95% CI [−0.020, +0.043]）测不出差异，成本 +53%，**不采纳 v3**。见 [prompt-ab.md](prompt-ab.md)
+- [x] prompt 版本 A/B：第一次在饱和子集上测不出差异（+0.0115，区间跨 0）；换到光线敏感用例后 v3 得分 +0.0431（区间不跨 0）；但 holdout 前瞻验证未通过。**最终仍不采纳 v3 为默认**。见 [prompt-ab.md](prompt-ab.md) 与 [router-validation.md](router-validation.md)
 - [x] 写清样本量：要检测 3pp 差异需要多少用例（功效分析），并说明本项目的 69 例能检测多大效应（见 [measurement.md](measurement.md)）
 - [x] 把「区间重叠 → 不下结论」写进评测文档，作为评审规则
 
@@ -102,15 +102,15 @@
 - [x] 统计「修复轮次 × 失败类型 × 是否修好」：8 份快照 / 315 条逐例记录 / 25 条触发修复。未修复用例通过率 96.6%，修过 1 次的只有 80%；`MISSING_REQUIRED_LOCATION` 修复成功率 71%（5/7），`UNKNOWN_SOURCE_REF` 3/3。**没有哪种失败被证明救不了**（样本都 <10，明确拒绝下结论）。见 [repair-attribution.md](repair-attribution.md)
 - [x] 红队集：30 条「语义合理但可执行性紧张」的 brief（光线/多地点/预算贴底/排除冲突/输入噪声 + 6 条预检拒绝）。先离线验证难度再花钱：naive 0/24、规则 Agent 21/24、真实模型 23/24（95.8%）。结论：**硬约束已饱和，真正的弱点是 `LIGHT_MISUSE` 这类软问题**。见 [redteam-analysis.md](redteam-analysis.md)
 - [x] 下一版红队瞄准软问题：12 条光线敏感 brief，`LIGHT_MISUSE` 触发 9/12（75%，主集 38%）。用这批题重测 `planner-v3`：得分 +0.0431（95% CI [+0.0127, +0.0763]），**第一次 A/B 的「v3 无效」是被饱和样本骗了**。见 [redteam-analysis.md](redteam-analysis.md) 与 [prompt-ab.md](prompt-ab.md)
-- [x] 实现按 brief 特征路由（`SHOTPLAN_PROMPT_ROUTER=1`：偏好含上午/正午/不拍傍晚/室内为主，或必去晨光/夜景限定地点时用 v3）。**默认关闭，未做前瞻验证**
+- [x] 实现按 brief 特征路由（`SHOTPLAN_PROMPT_ROUTER=1`：偏好含上午/正午/不拍傍晚/室内为主，或必去晨光/夜景限定地点时用 v3）。**默认关闭**
 - [x] 在**一批新用例**上前瞻验证路由：另造 16 条 holdout（8 光线 + 8 普通，城市/日期/措辞全换），两臂各一轮。**结果未通过**：得分 +0.0007（95% CI [−0.0343, +0.0338]），光线组仅 +0.0025，`LIGHT_MISUSE` 7→8。调参集上的 +0.0431 没有迁移，属选择偏差。见 [router-validation.md](router-validation.md)，**路由保持关闭**
 
 验收：随机抽一类失败，能说清「它为什么发生、哪条代码负责、哪个用例会拦住它」。
 
 ### 阶段 8 · 知识库与真实用户（2–3 周）
 
+- [x] 写一个复核脚本：`scripts/check_knowledge_freshness.py` 列出超过 N 天未核验的条目，同时检查 `source` 缺失与日期非法，已进 CI 门禁（当前 45 条记录全部 1 天内核验）
 - [ ] 城市从 5 个扩到 10 个，每条记录带 `source` 与 `last_verified_at`（已有字段与校验）
-- [ ] 写一个复核脚本：超过 N 天未核验的条目列出清单，进 CI 门禁
 - [ ] 找 5–10 个真实用户试用，记录「哪些建议被采纳、哪些被无视」，形成定性结论
 - [ ] 两人独立标注 30 个方案的「可执行性」，算 Cohen's kappa，验证评分与人类判断是否一致
 

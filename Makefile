@@ -90,6 +90,7 @@ gates:
 	$(PYTHON) scripts/build_pipeline_doc.py --check
 	$(PYTHON) scripts/build_rule_map.py --check
 	$(PYTHON) -m evals.repair_attribution --check
+	$(PYTHON) scripts/check_knowledge_freshness.py --max-age-days 180
 	$(PYTHON) -m evals.scaling --check --requests 300
 	$(PYTHON) -m evals.examples --check
 
