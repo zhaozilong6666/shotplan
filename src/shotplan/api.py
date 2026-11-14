@@ -19,7 +19,7 @@ from typing import Annotated, Any
 
 try:
     from fastapi import Depends, FastAPI, HTTPException, Request
-    from fastapi.responses import FileResponse, JSONResponse
+    from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
     from starlette.concurrency import run_in_threadpool
 except ImportError as exc:  # pragma: no cover
     raise ImportError(
@@ -328,6 +328,18 @@ def stats(cfg: SettingsDep, limit: int = 200) -> dict[str, Any]:
     from .observability import build_dashboard
 
     return build_dashboard(_store(cfg), min(max(limit, 1), 1000))
+
+
+@app.get("/metrics", dependencies=[Depends(require_api_key)], response_class=PlainTextResponse)
+def metrics(cfg: SettingsDep, limit: int = 200):
+    """Prometheus scrape endpoint. Same data as /api/stats, in text format."""
+    from .observability import build_dashboard, render_prometheus
+
+    dashboard = build_dashboard(_store(cfg), min(max(limit, 1), 1000))
+    return PlainTextResponse(
+        render_prometheus(dashboard),
+        media_type="text/plain; version=0.0.4; charset=utf-8",
+    )
 
 
 @app.get("/")

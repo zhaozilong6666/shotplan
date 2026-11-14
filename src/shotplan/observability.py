@@ -45,6 +45,74 @@ def _summarise(rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def _label(value: str) -> str:
+    """Prometheus label values: backslash, quote and newline must be escaped."""
+    return str(value).replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
+
+
+def render_prometheus(dashboard: dict[str, Any]) -> str:
+    """Expose the dashboard as scrapeable text, without a metrics dependency.
+
+    These are gauges over the last `window` runs, not cumulative counters:
+    the dashboard itself is a sliding window, and calling a window gauge a
+    counter would make rate() lie.
+    """
+    overall = dashboard.get("overall", {})
+    window = dashboard.get("window", 0)
+    lines = [
+        "# HELP shotplan_runs Number of runs in the current observation window.",
+        "# TYPE shotplan_runs gauge",
+        f'shotplan_runs{{window="{window}"}} {overall.get("runs", 0)}',
+        "# HELP shotplan_hard_pass_rate Fraction of runs passing hard constraints.",
+        "# TYPE shotplan_hard_pass_rate gauge",
+        f'shotplan_hard_pass_rate{{window="{window}"}} {overall.get("hard_pass_rate", 0.0)}',
+        "# HELP shotplan_avg_score Mean validation score.",
+        "# TYPE shotplan_avg_score gauge",
+        f'shotplan_avg_score{{window="{window}"}} {overall.get("avg_score", 0.0)}',
+        "# HELP shotplan_duration_ms Request duration percentiles in milliseconds.",
+        "# TYPE shotplan_duration_ms gauge",
+        f'shotplan_duration_ms{{window="{window}",quantile="0.5"}} '
+        f'{overall.get("p50_duration_ms", 0.0)}',
+        f'shotplan_duration_ms{{window="{window}",quantile="0.95"}} '
+        f'{overall.get("p95_duration_ms", 0.0)}',
+        "# HELP shotplan_repairs_total Repair attempts in the window.",
+        "# TYPE shotplan_repairs_total gauge",
+        f'shotplan_repairs_total{{window="{window}"}} {overall.get("total_repairs", 0)}',
+        "# HELP shotplan_cost_cny_total Estimated spend in the window (CNY).",
+        "# TYPE shotplan_cost_cny_total gauge",
+        f'shotplan_cost_cny_total{{window="{window}"}} {overall.get("total_cost_cny", 0.0)}',
+        "# HELP shotplan_runs_by_status Runs in the window, by outcome status.",
+        "# TYPE shotplan_runs_by_status gauge",
+    ]
+    for status, count in sorted((dashboard.get("by_status") or {}).items()):
+        lines.append(f'shotplan_runs_by_status{{status="{_label(status)}"}} {count}')
+
+    lines += [
+        "# HELP shotplan_group_runs Runs per provider / prompt version.",
+        "# TYPE shotplan_group_runs gauge",
+        "# HELP shotplan_group_hard_pass_rate Hard pass rate per provider / prompt version.",
+        "# TYPE shotplan_group_hard_pass_rate gauge",
+        "# HELP shotplan_group_p95_duration_ms P95 duration per provider / prompt version.",
+        "# TYPE shotplan_group_p95_duration_ms gauge",
+    ]
+    group_runs: list[str] = []
+    group_pass: list[str] = []
+    group_p95: list[str] = []
+    for group in dashboard.get("groups", []):
+        labels = (
+            f'provider="{_label(group.get("provider", ""))}",'
+            f'prompt_version="{_label(group.get("prompt_version", ""))}"'
+        )
+        group_runs.append(f"shotplan_group_runs{{{labels}}} {group.get('runs', 0)}")
+        group_pass.append(
+            f"shotplan_group_hard_pass_rate{{{labels}}} {group.get('hard_pass_rate', 0.0)}"
+        )
+        group_p95.append(
+            f"shotplan_group_p95_duration_ms{{{labels}}} {group.get('p95_duration_ms', 0.0)}"
+        )
+    return "\n".join(lines + group_runs + group_pass + group_p95) + "\n"
+
+
 def build_dashboard(store: RunStore, limit: int = 200) -> dict[str, Any]:
     """Return overall metrics plus one row per (provider, prompt_version) pair."""
     rows = store.stats_rows(limit)

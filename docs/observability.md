@@ -72,3 +72,28 @@ request_id=4f1c2a7d9e0b4c11 method=POST path=/api/plan status=200 duration_ms=31
 - 单进程 SQLite，没有并发写入与用户隔离；这是明确的设计取舍（ADR 0001、README 已知限制）。
 - 没有时间序列图、没有告警、没有按 brief 维度下钻。当前目标是让「质量与成本可见」，不是造一套监控系统。
 - 运行历史被 `.gitignore` 排除，不会随仓库提交；面板展示的是本机数据，不是 CI 数据。CI 的质量结论请看 [eval-report.md](eval-report.md)。
+
+## Prometheus 抓取
+
+`GET /metrics`（与 `/api/stats` 同样受 `X-API-Key` 保护）返回 `text/plain; version=0.0.4`，无需额外依赖：
+
+```
+curl -H 'X-API-Key: <key>' 'http://127.0.0.1:8000/metrics?limit=200'
+```
+
+| 指标 | 类型 | 含义 |
+| --- | --- | --- |
+| `shotplan_runs{window}` | gauge | 观察窗口内运行数 |
+| `shotplan_hard_pass_rate{window}` | gauge | 硬约束通过率 |
+| `shotplan_avg_score{window}` | gauge | 平均得分 |
+| `shotplan_duration_ms{window,quantile}` | gauge | P50 / P95 耗时（毫秒） |
+| `shotplan_repairs_total{window}` | gauge | 修复尝试次数 |
+| `shotplan_cost_cny_total{window}` | gauge | 估算花费（元） |
+| `shotplan_runs_by_status{status}` | gauge | 按 ok / error / infeasible 分类 |
+| `shotplan_group_*` | gauge | 按 `provider` + `prompt_version` 下钻 |
+
+**全部是 gauge，不是 counter。** 数据来自 `build_dashboard()` 的最近 N 条滑动窗口，把它标成 counter 会让 `rate()` 算出假的增速。`window` 标签明示了口径，换 `limit` 时数值会随之变化，因此不适合做长期累计告警——要长期趋势应由抓取端按时间序列自行累加。
+
+标签值里的反斜杠、双引号、换行都会被转义，避免畸形文本或注入。空库也会输出完整的 HELP/TYPE 行与零值，抓取端不会拿到空响应。
+
+配 Prometheus 时：3.x 可用 `http_headers` 直接注入 `X-API-Key`；更早版本没有这个字段，需由反向代理注入该头，或让抓取端走一个带头的代理。未设置 `SHOTPLAN_API_KEY` 时，该端点与 `/api/health`、`/api/config`、`/api/rules` 一样匿名可读。

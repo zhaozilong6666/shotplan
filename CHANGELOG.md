@@ -6,6 +6,7 @@
 
 ### Added
 
+- **Prometheus 指标导出（离线）**：`GET /metrics` 返回 `text/plain; version=0.0.4`，覆盖运行数、硬约束通过率、P95/P50、修复数、花费、按状态分类与 provider × prompt_version 下钻，零新增依赖。刻意全部标为 **gauge**——数据来自最近 N 条的滑动窗口，标成 counter 会让 `rate()` 算出假增速；标签值做了转义，空库也输出完整 HELP/TYPE。5 个单测覆盖格式、转义、窗口语义与端点。见 [docs/observability.md](docs/observability.md)。
 - **知识库新鲜度门禁（离线）**：`scripts/check_knowledge_freshness.py` 检查全部 45 条地点/风格记录的 `source` 与 `last_verified_at`，列出超过 N 天未核验、缺来源、日期非法（含未来日期）的条目；接入 `make gates`（阈值 180 天），过期会让 CI 变红，逼迫重新核对票价与光线条件。三个单测覆盖边界（恰好 180 天不算过期）。
 - **修复循环归因（离线，零成本）**：`evals/repair_attribution.py` 汇总 8 份快照、315 条逐例记录，生成 `docs/repair-attribution.md` 并纳入门禁。结论：未触发修复的用例通过率 96.6%，修过 1 次的只有 80%；`MISSING_REQUIRED_LOCATION` 修复成功率 71%（5/7），`UNKNOWN_SOURCE_REF` 3/3、UNKNOWN_LOCATION 2/2，但样本 <10 一律标注「不下结论」——**没有任何一种失败被证明救不了**。未来快照的 `per_case` 新增 `initial_hard_codes` / `final_issue_codes`，可逐例追溯。
 - **prompt 路由的前瞻验证（未通过）**：另造 16 条 holdout（8 光线敏感 + 8 普通，与调参集无重合），两臂各跑一轮。整体得分 +0.0007（95% CI [−0.0343, +0.0338]，测不出差异），光线组仅 +0.0025，`LIGHT_MISUSE` 7→8、软问题用例 43.8%→50%。**调参集上的 +0.0431 没迁移，是选择偏差**。`SHOTPLAN_PROMPT_ROUTER` 保持默认关闭。holdout 集、两臂快照与报告均已归档。见 [docs/router-validation.md](docs/router-validation.md)。

@@ -118,7 +118,7 @@
 
 ### 阶段 9 · 生产化（2 周）
 
-- [ ] 指标导出（Prometheus 格式）：请求量、通过率、P95、修复率、错误分类
+- [x] 指标导出（Prometheus 文本格式）：`GET /metrics` 输出请求量、通过率、P95、修复率、花费、错误分类，并按 provider + prompt_version 下钻。全部标为 gauge（滑动窗口，不是累计计数），空库也输出完整 HELP/TYPE；见 [observability.md](observability.md)
 - [ ] 故障注入：provider 超时/429、SQLite 锁、磁盘满，验证降级路径与告警
 - [ ] 定义 SLO（如「95% 请求在 30s 内返回且不 5xx」）并写对应监控查询
 - [ ] 部署到公网，跑一周真实流量，回收延迟与失败分布
