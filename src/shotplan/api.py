@@ -41,6 +41,8 @@ from .domain.errors import (
     StorageError,
 )
 from .domain.models import PlanRequest
+from .knowledge.loader import knowledge_version
+from .knowledge.tools import get_tools
 from .pipeline import run_plan
 from .storage import RunSink, RunStore, close_all_writers, get_writer
 
@@ -253,6 +255,50 @@ async def storage_error_handler(request: Request, exc: StorageError) -> JSONResp
             "request_id": getattr(request.state, "request_id", None),
         },
     )
+
+
+@app.get("/api/catalog")
+def catalog() -> dict[str, Any]:
+    """What the knowledge base can actually plan for.
+
+    The web client used to hardcode one city and five styles, so adding a city
+    to the data never made it reachable in the product. Both dropdowns are now
+    generated from here; a new city becomes usable without a frontend change.
+    """
+    tools = get_tools()
+    cities = []
+    for city_id in tools.city_ids():
+        city = tools.city(city_id)
+        locations = tools.locations(city_id)
+        cities.append({
+            "id": city_id,
+            "name": city["name"],
+            "center": city["center"],
+            "location_count": len(locations),
+            "indoor_count": sum(1 for loc in locations if loc["indoor"]),
+            "tags": sorted({tag for loc in locations for tag in loc["tags"]}),
+            "source_freshness": min(
+                (loc.get("last_verified_at") or "") for loc in locations
+            ),
+        })
+    styles = [
+        {
+            "id": s["id"],
+            "name": s["name"],
+            "era": s["era"],
+            "price_cny": s["price_cny"],
+            "suitable_tags": s["suitable_tags"],
+        }
+        for s in tools.styles()
+    ]
+    return {
+        "cities": cities,
+        "styles": styles,
+        "city_count": len(cities),
+        "style_count": len(styles),
+        "location_count": sum(c["location_count"] for c in cities),
+        "knowledge_version": knowledge_version(),
+    }
 
 
 @app.get("/api/rules")

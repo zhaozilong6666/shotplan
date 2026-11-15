@@ -2,7 +2,10 @@
 (function () {
   "use strict";
 
-  var state = { result: null, tab: "plan", stats: null, config: null, statsLoading: false };
+  var state = {
+    result: null, tab: "plan", stats: null, config: null,
+    statsLoading: false, catalog: null
+  };
   var el = function (id) { return document.getElementById(id); };
   var esc = function (value) {
     return String(value == null ? "" : value).replace(/[&<>"']/g, function (c) {
@@ -25,6 +28,71 @@
 
   function splitList(value) {
     return String(value || "").split(",").map(function (x) { return x.trim(); }).filter(Boolean);
+  }
+
+  /* The knowledge base is the single source of truth for what users can pick.
+     Hardcoded dropdowns used to hide 4 of the 5 cities; a new city had to be
+     added twice (data + HTML) or it silently stayed unreachable. */
+  function cityNote(cityId) {
+    if (!state.catalog) return "";
+    var city = state.catalog.cities.find(function (c) { return c.id === cityId; });
+    if (!city) return "";
+    return city.name + " · " + city.location_count + " 个地点 · " +
+      city.indoor_count + " 个室内备选 · 资料核验至 " + (city.source_freshness || "—");
+  }
+
+  function updateCityNote() {
+    var note = el("city-note");
+    if (note) note.textContent = cityNote(el("city").value);
+  }
+
+  async function loadCatalog() {
+    try {
+      var response = await fetch("/api/catalog");
+      if (!response.ok) throw new Error("HTTP " + response.status);
+      var data = await response.json();
+      if (!data.cities || !data.cities.length || !data.styles || !data.styles.length) {
+        throw new Error("empty catalog");
+      }
+      state.catalog = data;
+
+      var citySelect = el("city");
+      var previousCity = citySelect.value;
+      citySelect.innerHTML = "";
+      data.cities.forEach(function (city) {
+        var option = document.createElement("option");
+        option.value = city.id;
+        option.textContent = city.name;
+        citySelect.appendChild(option);
+      });
+      if (data.cities.some(function (c) { return c.id === previousCity; })) {
+        citySelect.value = previousCity;
+      }
+
+      var styleSelect = el("style");
+      var previousStyle = styleSelect.value;
+      styleSelect.innerHTML = "";
+      data.styles.forEach(function (style) {
+        var option = document.createElement("option");
+        option.value = style.id;
+        option.textContent = style.name + (style.era ? "（" + style.era + "）" : "");
+        styleSelect.appendChild(option);
+      });
+      if (data.styles.some(function (s) { return s.id === previousStyle; })) {
+        styleSelect.value = previousStyle;
+      }
+
+      var note = el("catalog-note");
+      if (note) {
+        note.textContent = "知识库目录：" + data.city_count + " 座城市 · " +
+          data.location_count + " 个地点 · " + data.style_count + " 种风格" +
+          (data.knowledge_version ? " · 版本 " + data.knowledge_version : "");
+      }
+      updateCityNote();
+    } catch (error) {
+      var note = el("catalog-note");
+      if (note) note.textContent = "目录未加载，使用内置选项：" + error.message;
+    }
   }
 
   function buildBody() {
@@ -305,6 +373,8 @@
   }
 
   el("run").addEventListener("click", generate);
+  el("city").addEventListener("change", updateCityNote);
+  loadCatalog();
   document.addEventListener("click", function (event) {
     if (event.target && event.target.id === "refresh-stats") loadStats();
   });
