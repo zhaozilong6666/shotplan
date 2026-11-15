@@ -23,6 +23,14 @@ class ParseError(ShotplanError):
     """Model output could not be turned into a valid Plan."""
 
 
+class PipelineError(ShotplanError):
+    """Unexpected failure outside the guarded generate/parse/repair stages.
+
+    Wrapped at the public `run_plan` boundary so a preflight, retrieval or
+    validation fault becomes a traceable error result instead of a 500.
+    """
+
+
 class StorageError(ShotplanError):
     """Persistence layer failed."""
 

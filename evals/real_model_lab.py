@@ -54,20 +54,35 @@ PROFILES: dict[str, dict[str, int]] = {
 # in" is worth knowing, but they must not be counted as model successes.
 _PREFLIGHT_ONLY = "infeasible"
 
+# Both are fatal pipeline statuses, not bad plans. Reporting only one of them
+# made a deadline overrun look like an unexplained "status=error".
+_FATAL_CODES = ("PIPELINE_ERROR", "DEADLINE_EXCEEDED")
+
+
+def _fatal_message(result: Any) -> str:
+    """Explain a pipeline-level failure, including deadline overruns.
+
+    `_error_result` uses DEADLINE_EXCEEDED for budget exhaustion and
+    PIPELINE_ERROR for everything else. Looking for only one of them made an
+    outage look like an unexplained "pipeline returned status=error".
+    """
+    issues = list(result.validation.issues)
+    return next(
+        (i.message for i in issues if i.code in _FATAL_CODES),
+        next((i.message for i in issues), "pipeline returned status=error"),
+    )
+
 
 def _run_one(case: dict[str, Any], settings: Any) -> CaseOutcome:
     started = time.perf_counter()
     try:
         request = PlanRequest.from_dict(case["request"])
-        result = run_plan(request, provider=build_provider(), settings=settings, max_repairs=1)
+        result = run_plan(request, provider=build_provider(settings), settings=settings, max_repairs=1)
         outcome = evaluate_case(case, result)
         if outcome.status == "error" and not outcome.error:
             # The pipeline degrades to a status instead of raising; without this
             # the record would say "error" and refuse to say why it happened.
-            outcome.error = next(
-                (i.message for i in result.validation.issues if i.code == "PIPELINE_ERROR"),
-                "pipeline returned status=error",
-            )
+            outcome.error = _fatal_message(result)
         outcome.duration_ms = round((time.perf_counter() - started) * 1000, 1)
         return outcome
     except Exception as exc:  # a crashing case is a failed case, not a stopped suite
@@ -214,7 +229,10 @@ def summarise_repeats(
         "base_url": settings.llm_base_url,
         "prompt_version": settings.prompt_version or PROMPT_VERSION,
         "prompt_router": bool(getattr(settings, "prompt_router", False)),
-        "temperature": 0.2,
+        "effective_config": (
+            settings.resolved() if hasattr(settings, "resolved") else {}
+        ),
+        "temperature": getattr(settings, "llm_temperature", 0.2),
         "cases": len(by_case),
         "repeat": repeat,
         "cases_needing_a_plan": len(per_case),
@@ -293,7 +311,10 @@ def summarise(outcomes: list[CaseOutcome], settings: Any) -> dict[str, Any]:
         "base_url": settings.llm_base_url,
         "prompt_version": settings.prompt_version or PROMPT_VERSION,
         "prompt_router": bool(getattr(settings, "prompt_router", False)),
-        "temperature": 0.2,
+        "effective_config": (
+            settings.resolved() if hasattr(settings, "resolved") else {}
+        ),
+        "temperature": getattr(settings, "llm_temperature", 0.2),
         "cases": len(outcomes),
         "cases_needing_a_plan": len(planned),
         "preflight_cases": len(preflight),
@@ -370,6 +391,9 @@ def _checkpoint_meta(settings: Any, repeat: int) -> dict[str, Any]:
         "model": settings.llm_model,
         "prompt_version": settings.prompt_version or PROMPT_VERSION,
         "prompt_router": bool(getattr(settings, "prompt_router", False)),
+        "effective_config": (
+            settings.resolved() if hasattr(settings, "resolved") else {}
+        ),
         "repeat": repeat,
     }
 
@@ -616,6 +640,29 @@ def build_report(
             else "- 本次取样未包含不可行用例，前置拒绝逻辑未被覆盖"
         ),
         "",
+    ]
+    # Historical snapshots predate `effective_config`; do not make their
+    # committed reports drift just because the renderer gained a section.
+    config = snapshot.get("effective_config") or {}
+    if config:
+        lines += [
+            "## 生效配置（可复现）",
+            "",
+            "快照的 `effective_config` 记录了本次全部非敏感设置。关键项：",
+            "",
+            "| 配置 | 值 |",
+            "| --- | --- |",
+        ]
+        for key in (
+            "provider", "llm_model", "llm_timeout", "llm_attempts",
+            "llm_temperature", "llm_max_tokens", "llm_adaptive_budget",
+            "pipeline_budget_s", "max_repairs", "persist_mode", "prompt_version",
+            "prompt_router", "eval_min_score",
+        ):
+            if key in config:
+                lines.append(f"| `{key}` | `{config[key]}` |")
+        lines.append("")
+    lines += [
         "## 最常见的硬问题",
         "",
     ]

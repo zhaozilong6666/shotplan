@@ -73,3 +73,23 @@ def test_errors_and_refusals_do_not_grade_the_model():
     assert summary["infeasible_runs"] == 1
     assert summary["error_rate"] == 0.25
     assert summary["total_cost_cny"] == 0.5, "failed calls were still billed"
+
+
+def test_metric_names_distinguish_llm_spend_from_plan_price():
+    """Same-named fields used to mean two different amounts of money."""
+    from shotplan.agents import MockProvider
+    from shotplan.domain.models import PlanRequest
+    from shotplan.observability import _summarise
+    from shotplan.pipeline import as_summary, run_plan
+
+    result = run_plan(PlanRequest(), provider=MockProvider("good"), max_repairs=0)
+    summary = as_summary(result)
+    assert summary["plan_cost_cny"] == summary["total_cost_cny"]
+    assert summary["wall_ms"] == summary["duration_ms"]
+
+    metrics = _summarise([{
+        "status": "ok", "score": 0.9, "hard_pass": 1,
+        "duration_ms": 12.0, "cost_cny": 0.02, "repairs": 0,
+    }])
+    assert metrics["llm_cost_cny"] == metrics["total_cost_cny"]
+    assert metrics["p95_wall_ms"] == metrics["p95_duration_ms"]

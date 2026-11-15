@@ -119,8 +119,9 @@
 ### 阶段 9 · 生产化（2 周）
 
 - [x] 指标导出（Prometheus 文本格式）：`GET /metrics` 输出请求量、通过率、P95、修复率、花费、错误分类，并按 provider + prompt_version 下钻。全部标为 gauge（滑动窗口，不是累计计数），空库也输出完整 HELP/TYPE；见 [observability.md](observability.md)
-- [x] **架构评审与 P0 真相源收敛**：见 [architecture-review.md](architecture-review.md)。有效 prompt 版本逐例落库、断供不再污染质量分母、墙钟预算真正约束 generate。剩余 P1-1（配置双路径 / 两个 Settings 对象）是评测结论能否迁移到生产的最高风险，**应在下一轮真实评测前处理**
+- [x] **架构评审 P1/P2 收敛**：见 [architecture-review.md](architecture-review.md) 末节与 [ADR 0017](adr/0017-one-settings-object-per-run.md)。`get_settings()` 成为唯一入口、`build_provider` 强制注入、双 Settings 对象触发 `ConfigError`；快照写入完整 `effective_config`；顶层错误边界不再冒 500；`REPAIR_FAILED` 可见；异常文案脱敏；写锁按库分片；窗口排序加 tiebreak。**剩余最高风险已清零**
 - [x] 端到端一致性复测（¥0.24）：router 开启下 4 条 holdout 的快照给出 `{v2:2, v3:2}` 逐例分布；CLI 两次 `--persist` 在 DB 中分别落 v3/v2；注入一条 502 后生产侧 `hard_pass_rate` 仍是 1.0、`error_rate=0.5`。见 [architecture-review.md](architecture-review.md) 末节
+- [x] **P1/P2 重构后复测**（¥0.14）：同批 4 例，重构前后通过率均 1.0、逐例版本分布完全一致；新快照带 22 项 `effective_config`、`temperature` 读自 settings。首次运行因上游挂起触发 deadline 降级，并暴露「只认 `PIPELINE_ERROR`」的报告 bug，已修（`_fatal_message` + 单测）；断点续跑 4/4 零错误。得分 0.82→0.8662 **不归因于重构**（temperature 变了且单轮 4 例）
 - [ ] 故障注入：provider 超时/429、SQLite 锁、磁盘满，验证降级路径与告警
 - [ ] 定义 SLO（如「95% 请求在 30s 内返回且不 5xx」）并写对应监控查询
 - [ ] 部署到公网，跑一周真实流量，回收延迟与失败分布

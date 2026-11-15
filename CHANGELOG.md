@@ -6,6 +6,12 @@
 
 ### Added
 
+- **P1/P2 重构后的端到端复测（¥0.14）**：同批 4 例，重构前后通过率均 1.0、逐例 prompt 版本分布 `{v2:2,v3:2}` 完全一致；新快照带 22 项 `effective_config`，`temperature` 从 settings 读取（0.25）而非硬编码。首次运行上游挂起触发 deadline 降级（旧实现会无限卡住），并暴露 `real_model_lab` 只认 `PIPELINE_ERROR` 导致超时原因写成含糊文案——已抽成 `_fatal_message()` 覆盖 `DEADLINE_EXCEEDED` 并加单测；断点续跑 4/4 零错误。得分变化明确标注为**不可归因**（temperature 变动 + 单轮 4 例）。
+- **架构收敛第二轮（P1/P2，13 个新单测，零 API 成本）**：见 [ADR 0017](docs/adr/0017-one-settings-object-per-run.md) 与 [架构评审末节](docs/architecture-review.md)。
+  - **一个请求一个 Settings**：`get_settings()` 唯一入口、`build_provider(settings)` 强制传参、双对象触发 `ConfigError`（且不降级）；`run_plan` 顶层错误边界把 preflight/检索/validate 异常变成 `status=error` 而非 500。
+  - **快照可复现**：`Settings.resolved()` 写入完整非敏感生效配置（含断点元信息，换配置续跑会被拒绝）；`temperature` 不再硬编码；报告新增「生效配置」表，7 份历史报告 `--check` 全部同步。
+  - **指标改名**：`plan_cost_cny` / `llm_cost_cny` / `wall_ms` 别名，消除「同名字段指两种钱」；`/metrics` 加 `shotplan_llm_cost_cny`。
+  - **边界**：`REPAIR_FAILED` soft issue 让被吞掉的修复可见；`ProviderError` 只留 host 并脱敏；写锁按库分片；`stats_rows` 加 `run_id` tiebreak。
 - **P0 架构修复的端到端复测（¥0.24）**：router 开启下真实跑 4 条 holdout，快照给出 `{planner-v2: 2, planner-v3: 2}` 的逐例分布；CLI 两次 `--persist` 在 DB 分别落 v3 / v2；往 DB 注入一条 `status=error` 后 `hard_pass_rate` 仍为 1.0、`error_rate=0.5`（旧实现会报 0.5）。证据与剩余风险见 [docs/architecture-review.md](docs/architecture-review.md) 末节。**P1-1 配置双路径仍未解决，下一轮真实评测前处理。**
 - **宏观架构评审 + 三项 P0 修复**：全仓只读扫描后写下 [docs/architecture-review.md](docs/architecture-review.md)——项目最强的「测量层」与「运行时层」已经分叉：一条请求有两个 Settings 对象、逐请求 prompt 版本没落库、我们在评测报告里修过的「断供不算质量差」在生产指标里原样保留、墙钟预算管不住 `generate`（今天三次卡死的根因）。全部 P0 已修，19/19 门禁，零 API 花费：
   - `GenerationResult.prompt_version` / `RunTrace.prompt_version_effective` / DB 列 / 评测快照分布，逐例可复现实际用的 prompt；

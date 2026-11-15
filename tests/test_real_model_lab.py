@@ -170,3 +170,40 @@ def test_repair_breakdown_separates_rescued_from_stuck():
     report = build_report({**summary, "concurrency": 2}, baseline=None)
     assert "修复循环救回了什么" in report
     assert "`BUDGET_EXCEEDED`" in report
+
+
+def test_snapshot_records_the_full_effective_config_for_reproduction():
+    from shotplan.config import Settings
+
+    cfg = Settings(
+        provider="mock", llm_model="fake-model", llm_temperature=0.37,
+        llm_timeout=17, llm_attempts=2, pipeline_budget_s=9.0,
+    )
+    snapshot = summarise([_outcome("C01", 0, True, 0.9)[2]], cfg)
+    assert snapshot["temperature"] == 0.37, "no hardcoded 0.2"
+    assert snapshot["effective_config"]["llm_temperature"] == 0.37
+    assert snapshot["effective_config"]["llm_timeout"] == 17
+    assert snapshot["effective_config"]["pipeline_budget_s"] == 9.0
+    assert "llm_api_key" in snapshot["effective_config"]
+
+
+def test_fatal_message_explains_deadline_overruns_not_just_generic_errors():
+    from types import SimpleNamespace
+
+    from evals.real_model_lab import _fatal_message
+
+    def issue(code, message):
+        return SimpleNamespace(code=code, message=message)
+
+    result = SimpleNamespace(
+        validation=SimpleNamespace(
+            issues=[issue("SOFT_NOTE", "noise"), issue("DEADLINE_EXCEEDED", "在 120s 预算内未完成生成")]
+        )
+    )
+    assert "120s 预算" in _fatal_message(result)
+
+    generic = SimpleNamespace(validation=SimpleNamespace(issues=[issue("PIPELINE_ERROR", "upstream down")]))
+    assert "upstream down" in _fatal_message(generic)
+
+    empty = SimpleNamespace(validation=SimpleNamespace(issues=[]))
+    assert _fatal_message(empty) == "pipeline returned status=error"

@@ -43,7 +43,9 @@ def _summarise(rows: list[dict[str, Any]]) -> dict[str, Any]:
             "infeasible_rate": round(infeasible / count, 4) if count else 0.0,
             "hard_pass_rate": 0.0, "avg_score": 0.0,
             "p50_duration_ms": 0.0, "p95_duration_ms": 0.0,
+            "p50_wall_ms": 0.0, "p95_wall_ms": 0.0,
             "total_cost_cny": round(fsum(float(r["cost_cny"]) for r in rows), 6),
+            "llm_cost_cny": round(fsum(float(r["cost_cny"]) for r in rows), 6),
             "total_repairs": sum(int(r["repairs"]) for r in rows),
         }
     scores = [float(r["score"]) for r in ok]
@@ -60,8 +62,11 @@ def _summarise(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "avg_score": round(fsum(scores) / n_ok, 4),
         "p50_duration_ms": _percentile(durations, 0.50),
         "p95_duration_ms": _percentile(durations, 0.95),
+        "p50_wall_ms": _percentile(durations, 0.50),
+        "p95_wall_ms": _percentile(durations, 0.95),
         # Money was spent even on failed calls; latency is a quality metric only.
         "total_cost_cny": round(fsum(float(r["cost_cny"]) for r in rows), 6),
+        "llm_cost_cny": round(fsum(float(r["cost_cny"]) for r in rows), 6),
         "total_repairs": sum(int(r["repairs"]) for r in rows),
     }
 
@@ -108,9 +113,12 @@ def render_prometheus(dashboard: dict[str, Any]) -> str:
         "# HELP shotplan_repairs_total Repair attempts in the window.",
         "# TYPE shotplan_repairs_total gauge",
         f'shotplan_repairs_total{{window="{window}"}} {overall.get("total_repairs", 0)}',
-        "# HELP shotplan_cost_cny_total Estimated spend in the window (CNY).",
+        "# HELP shotplan_cost_cny_total Estimated LLM token spend in the window (CNY).",
         "# TYPE shotplan_cost_cny_total gauge",
         f'shotplan_cost_cny_total{{window="{window}"}} {overall.get("total_cost_cny", 0.0)}',
+        "# HELP shotplan_llm_cost_cny Alias of shotplan_cost_cny_total; LLM spend, NOT the shooting plan's price.",
+        "# TYPE shotplan_llm_cost_cny gauge",
+        f'shotplan_llm_cost_cny{{window="{window}"}} {overall.get("llm_cost_cny", 0.0)}',
         "# HELP shotplan_runs_by_status Runs in the window, by outcome status.",
         "# TYPE shotplan_runs_by_status gauge",
     ]

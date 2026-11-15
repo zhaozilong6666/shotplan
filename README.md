@@ -196,6 +196,7 @@ shotplan/
 | [0014](docs/adr/0014-request-constraints-are-hard-rules.md) | `must_include` / `avoid` 进入硬规则 | 只当检索提示，模型可以绕过用户明确提出的条件 |
 | [0015](docs/adr/0015-reproducible-run-trace.md) | trace 记录知识库与规则指纹 | 改了数据或规则后，历史分数必须仍能解释 |
 | [0016](docs/adr/0016-source-refs-must-resolve.md) | 引用必须指向真实知识库条目 | 伪造溯源比没有溯源更糟 |
+| [0017](docs/adr/0017-one-settings-object-per-run.md) | 一个请求只有一个 Settings 对象 | 两个配置对象会让 trace 解释不了实际发出的请求，评测结论无法迁移 |
 
 ## 可选：接真实模型、启动界面、部署
 

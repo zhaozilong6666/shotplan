@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 import os
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 from .domain.errors import ConfigError
@@ -154,6 +154,19 @@ class Settings:
             max_body_bytes=max(1024, _env_int("SHOTPLAN_MAX_BODY_BYTES", 1_000_000)),
             retention_days=max(0, _env_int("SHOTPLAN_RETENTION_DAYS", 0)),
         )
+
+    def resolved(self) -> dict[str, object]:
+        """Every effective setting, safe to embed in a snapshot or trace.
+
+        Unlike `masked()` (a small human-facing subset for `/api/config`), this
+        is the full reproducibility record. Secrets are replaced by booleans;
+        Path values are stringified so the result is JSON-serialisable.
+        """
+        data = asdict(self)
+        data["llm_api_key"] = bool(self.llm_api_key)
+        data["api_key"] = bool(self.api_key)
+        data["db_path"] = str(self.db_path)
+        return {key: data[key] for key in sorted(data)}
 
     def masked(self) -> dict[str, object]:
         return {

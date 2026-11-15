@@ -112,3 +112,18 @@ curl -H 'X-API-Key: <key>' 'http://127.0.0.1:8000/metrics?limit=200'
 - `/api/summary`（全表）与 `/api/stats`、`/metrics`（最近 N 条）窗口不同，但状态口径一致；`overall.runs` 仍是所有状态的总数。
 
 `build_dashboard()` 的分组也新增 `errors`，可以按 provider 定位是哪条链路在断供。
+
+### 命名（2026-11-14 修正）
+
+`total_cost_cny` 曾经在两处指不同的钱：`PlanResult.as_summary()` 里是**拍摄方案价格**，
+storage / dashboard 里是 **LLM token 花费**。保留旧键以兼容，但新增 unambiguous 别名：
+
+| 别名 | 含义 |
+| --- | --- |
+| `plan_cost_cny` | 拍摄方案里的门票/妆造等费用（`as_summary`） |
+| `llm_cost_cny` | 模型 token 花费（`summary()` / `_summarise()`） |
+| `wall_ms` / `p50_wall_ms` / `p95_wall_ms` | 调用方实际经历的墙钟耗时 |
+| `shotplan_llm_cost_cny` | 同上的 Prometheus gauge |
+
+跨端点比较数字前，先确认看的是哪一种 cost。`eval-report.md` 用的是事件求和口径，
+dashboard 用墙钟，两者不可直接比。

@@ -160,7 +160,7 @@ def test_provider_failure_maps_to_bad_gateway(monkeypatch, client):
     """An upstream/model failure is not a client input error."""
     from shotplan.domain.errors import ProviderError
 
-    def broken():
+    def broken(cfg):
         raise ProviderError("upstream down")
 
     monkeypatch.setattr("shotplan.api.build_provider", broken)
@@ -258,7 +258,7 @@ def test_rate_bucket_map_stays_bounded():
 def test_mock_mode_cannot_override_a_real_provider(monkeypatch, client_for):
     from shotplan.agents import MockProvider
 
-    monkeypatch.setattr("shotplan.api.build_provider", lambda: MockProvider("naive"))
+    monkeypatch.setattr("shotplan.api.build_provider", lambda cfg: MockProvider("naive"))
     with client_for("real", SHOTPLAN_PROVIDER="openai_compatible") as client:
         response = client.post("/api/plan", json={"mock_mode": "good"})
         assert response.status_code == 200

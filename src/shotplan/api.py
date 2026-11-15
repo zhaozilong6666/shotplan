@@ -282,7 +282,7 @@ async def create_plan(request: Request, cfg: SettingsDep) -> JSONResponse:
         provider = (
             MockProvider(mode=mode)
             if mode in ("good", "naive")
-            else build_provider()
+            else build_provider(cfg)
         )
         sink = _sink(cfg)
         # The pipeline is synchronous CPU work (and, with a real provider, blocking

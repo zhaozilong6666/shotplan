@@ -18,9 +18,15 @@ __all__ = [
 ]
 
 
-def build_provider(settings: Settings | None = None, *, mode: str = "good") -> PlanProvider:
-    """Factory used by CLI, API and eval harness alike."""
-    cfg = settings or Settings.from_env()
-    if cfg.provider == "openai_compatible":
-        return OpenAICompatibleProvider(cfg, prompt_version=cfg.prompt_version or None)
+def build_provider(settings: Settings, *, mode: str = "good") -> PlanProvider:
+    """Factory used by CLI, API and eval harness alike.
+
+    `settings` is required on purpose: an implicit `Settings.from_env()` here
+    used to create a SECOND config object inside one API request, so the
+    provider's timeout/attempts/temperature could differ from the pipeline's
+    own cfg while the trace recorded only the latter. Callers must pass the
+    very same object they hand to `run_plan`.
+    """
+    if settings.provider == "openai_compatible":
+        return OpenAICompatibleProvider(settings, prompt_version=settings.prompt_version or None)
     return MockProvider(mode=mode)

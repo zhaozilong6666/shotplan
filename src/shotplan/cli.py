@@ -78,12 +78,12 @@ def cmd_plan(args: argparse.Namespace) -> int:
         preferences=args.preference.split(",") if args.preference else [],
         avoid=args.avoid.split(",") if args.avoid else [],
     )
+    settings = get_settings()
     provider: PlanProvider
     if args.mock_mode:
         provider = MockProvider(mode=args.mock_mode)
     else:
-        provider = build_provider(get_settings())
-    settings = get_settings()
+        provider = build_provider(settings)
     store = RunStore(settings.db_path) if args.persist else None
     result = run_plan(request, provider=provider, store=store, settings=settings)
     if args.json:

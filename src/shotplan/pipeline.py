@@ -25,11 +25,17 @@ import time
 from dataclasses import dataclass
 from typing import Any
 
-from .agents import MockProvider, parse_plan, validate
+from .agents import MockProvider, build_provider, parse_plan, validate
 from .agents.base import GenerationResult, PlanProvider
 from .agents.prompts import build_parse_repair_hint, build_repair_hint
-from .config import Settings
-from .domain.errors import DeadlineExceeded, ShotplanError, StorageError
+from .config import Settings, get_settings
+from .domain.errors import (
+    ConfigError,
+    DeadlineExceeded,
+    PipelineError,
+    ShotplanError,
+    StorageError,
+)
 from .domain.feasibility import FeasibilityReport, check_feasibility
 from .domain.models import (
     Plan,
@@ -265,6 +271,52 @@ def run_plan(
     max_repairs: int | None = None,
     request_id: str | None = None,
 ) -> PlanResult:
+    """Public entry point. One top-level error boundary for the whole pipeline.
+
+    Stages such as preflight, knowledge retrieval and validation can raise
+    outside the generation/parse/repair guards. Without this boundary those
+    exceptions escape to the API as a 500, contradicting `_error_result`'s
+    "must not surface as a 500" contract. Every failure becomes a traceable
+    `status=error` result instead.
+    """
+    try:
+        return _run_plan(
+            request,
+            provider=provider,
+            tools=tools,
+            store=store,
+            settings=settings,
+            max_repairs=max_repairs,
+            request_id=request_id,
+        )
+    except ConfigError:
+        # A misconfigured caller (including a provider built from a different
+        # Settings object) is a programming error, not a request-level failure.
+        # Swallowing it here would hide exactly the drift this guard detects.
+        raise
+    except Exception as exc:  # noqa: BLE001 - deliberate last-resort boundary
+        if not isinstance(exc, ShotplanError):
+            exc = PipelineError(f"{type(exc).__name__}: {exc}")
+        try:
+            fallback = provider or MockProvider(mode="good")
+        except Exception:  # pragma: no cover - provider construction itself failed
+            fallback = MockProvider(mode="good")
+        collector = TraceCollector(fallback.name, fallback.prompt_version)
+        result = _error_result(request.normalized(), fallback, collector, time.perf_counter(), exc)
+        _safe_save(store, result)
+        return result
+
+
+def _run_plan(
+    request: PlanRequest,
+    *,
+    provider: PlanProvider | None = None,
+    tools: KnowledgeTools | None = None,
+    store: RunSink | None = None,
+    settings: Settings | None = None,
+    max_repairs: int | None = None,
+    request_id: str | None = None,
+) -> PlanResult:
     """Run the whole pipeline once and return a fully traceable result.
 
     ``request_id`` is the HTTP request's id, when there is one. It is stored in
@@ -272,9 +324,22 @@ def run_plan(
     access-log line that produced it. Offline callers (CLI, evals) omit it,
     which keeps their traces deterministic.
     """
-    cfg = settings or Settings.from_env()
+    # Single source of truth for configuration. `Settings.from_env()` here
+    # used to skip .env entirely, so offline callers silently ran with code
+    # defaults while CLI/API used the developer's real settings.
+    cfg = settings or get_settings()
     kb = tools or get_tools()
-    agent = provider or MockProvider(mode="good")
+    agent = provider or build_provider(cfg)
+    # Architectural invariant: a real provider must be built from the SAME
+    # Settings object that drives the pipeline. Otherwise trace.config records
+    # one configuration while the HTTP request uses another, and no amount of
+    # post-hoc analysis can explain the run.
+    provider_settings = getattr(agent, "settings", None)
+    if isinstance(provider_settings, Settings) and provider_settings is not cfg:
+        raise ConfigError(
+            "provider was built from a different Settings object than run_plan(); "
+            "pass the same cfg to build_provider(settings) and run_plan(settings=...)"
+        )
     req = request.normalized()
     retries = cfg.max_repairs if max_repairs is None else max(0, max_repairs)
     collector = TraceCollector(agent.name, agent.prompt_version)
@@ -461,6 +526,18 @@ def run_plan(
             candidate_report = validate(candidate, req, kb)
         except ShotplanError as exc:
             collector.record(f"repair_{repairs}", tick, outcome="error", reason=str(exc)[:120])
+            # Previously this broke silently with status='ok': the caller saw a
+            # passing plan and had no idea a repair had failed. Make it visible
+            # without turning a provider glitch into a hard failure.
+            report.issues.append(
+                ValidationIssue(
+                    code="REPAIR_FAILED",
+                    severity="soft",
+                    message=f"修复循环中断，返回修复前方案：{type(exc).__name__}: {str(exc)[:120]}",
+                    expected="修复成功，或明确标注降级",
+                    suggestion="检查 provider 输出格式与修复预算；本次结果未经过该轮修复",
+                )
+            )
             break
         # Never accept a regression: keep the better of the two drafts.
         accepted = (candidate_report.hard_pass, candidate_report.score) > (
@@ -502,7 +579,14 @@ def as_summary(result: PlanResult) -> dict[str, Any]:
         "hard_pass": result.validation.hard_pass,
         "issues": [i.code for i in result.validation.issues],
         "slots": len(result.plan.slots),
+        # `total_cost_cny` here is the SHOOTING PLAN's price. The storage and
+        # dashboard fields with the same name are LLM token spend. Both names
+        # are kept for compatibility, but the unambiguous aliases are primary.
+        "plan_cost_cny": result.plan.total_cost_cny,
         "total_cost_cny": result.plan.total_cost_cny,
+        "wall_ms": round(
+            result.trace.wall_duration_ms or result.trace.total_duration_ms, 2
+        ),
         "duration_ms": round(
             result.trace.wall_duration_ms or result.trace.total_duration_ms, 2
         ),

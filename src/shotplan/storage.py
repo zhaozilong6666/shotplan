@@ -77,12 +77,20 @@ class RunStore:
     # races under concurrency and surfaces as "database is locked" (HTTP 422).
     _INIT_LOCK = threading.Lock()
     _INITIALISED: set[str] = set()
-    _WRITE_LOCK = threading.Lock()
+    # One SQLite file = one writer. A single process-wide lock made two
+    # unrelated databases serialise on each other; key by resolved path.
+    _WRITE_LOCKS: dict[str, threading.Lock] = {}
+    _LOCKS_GUARD = threading.Lock()
     _RETRIES = 3
 
     def __init__(self, path: Path | str) -> None:
         self.path = Path(path)
         self._init()
+
+    def _write_lock(self) -> threading.Lock:
+        key = str(self.path.resolve())
+        with self._LOCKS_GUARD:
+            return self._WRITE_LOCKS.setdefault(key, threading.Lock())
 
     def _connect(self) -> sqlite3.Connection:
         # timeout is SQLite's busy timeout: under concurrent writers the default
@@ -148,7 +156,7 @@ class RunStore:
         # initialised by several threads at once ("attempt to write a readonly
         # database") and stops writers from burning the busy timeout on each
         # other. Cross-process contention still retries below.
-        with self._WRITE_LOCK:
+        with self._write_lock():
             for attempt in range(self._RETRIES):
                 try:
                     with contextlib.closing(self._connect()) as conn, conn:
@@ -192,7 +200,7 @@ class RunStore:
                 rows = conn.execute(
                     """SELECT run_id, created_at, provider, prompt_version, score,
                               hard_pass, repair_count, duration_ms, cost_cny
-                       FROM runs ORDER BY created_at DESC LIMIT ?""",
+                       FROM runs ORDER BY created_at DESC, run_id DESC LIMIT ?""",
                     (limit,),
                 ).fetchall()
         except sqlite3.Error as exc:
@@ -220,7 +228,7 @@ class RunStore:
                 rows = conn.execute(
                     "SELECT provider, prompt_version, status, score, hard_pass, "
                     "repair_count AS repairs, duration_ms, cost_cny "
-                    "FROM runs ORDER BY created_at DESC LIMIT ?",
+                    "FROM runs ORDER BY created_at DESC, run_id DESC LIMIT ?",
                     (capped,),
                 ).fetchall()
         except sqlite3.Error as exc:
@@ -232,11 +240,11 @@ class RunStore:
         if keep_last <= 0:
             return 0
         try:
-            with self._WRITE_LOCK:
+            with self._write_lock():
                 with contextlib.closing(self._connect()) as conn, conn:
                     cursor = conn.execute(
                         "DELETE FROM runs WHERE run_id NOT IN ("
-                        "SELECT run_id FROM runs ORDER BY created_at DESC LIMIT ?"
+                        "SELECT run_id FROM runs ORDER BY created_at DESC, run_id DESC LIMIT ?"
                         ")",
                         (keep_last,),
                     )
@@ -257,7 +265,7 @@ class RunStore:
             timespec="seconds"
         )
         try:
-            with self._WRITE_LOCK:
+            with self._write_lock():
                 with contextlib.closing(self._connect()) as conn, conn:
                     cursor = conn.execute(
                         "DELETE FROM runs WHERE created_at < ?", (cutoff,)
@@ -272,7 +280,7 @@ class RunStore:
         try:
             with self._connect() as conn:
                 rows = conn.execute(
-                    "SELECT payload FROM runs ORDER BY created_at DESC LIMIT ?",
+                    "SELECT payload FROM runs ORDER BY created_at DESC, run_id DESC LIMIT ?",
                     (capped,),
                 ).fetchall()
         except sqlite3.Error as exc:
@@ -325,7 +333,11 @@ class RunStore:
             "avg_score": round(row[4] or 0.0, 4),
             "hard_pass_rate": round((row[5] or 0) / ok, 4) if ok else 0.0,
             "avg_duration_ms": round(row[6] or 0.0, 2),
+            "avg_wall_ms": round(row[6] or 0.0, 2),
             "total_cost_cny": round(row[7] or 0.0, 6),
+            # Unambiguous alias: this is LLM token spend, not the shooting
+            # plan's price exposed by PlanResult.as_summary().
+            "llm_cost_cny": round(row[7] or 0.0, 6),
         }
 
 

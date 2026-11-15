@@ -10,8 +10,10 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from typing import Any
 
@@ -39,6 +41,19 @@ _RETRYABLE_STATUS = {408, 429, 500, 502, 503, 504}
 # from the same numbers the code uses instead of restating them by hand.
 MAX_ATTEMPTS = 3
 BACKOFF_BASE_S = 0.5
+
+_SECRET_PATTERN = re.compile(r"sk-[A-Za-z0-9]{8,}|Bearer\s+\S+", re.IGNORECASE)
+
+
+def _redact(text: str) -> str:
+    """Trim and strip credentials before an error message reaches trace/DB."""
+    return _SECRET_PATTERN.sub("***", str(text))[:200]
+
+
+def _endpoint_label(url: str) -> str:
+    """Host only: no path, query string, userinfo or embedded token."""
+    host = urllib.parse.urlsplit(url).netloc.rsplit("@", 1)[-1]
+    return host or "<unknown-host>"
 
 
 def _finish_reason(data: dict[str, Any]) -> str:
@@ -111,9 +126,13 @@ class OpenAICompatibleProvider:
                 return json.loads(response.read().decode("utf-8"))
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="replace")[:400]
-            raise ProviderError(f"HTTP {exc.code} from {url}: {detail}") from exc
+            raise ProviderError(
+                f"HTTP {exc.code} from {_endpoint_label(url)}: {_redact(detail)}"
+            ) from exc
         except (urllib.error.URLError, TimeoutError) as exc:
-            raise ProviderError(f"network failure calling {url}: {exc}") from exc
+            raise ProviderError(
+                f"network failure calling {_endpoint_label(url)}: {_redact(str(exc))}"
+            ) from exc
 
     def _budget_ladder(self, request: PlanRequest) -> list[int | None]:
         """Output budgets to try, cheapest first.

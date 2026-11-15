@@ -147,3 +147,73 @@ P0 修完后的验证目标不是「再测一次质量」，而是**证明三条
 **花费**：eval 4 次 ¥0.17 + CLI 2 次约 ¥0.07 ≈ **¥0.24**。没有跑新的 A/B，因为这轮问的是「数字可信吗」，不是「哪个 prompt 更好」。
 
 **仍未解决**：P1-1 配置双路径。本次复测中 eval harness 与 CLI 各自解析配置，恰好一致，但这是本机 `.env` 与环境变量恰好对齐的结果，不是结构保证。下一轮真实评测前应先统一 `Settings` 入口。
+
+---
+
+## P1/P2 收敛（2026-11-14 深夜，「加强力度」一轮）
+
+P0 之后没有停。按评审表把剩下的高危项一次性收敛，全部离线完成。
+
+### 真相源（P1-1，见 [ADR 0017](adr/0017-one-settings-object-per-run.md)）
+
+- `get_settings()` 成为唯一解析入口；`run_plan` 未注入时走它，不再 `Settings.from_env()` 跳过 `.env`。
+- `build_provider(settings)` **取消默认值**，4 个生产调用点（API / CLI / pipeline / eval）全部显式传同一个 cfg。
+- 新增运行时不变量：provider 自带 `.settings` 且与 cfg 不是同一对象 → 抛 `ConfigError`。
+  该异常**特意不被顶层错误边界吞掉**——配置漂移是调用方 bug，不是请求级故障。
+- 为什么不动 `PlanProvider` 协议：全仓 10+ 实现，窄协议 + 编排层不变量的耦合面更小。
+
+### 可复现性（P1-2）
+
+- `Settings.resolved()` 返回全部非敏感生效配置（密钥只留布尔）；评测快照与**断点元信息**都写入，
+  改任何 `SHOTPLAN_*` 后续跑会被拒绝——拿不同配置的结果拼一份报告比不续跑更糟。
+- 快照 `temperature` 不再硬编码 0.2，改读 `settings.llm_temperature`；报告新增「生效配置」表（条件渲染，
+  历史快照的报告不漂移，7 份 `--check` 全部通过）。
+- 同名异义加无歧义别名并保留旧键：`plan_cost_cny` / `llm_cost_cny` / `wall_ms` / `p50_wall_ms`，
+  `/metrics` 增加 `shotplan_llm_cost_cny`。`Plan.as_summary().total_cost_cny` 是**拍摄方案价格**，
+  dashboard 的同名字段是 **LLM token 花费**，文档明确区分。
+
+### 失败与边界（P2）
+
+| 项 | 修复 |
+| --- | --- |
+| 顶层错误边界 | `run_plan` 包一层，preflight / 检索 / validate 抛出的任何异常都变成可追溯的 `status=error` 结果，不再冒到 API 变 500；新增 `PipelineError`。`ConfigError` 明确排除 |
+| 修复失败静默吞掉 | 修复循环中断时追加 `REPAIR_FAILED` **soft** issue，返回修复前方案但不再伪装成干净的 ok |
+| 异常文案落库 | `ProviderError` 只保留 host（剥离路径、query、userinfo），响应体截断 200 字并脱敏 `sk-*` / `Bearer *`；旧的完整 URL 会随 `ValidationIssue.message` 进 `runs.payload` |
+| 进程级写锁 | 按 resolved db path 分片，两个不同数据库不再互相串行化 |
+| 窗口稳定性 | `ORDER BY created_at DESC, run_id DESC`，同秒记录不再随机换边界 |
+
+### 验证
+
+- 新增 `tests/test_config_truth.py`、`tests/test_boundaries.py`，共 13 个新单测；全量 389+ 测试通过、mypy / ruff 干净、19/19 门禁。
+- 7 份历史评测报告的 `--check` 全部同步，说明渲染器改动没有篡改既有结论。
+
+---
+
+## 重构后真实链路复测（2026-11-15，¥0.14）
+
+改动面覆盖 config / pipeline / provider / storage / API / CLI / eval 七处，必须验证没有把线上跑坏。
+
+**第一次 4 例运行中途中止**：35 分钟、2/3 `error`、触发 `--max-error-rate`。查下来不是回归——
+上游请求挂起，`pipeline_budget_s=120` 的 deadline 把请求降级成 `status=error`
+（`DEADLINE_EXCEEDED`）；**旧实现会无限卡住，这正是 P0-3 在起作用**。
+但它顺带暴露了一个报告 bug：`real_model_lab` 只从 `PIPELINE_ERROR` 提取原因，
+于是超时被写成含糊的 "pipeline returned status=error"。已抽成 `_fatal_message()`
+并覆盖 `DEADLINE_EXCEEDED`，加了单测。
+
+**同 checkpoint 续跑**：环境变量不变、断点元信息里的 `effective_config` 匹配成功，
+补完 3 例，最终 **4/4、零错误、¥0.11、141s**。
+
+| 指标 | 重构前 | 重构后 |
+| --- | ---: | ---: |
+| 硬约束通过率 | 1.000 | 1.000 |
+| 逐例有效 prompt 版本 | H01/H04=v3, H09/H10=v2 | **完全一致** |
+| `prompt_version_distribution` | `{v2:2, v3:2}` | `{v2:2, v3:2}` |
+| `temperature` | 0.2（硬编码） | **0.25（读自 settings）** |
+| `effective_config` | 无 | **22 项非敏感配置** |
+| 平均得分 | 0.8200 | 0.8662 |
+
+得分上升**不能归因于重构**：这轮把 temperature 从 0.2 调到 0.25，且是单轮 4 例，
+波动远大于任何可归因效应。这里只验证「行为没坏、事实记全了」，不宣称质量提升。
+
+另外验证了 CLI → DB 路径在 `build_provider(settings)` 强制注入后仍正常，
+以及 7 份历史评测报告的 `--check` 全部同步（渲染器没篡改既有结论）。
