@@ -24,7 +24,13 @@
 <main class="layout">
   <aside class="panel form-panel">
     <h2>需求输入</h2>
-    <p class="hint">故意保留模糊输入：真实客户不会给你结构化表单。</p>
+    <p class="hint">先说人话，系统把推断摊开给你核对；也可以直接填下面的表单。</p>
+    <label>一句话描述
+      <textarea id="brief" rows="3" placeholder="国庆去西安拍唐风，预算一千五，最好上午收工，人少一点，别去大唐芙蓉园"></textarea>
+    </label>
+    <button id="understand" class="secondary">理解这句话</button>
+    <div id="brief-result" class="brief-result"></div>
+    <hr class="divider">
     <label>城市
       <select id="city"><option value="xian">西安</option></select>
       <span class="hint small" id="city-note">正在读取知识库目录…</span>

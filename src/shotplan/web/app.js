@@ -4,7 +4,7 @@
 
   var state = {
     result: null, tab: "plan", stats: null, config: null,
-    statsLoading: false, catalog: null
+    statsLoading: false, catalog: null, understanding: null
   };
   var el = function (id) { return document.getElementById(id); };
   var esc = function (value) {
@@ -92,6 +92,105 @@
     } catch (error) {
       var note = el("catalog-note");
       if (note) note.textContent = "目录未加载，使用内置选项：" + error.message;
+    }
+  }
+
+  /* --- Understand one sentence of human intent -------------------------- */
+  var FIELD_NAMES = {
+    city: "城市", date: "日期", hours: "时长", budget_cny: "预算",
+    styles: "风格", party_size: "人数", preferences: "偏好",
+    avoid: "排除", atmosphere: "气质"
+  };
+  var SOURCE_NAMES = { stated: "明说", inferred: "推断", default: "默认" };
+
+  function displayValue(value) {
+    if (Array.isArray(value)) return value.length ? value.join("、") : "无";
+    if (value === null || value === undefined || value === "") return "—";
+    if (typeof value === "number" && String(value).length > 6) return String(value);
+    return String(value);
+  }
+
+  function fillForm(request) {
+    if (!request) return;
+    var map = {
+      city: "city", date: "date", hours: "hours", budget_cny: "budget",
+      party_size: "party"
+    };
+    Object.keys(map).forEach(function (key) {
+      if (request[key] !== undefined && request[key] !== null && el(map[key])) {
+        el(map[key]).value = request[key];
+      }
+    });
+    if (request.styles && request.styles.length && el("style")) {
+      el("style").value = request.styles[0];
+    }
+    if (request.preferences && el("preference")) {
+      el("preference").value = request.preferences.join(",");
+    }
+    if (request.avoid && el("avoid")) el("avoid").value = request.avoid.join(",");
+    updateCityNote();
+  }
+
+  function renderUnderstanding(data) {
+    state.understanding = data;
+    var html = "<h4>我做了这些假设 · 明说 " + data.stated_count +
+      " · 推断 " + data.inferred_count + " · 默认 " + data.default_count + "</h4>";
+    data.assumptions.forEach(function (a) {
+      html += '<div class="assumption"><span class="field">' +
+        esc(FIELD_NAMES[a.field] || a.field) + '</span><span class="value">' +
+        esc(displayValue(a.value)) +
+        (a.evidence || a.note
+          ? '<span class="evidence">' + esc([a.evidence, a.note].filter(Boolean).join(" · ")) + '</span>'
+          : "") +
+        '</span><span class="tag ' + esc(a.source) + '">' +
+        esc(SOURCE_NAMES[a.source] || a.source) + '</span></div>';
+    });
+
+    if (data.clarifications && data.clarifications.length) {
+      html += "<h4>想跟你确认</h4>";
+      data.clarifications.forEach(function (q) {
+        html += '<div class="clarify"><b>' + esc(q.why) + '</b>' +
+          esc(q.question) + '<br>建议：' + esc(q.suggestion) + '</div>';
+      });
+    }
+
+    if (data.negotiations && data.negotiations.length) {
+      html += "<h4>当前条件不可行，但这样改就行（每项都已实跑预检）</h4>";
+      data.negotiations.forEach(function (option, index) {
+        html += '<div class="negotiation"><span class="label">' + esc(option.label) +
+          '<span class="tradeoff">' + esc(option.tradeoff) + '</span></span>' +
+          '<button data-negotiation="' + index + '">采用</button></div>';
+      });
+    }
+
+    el("brief-result").innerHTML = html;
+    fillForm(data.request);
+  }
+
+  async function understandBrief() {
+    var text = el("brief").value.trim();
+    if (!text) {
+      el("brief-result").innerHTML =
+        '<div class="clarify"><b>还没输入</b>先随便描述一句，例如「国庆去西安拍唐风，预算一千五」。</div>';
+      return;
+    }
+    var button = el("understand");
+    button.disabled = true;
+    button.textContent = "正在理解…";
+    try {
+      var response = await fetch("/api/understand", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: text })
+      });
+      if (!response.ok) throw new Error("HTTP " + response.status);
+      renderUnderstanding(await response.json());
+    } catch (error) {
+      el("brief-result").innerHTML = '<div class="issue hard"><code>理解失败</code><p>' +
+        esc(error.message) + '</p></div>';
+    } finally {
+      button.disabled = false;
+      button.textContent = "理解这句话";
     }
   }
 
@@ -374,6 +473,21 @@
 
   el("run").addEventListener("click", generate);
   el("city").addEventListener("change", updateCityNote);
+  el("understand").addEventListener("click", understandBrief);
+  el("brief").addEventListener("keydown", function (event) {
+    if ((event.ctrlKey || event.metaKey) && event.key === "Enter") understandBrief();
+  });
+  document.addEventListener("click", function (event) {
+    var target = event.target;
+    if (target && target.dataset && target.dataset.negotiation !== undefined &&
+        state.understanding) {
+      var option = state.understanding.negotiations[Number(target.dataset.negotiation)];
+      if (option) {
+        fillForm(option.request);
+        setStatus("已采用调整，可重新生成", true);
+      }
+    }
+  });
   loadCatalog();
   document.addEventListener("click", function (event) {
     if (event.target && event.target.id === "refresh-stats") loadStats();

@@ -7,6 +7,7 @@ The core engine has no dependency on this file.
 
 from __future__ import annotations
 
+import datetime as dt
 import json
 import logging
 import re
@@ -29,6 +30,7 @@ except ImportError as exc:  # pragma: no cover
 
 from . import __version__
 from .agents import MockProvider, build_provider
+from .brief import understand
 from .config import Settings, configure_logging, get_settings
 from .domain.constraints import RULES
 from .domain.errors import (
@@ -40,9 +42,11 @@ from .domain.errors import (
     ShotplanError,
     StorageError,
 )
+from .domain.feasibility import check_feasibility
 from .domain.models import PlanRequest
 from .knowledge.loader import knowledge_version
 from .knowledge.tools import get_tools
+from .negotiation import negotiate
 from .pipeline import run_plan
 from .storage import RunSink, RunStore, close_all_writers, get_writer
 
@@ -255,6 +259,35 @@ async def storage_error_handler(request: Request, exc: StorageError) -> JSONResp
             "request_id": getattr(request.state, "request_id", None),
         },
     )
+
+
+@app.post("/api/understand")
+def understand_brief(payload: dict[str, Any]) -> dict[str, Any]:
+    """One free-form sentence -> structured request + visible assumptions.
+
+    This is the entry point that makes the product feel less like a form and
+    more like a conversation. Everything inferred is returned with its source
+    and evidence, so the user can correct it before generating anything.
+    """
+    text = payload.get("text") or ""
+    if not isinstance(text, str) or not text.strip():
+        raise HTTPException(status_code=422, detail="text must be a non-empty string")
+    today_raw = payload.get("today")
+    today = None
+    if today_raw:
+        try:
+            today = dt.date.fromisoformat(str(today_raw))
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail="today must be YYYY-MM-DD") from exc
+    parsed = understand(text[:500], today=today, tools=get_tools())
+    result = parsed.to_dict()
+    verdict = check_feasibility(parsed.request, get_tools())
+    result["feasibility"] = verdict.to_dict()
+    result["negotiations"] = (
+        [option.to_dict() for option in negotiate(parsed.request, tools=get_tools())]
+        if not verdict.feasible else []
+    )
+    return result
 
 
 @app.get("/api/catalog")
