@@ -31,3 +31,28 @@ def test_gate_count_matches_the_makefile():
     readme = (Path(__file__).resolve().parents[1] / "README.md").read_text(encoding="utf-8")
     declared = [int(v) for v in re.findall(r"(\d+)\s*道\s*CI\s*门禁", readme)]
     assert declared and all(v == len(commands) for v in declared), (len(commands), declared)
+
+
+def test_http_smoke_report_is_deterministic_and_all_green():
+    import os
+    import tempfile
+    from pathlib import Path
+
+    from evals.http_load import server
+    from evals.http_smoke import render, walk
+
+    saved = {k: os.environ.pop(k) for k in list(os.environ) if k.startswith("SHOTPLAN_")}
+    try:
+        os.environ["SHOTPLAN_SKIP_DOTENV"] = "1"
+        with tempfile.TemporaryDirectory() as raw:
+            with server(workers=1, db_path=Path(raw) / "smoke.db", persist=True) as (base, _):
+                checks = walk(base)
+    finally:
+        for key in list(os.environ):
+            if key.startswith("SHOTPLAN_"):
+                os.environ.pop(key, None)
+        os.environ.update(saved)
+
+    assert len(checks) >= 10
+    assert all(c.ok for c in checks), [(c.endpoint, c.detail) for c in checks if not c.ok]
+    assert "10/10" in render(checks) or "PASS" in render(checks)

@@ -6,6 +6,10 @@
 
 ### Added
 
+- **HTTP 全链路冒烟 + 上线就绪度评估**（`evals/http_smoke.py`，真实 uvicorn 子进程、10/10 端点契约、已进门禁）：覆盖 health/config/rules/plan(可行+不可行)/runs/summary/stats/metrics/首页，重点验证「预检拒绝不算质量分母」「summary 与 stats 口径一致」「metrics 是状态感知 gauge」。单测走 TestClient 会跳过 lifespan 配置快照与 loopback 网络栈，这一层补上。
+- **API + 真实模型最终冒烟（¥0.047）**：真实 uvicorn → `build_provider(cfg)` → real provider 一次调用，trace 同时出现构造值 `planner-v2` 与实际生效 `planner-v3`，`/api/summary` 与 `/metrics` 口径一致（pass=1.0、error=0.0、llm_cost=0.046667）。之前的复测只走了 eval harness 与 CLI，这一条补齐。
+- [docs/release-readiness.md](docs/release-readiness.md)：明确「代码可部署、证据未到生产可用」，列出 6 项上线前必做（抓取端、黑盒探针、密钥注入、代理注入 key、SLO 重校准、多进程写锁复核）与 5 类只有真实流量才暴露的未知；**阶段 9 验收项「一周真实流量分布图」仍为空，不靠门禁勾掉**。
+- 门禁 22 道（新增 http_smoke），README 数字由 `check_gate_count.py` 自动校验。
 - **全仓体检 + 阶段 9 两项落地**：8 份快照/报告对全部同步、3 项辅助门禁通过、ADR 17/17、无残留断点。查出并修掉 4 个真实问题：① 上一轮 P1/P2 重构 19 个文件**未提交**（已补 `8fe1616`）；② 两份历史快照含完整 endpoint URL → 新增 `check_snapshot_hygiene.py`，历史显式列为例外、新快照再犯即红；③ README「16 道门禁」vs Makefile 实际 21 道 → 新增 `check_gate_count.py` 自动校验 README 每一处声明；④ `_safe_save` 漏捕获 `OSError ENOSPC`，会把有效方案变成 error，已修并在故障注入里验证。详见 [architecture-review.md](docs/architecture-review.md) 末节。
 - **故障注入矩阵**（`evals/fault_injection.py`，12/12，纯离线、进门禁）：provider 超时/429/502、解析失败、SQLite 锁、磁盘满、无权限、知识库损坏、校验器异常、断供不污染分母、API 502/503 映射。绿色标准是「失败被分类、可追溯、不污染质量指标」，不只是「没抛异常」。见 [docs/fault-injection.md](docs/fault-injection.md)。
 - **SLO 从实测推出**（`evals/slo_baseline.py` + [docs/slo.md](docs/slo.md)）：基线表由 7 份快照生成并纳入门禁。**纠正原假设**「95% 请求 30s 内返回」——实测 P50 40.5–91.5s、P95 63.9–171.8s，该目标从写下起就不可能达成。改为 P50 ≤95s / P95 ≤180s / 通过率 ≥90% / 上游错误率 ≤5% / 单次 ≤¥0.08，附 PromQL、告警规则、误差预算，并写清 gauge 不能用 `rate()`、可用性必须靠黑盒探针。

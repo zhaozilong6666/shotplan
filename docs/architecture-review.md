@@ -247,3 +247,24 @@ P0 之后没有停。按评审表把剩下的高危项一次性收敛，全部�
 这次体检本身就是一次「反证」：不是问「有没有出错」，而是让每一类可能出错的地方
 都能被一条命令判假。发现的 4 个问题里，2 个是**文档与代码的漂移**，
 1 个是**未提交的工作**，1 个是**边界缺陷**——三类都不是全量测试能抓到的。
+
+---
+
+## API + 真实模型最终冒烟（2026-11-15，¥0.047）
+
+前面的复测走 eval harness 与 CLI，唯独没走「真实 uvicorn → `build_provider(cfg)` → 真实 provider」。
+用 1 次调用补齐（router 开启、brief 含「上午拍完」）：
+
+```
+POST /api/plan  200  status=ok  hard_pass=True
+trace.prompt_version            = planner-v2   (构造值)
+trace.prompt_version_effective  = planner-v3   (实际生效)
+/api/summary  total_runs=1 ok_runs=1 error_rate=0.0 hard_pass_rate=1.0
+              llm_cost_cny=0.046667
+/metrics      shotplan_hard_pass_rate=1.0  shotplan_error_rate=0.0
+              shotplan_llm_cost_cny=0.046667  shotplan_duration_ms{0.5}=77162.57
+```
+
+关键点：**同一个 trace 里能同时看到「provider 构造时的版本」和「实际产生方案的版本」**，
+且 DB / summary / metrics 三处口径一致。改之前这里全是 v2，无法解释为什么同一配置下
+一半请求用了 v3。

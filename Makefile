@@ -94,6 +94,7 @@ gates:
 	$(PYTHON) scripts/check_snapshot_hygiene.py
 	$(PYTHON) -m evals.fault_injection --check
 	$(PYTHON) -m evals.slo_baseline --check
+	$(PYTHON) -m evals.http_smoke --check
 	$(PYTHON) scripts/check_gate_count.py
 	$(PYTHON) -m evals.scaling --check --requests 300
 	$(PYTHON) -m evals.examples --check
