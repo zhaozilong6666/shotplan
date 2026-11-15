@@ -41,7 +41,7 @@
   ],
   "failure_records": 527,
   "good": {
-    "avg_score": 0.9879,
+    "avg_score": 0.9886,
     "cases": 200,
     "hard_pass_rate": 1.0,
     "min_score": 0.9525

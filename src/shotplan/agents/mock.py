@@ -68,6 +68,132 @@ class MockProvider:
             metadata={"mode": self.mode, "repair_hint_applied": bool(repair_hint)},
         )
 
+    # ----------------------------------------------------------- point search ---
+    @staticmethod
+    def _combo_score(
+        points: list[dict[str, Any]],
+        req: PlanRequest,
+        style: dict[str, Any],
+        location_budget: int,
+    ) -> float:
+        """Score a candidate set on the goals a human would actually weigh.
+
+        The previous planner hard-coded "one plain scene + one golden scene".
+        That is a guess made once, not a choice made per brief: it cannot trade
+        a crowd-free location against a nearer one, or notice that the requested
+        style does not fit the tag mix at all.
+
+        Weights are deliberately explicit so they can be argued with and tuned
+        by the eval suite rather than buried in `if` branches.
+        """
+        if not points:
+            return -1.0
+        style_tags = {tag for tag in req.styles}
+        tag_hits = sum(len(set(p["tags"]) & style_tags) for p in points)
+        tag_total = max(1, len(points) * max(1, len(style_tags)))
+        style_fit = tag_hits / tag_total
+
+        prefs = " ".join(req.preferences)
+        wants_quiet = any(w in prefs for w in ("人少", "安静", "小众", "避开人群"))
+        quiet_ratio = sum(1 for p in points if p["crowd"] == "low") / len(points)
+        crowd_fit = quiet_ratio if wants_quiet else 0.5 + 0.5 * quiet_ratio
+
+        wants_morning = any(w in prefs for w in ("上午", "晨光", "中午前"))
+        wants_evening = any(
+            w in prefs for w in ("傍晚", "黄金光线", "夕阳", "氛围感", "黄金")
+        )
+        light_key = "morning" if wants_morning else "golden"
+        if wants_morning or wants_evening:
+            light_fit = sum(1 for p in points if light_key in p["best_light"]) / len(points)
+        else:
+            light_fit = sum(1 for p in points if p["best_light"]) / len(points)
+
+        travel_total = sum(int(p["travel_min_from_center"]) for p in points)
+        travel_fit = max(0.0, 1.0 - travel_total / 90.0)
+
+        cost_total = sum(int(p["cost_cny"]) for p in points)
+        wants_cheap = any(w in prefs for w in ("控制预算", "省钱", "便宜", "性价比", "少花钱"))
+        if location_budget <= 0:
+            budget_fit = 0.0 if cost_total > 0 else 1.0
+        elif wants_cheap:
+            # Cheap is the goal: spending less is strictly better, free is best.
+            budget_fit = max(0.0, 1.0 - cost_total / location_budget)
+        else:
+            # Otherwise free scenes are a feature, not a failure. The earlier
+            # "spend ~70% of the budget" target made the planner prefer paid
+            # spots even when the user asked to save money.
+            budget_fit = 1.0 if cost_total <= location_budget else 0.0
+
+        distinct_tags = {tag for p in points for tag in p["tags"]}
+        diversity = min(1.0, len(distinct_tags) / max(1, len(points) * 2))
+
+        return (
+            0.30 * style_fit
+            + 0.22 * light_fit
+            + 0.18 * crowd_fit
+            + 0.14 * travel_fit
+            + 0.10 * budget_fit
+            + 0.06 * diversity
+        )
+
+    def _choose_points(
+        self,
+        outdoor: list[dict[str, Any]],
+        required: list[dict[str, Any]],
+        count: int,
+        req: PlanRequest,
+        location_budget: int,
+        style: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        """Enumerate feasible sets and keep the best-scoring one.
+
+        With 6-8 candidate scenes the search space is tiny (<= 56 sets), so an
+        exhaustive scan is both cheap and explainable -- no heuristic to argue
+        about, and the evaluator can measure whether the weights are any good.
+        Required locations stay in every set: the user asked for them.
+        """
+        style = style or {"id": (req.styles or ["tang"])[0]}
+        required_ids = {item["id"] for item in required}
+        required_cost = sum(int(item["cost_cny"]) for item in required)
+        pool = [x for x in outdoor if x["id"] not in required_ids]
+        need = max(0, count - len(required))
+
+        candidates: list[list[dict[str, Any]]] = []
+        if need == 0:
+            candidates = [list(required)]
+        else:
+            from itertools import combinations
+
+            for combo in combinations(pool, need):
+                candidates.append([*required, *combo])
+        if not candidates:
+            candidates = [list(required) or outdoor[:1]]
+
+        # Feasibility first: never propose a set that cannot be paid for.
+        affordable = [
+            c for c in candidates
+            if sum(int(p["cost_cny"]) for p in c) <= location_budget
+        ] or [c for c in candidates if required_cost <= location_budget] or candidates
+
+        best = max(
+            affordable,
+            key=lambda c: (self._combo_score(c, req, style, location_budget), sorted(p["id"] for p in c)),
+        )
+        # The longest shoot block is the last one, so put the scene that best
+        # matches the requested light there.
+        wants_morning = any(w in " ".join(req.preferences) for w in ("上午", "晨光", "中午前"))
+        light_key = "morning" if wants_morning else "golden"
+
+        def light_rank(item: dict[str, Any]) -> int:
+            return 0 if light_key in item["best_light"] else 1
+
+        required_part = [p for p in best if p["id"] in required_ids]
+        optional_part = sorted(
+            (p for p in best if p["id"] not in required_ids),
+            key=lambda p: (light_rank(p), -int(p["cost_cny"])),
+        )
+        return [*required_part, *optional_part][:count]
+
     # ------------------------------------------------------------------ good ---
     def _good(
         self,
@@ -116,37 +242,12 @@ class MockProvider:
         remaining = total_minutes - makeup_minutes
         count = 2 if remaining >= 2 * (MIN_TRANSFER_MINUTES + MIN_SHOOT_MINUTES) else 1
         required = required[:count]
-        required_ids = {x["id"] for x in required}
 
-        filler_pool = [x for x in outdoor if x["id"] not in required_ids]
-        golden = [x for x in filler_pool if "golden" in x["best_light"]]
-        plain = [x for x in filler_pool if "golden" not in x["best_light"]]
-        fillers_needed = max(0, count - len(required))
-        # The last shoot block should land in golden light; pick one plain
-        # scene first and one golden-friendly scene last whenever possible.
-        if fillers_needed >= 2 and golden:
-            chosen_ids = list(dict.fromkeys([(plain or golden)[0]["id"], golden[-1]["id"]]))
-            fillers = [next(x for x in filler_pool if x["id"] == pid) for pid in chosen_ids]
-        elif fillers_needed == 1:
-            fillers = golden[:1] or plain[:1] or filler_pool[:1]
-        else:
-            fillers = []
-        points = required + fillers[:fillers_needed]
-
-        # Budget-aware selection: never keep a location combination whose total
-        # cost exceeds what is left after styling and transfer. Eval case C24
-        # (budget 400) exposed the old behaviour of picking a paid scenic spot
-        # and then failing BUDGET_EXCEEDED. Required locations are never trimmed:
-        # if the budget cannot fit them, the validator must say so instead of
-        # silently ignoring the user's request.
         styling_cost = int(style["price_cny"][0])
         location_budget = max(0, req.budget_cny - styling_cost - TRANSFER_COST_CNY)
-        while sum(int(p["cost_cny"]) for p in points) > location_budget:
-            trimmable = [p for p in points if p["id"] not in required_ids]
-            if not trimmable:
-                break
-            priciest = max(trimmable, key=lambda p: int(p["cost_cny"]))
-            points.remove(priciest)
+        points = self._choose_points(
+            outdoor, required, count, req, location_budget, style
+        )
         if not points:
             free = [x for x in outdoor if int(x["cost_cny"]) == 0]
             points = free[:1] or [outdoor[0]]
