@@ -159,3 +159,4 @@ python -m pytest tests/test_scorers.py -q
 - [SLO 实测基线](slo-baseline.md) 与 [SLO 定义](slo.md)：阈值从已归档快照推出，而不是拍脑袋；含 PromQL、告警规则与误差预算。
 - [HTTP 全链路冒烟](http-smoke.md)：真实 uvicorn 进程上逐个验证 10 个端点契约，由 `evals/http_smoke.py` 生成并纳入门禁。
 - [上线就绪度](release-readiness.md)：能部署什么、上线前必须补什么、以及哪些问题只有真实流量才会暴露。
+- [人类一致性标注工具](annotation-kappa.md)：30 份盲标注方案、两张空白表、κ 计算器自检与执行协议；**等待两位真人标注，当前不产出 κ 结论**。
