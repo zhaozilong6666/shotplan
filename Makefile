@@ -97,6 +97,7 @@ gates:
 	$(PYTHON) -m evals.http_smoke --check
 	$(PYTHON) scripts/check_doc_claims.py
 	$(PYTHON) -m evals.annotation_kit --check
+	$(PYTHON) scripts/validate_knowledge.py --check
 	$(PYTHON) scripts/check_gate_count.py
 	$(PYTHON) -m evals.scaling --check --requests 300
 	$(PYTHON) -m evals.examples --check

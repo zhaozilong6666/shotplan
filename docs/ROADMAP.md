@@ -110,7 +110,7 @@
 ### 阶段 8 · 知识库与真实用户（2–3 周）
 
 - [x] 写一个复核脚本：`scripts/check_knowledge_freshness.py` 列出超过 N 天未核验的条目，同时检查 `source` 缺失与日期非法，已进 CI 门禁（当前 45 条记录全部 1 天内核验）
-- [ ] 城市从 5 个扩到 10 个，每条记录带 `source` 与 `last_verified_at`（已有字段与校验）
+- [ ] 城市从 5 个扩到 10 个 —— **数据契约已就绪，真实数据仍需人工核验**：`scripts/validate_knowledge.py` 校验 14 个地点字段 / 11 个风格字段、id 唯一、光线枚举、价格区间、日期合法性，现有 5 城 40 地点 5 风格 0 问题；`--check` 是门禁。扩城流程与「为什么不能靠编数据勾掉」见 [knowledge-contract.md](knowledge-contract.md)
 - [ ] 找 5–10 个真实用户试用，记录「哪些建议被采纳、哪些被无视」，形成定性结论
 - [ ] 两人独立标注 30 个方案的「可执行性」，算 Cohen's kappa —— **工具链已备好，等真人数据**：`evals/annotation_kit.py` 生成 30 份**盲标注**方案（校验器判定不出现在标注表）、两张空白表、无序 κ 与二次加权 κ 计算器（已知答案自检通过）、分歧案例输出。`--check` 是门禁。**报告不含 κ 结论**：没有真人就写数字是伪造证据。见 [annotation-kappa.md](annotation-kappa.md)
 

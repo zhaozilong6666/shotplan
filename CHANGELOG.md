@@ -6,6 +6,8 @@
 
 ### Added
 
+- **知识库数据契约（`scripts/validate_knowledge.py`，阶段 8 扩城准备）**：校验 14 个地点字段 / 11 个风格字段、`id` 全库唯一、`best_light` 枚举、`indoor` 布尔、时长/交通/价格非负、客流与天气枚举、风格价格区间、`source` 非空、`last_verified_at` 合法非未来。现有 **5 城 40 地点 5 风格 0 问题**；故意构造的坏记录能被全部拦下（2 个单测）。`--check` 是第 25 道门禁。[docs/knowledge-contract.md](docs/knowledge-contract.md) 明确**不编造城市数据**：工具保证格式与可复核性，保证不了票价是真的，扩到 10 城仍需人工核验官方资料。
+
 - **人类一致性标注工具链（`evals/annotation_kit.py`，阶段 8 收尾准备）**：生成 30 份**盲标注**方案（good/naive 各半随机打乱，校验器判定不出现在标注表以避免锚定）、两张空白 CSV、无序 Cohen's κ 与二次加权 κ 计算器、`--score` 输出逐题 κ 与所有分歧案例。计算器用已知答案自检（完全一致=1、完全相反=−1、相邻分歧加权 κ 高于极端分歧），4 个单测 + `--check` 门禁。**报告明确不含 κ 结论**——没有两位真人标注就写数字是伪造证据；ROADMAP 该项保持未勾选，只是把验收条件变成可执行的一步。见 [docs/annotation-kappa.md](docs/annotation-kappa.md)。
 - **README 散文数字纳入门禁**（`scripts/check_doc_claims.py`）：从代码算出 10 个指标（80 用例 / 69 需生成 / 11 不可行 / 200 盲测 / 527 失败记录 / 15 规则 = 10 硬 + 5 软 / 5 城市 / 17 ADR），逐条比对 README 的 13 处声明。**又抓到 3 处真实问题并修正**：ADR「16 份」→ 17；测试数「301」实则已 400，判定为**自指数字**，改为不在散文里写死并由门禁禁止手写；面试稿把「15 条规则」写成「15 条硬约束」（与早先修过的口径错误同源）。门禁 23 道。详见 [architecture-review.md](docs/architecture-review.md) 末节。
 - **HTTP 全链路冒烟 + 上线就绪度评估**（`evals/http_smoke.py`，真实 uvicorn 子进程、10/10 端点契约、已进门禁）：覆盖 health/config/rules/plan(可行+不可行)/runs/summary/stats/metrics/首页，重点验证「预检拒绝不算质量分母」「summary 与 stats 口径一致」「metrics 是状态感知 gauge」。单测走 TestClient 会跳过 lifespan 配置快照与 loopback 网络栈，这一层补上。
