@@ -31,6 +31,7 @@ except ImportError as exc:  # pragma: no cover
 from . import __version__
 from .agents import MockProvider, build_provider
 from .brief import understand
+from .compare import compare_strategies
 from .config import Settings, configure_logging, get_settings
 from .domain.constraints import RULES
 from .domain.errors import (
@@ -258,6 +259,18 @@ async def storage_error_handler(request: Request, exc: StorageError) -> JSONResp
             "detail": str(exc),
             "request_id": getattr(request.state, "request_id", None),
         },
+    )
+
+
+@app.post("/api/compare")
+def compare_plans(payload: dict[str, Any], cfg: SettingsDep) -> dict[str, Any]:
+    """Three real plans, three explicit trade-offs, one evidenced recommendation."""
+    raw = payload.get("request")
+    if not isinstance(raw, dict):
+        raise HTTPException(status_code=422, detail="request must be an object")
+    request = PlanRequest.from_dict(raw)
+    return compare_strategies(
+        request, settings=cfg, provider=build_provider(cfg)
     )
 
 

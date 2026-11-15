@@ -201,3 +201,35 @@ hr.divider { border: 0; border-top: 1px solid var(--line); margin: 18px 0 14px; 
   font: inherit; font-size: 11px; cursor: pointer;
 }
 .negotiation button:hover { background: var(--accent-soft); }
+
+/* --- Multi-plan comparison --- */
+.compare-head { margin-bottom: 16px; }
+.compare-head h3 { margin: 0 0 6px; font-size: 16px; }
+.compare-head p { margin: 0 0 6px; font-size: 12px; color: var(--muted); }
+.compare-head .secondary { width: auto; margin-top: 8px; }
+.compare-note { color: var(--warn) !important; }
+.compare-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.compare-card {
+  position: relative; border: 1px solid var(--line); border-radius: 10px;
+  padding: 14px; background: var(--surface); font-size: 12px;
+}
+.compare-card.recommended { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.compare-card .ribbon {
+  position: absolute; top: -9px; right: 10px; background: var(--accent);
+  color: #fff; border-radius: 999px; padding: 2px 9px; font-size: 10px;
+}
+.compare-card h4 { margin: 0 0 4px; font-size: 14px; }
+.compare-card .intent { color: var(--muted); min-height: 34px; margin: 0 0 10px; }
+.compare-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.compare-metrics div { background: var(--bg); border-radius: 6px; padding: 7px 9px; }
+.compare-metrics b { display: block; font-size: 14px; }
+.compare-metrics span { color: var(--muted); font-size: 10px; }
+.compare-card h5 { margin: 0 0 6px; font-size: 11px; color: var(--muted); font-weight: 500; }
+.compare-card ul { margin: 0 0 10px; padding-left: 16px; }
+.compare-card li { margin-bottom: 3px; }
+.compare-card .compare-params { color: var(--muted); font-size: 11px; }
+.compare-card > button {
+  width: 100%; padding: 7px; border: 1px solid var(--accent); border-radius: 7px;
+  background: var(--surface); color: var(--accent); font: inherit; font-size: 12px; cursor: pointer;
+}
+.compare-card > button:hover { background: var(--accent-soft); }

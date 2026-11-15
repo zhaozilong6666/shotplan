@@ -4,7 +4,8 @@
 
   var state = {
     result: null, tab: "plan", stats: null, config: null,
-    statsLoading: false, catalog: null, understanding: null
+    statsLoading: false, catalog: null, understanding: null,
+    compare: null, compareLoading: false
   };
   var el = function (id) { return document.getElementById(id); };
   var esc = function (value) {
@@ -426,10 +427,84 @@
     return html;
   }
 
+  /* --- Three strategies, three real plans, one evidenced recommendation --- */
+  function renderComparison(data) {
+    var rec = data.recommendation;
+    var html = '<div class="compare-head"><h3>同一个需求，三种取舍</h3>' +
+      '<p>每份都走完整流水线并经过同一套校验器；下面写的差异是实际算出来的，不是文案。</p>' +
+      '<p><b>推荐：' + esc(rec.id) + '</b> · ' + esc(rec.reason) +
+      (rec.evidence && rec.evidence.length ? ' · 依据：' + esc(rec.evidence.join("、")) : '') +
+      '</p>' +
+      (rec.note ? '<p class="compare-note">' + esc(rec.note) + '</p>' : '') +
+      '<button id="refresh-compare" class="secondary">按当前表单重新对比</button></div>';
+    html += '<div class="compare-grid">';
+    data.strategies.forEach(function (s, index) {
+      var m = s.metrics;
+      var recommended = s.id === rec.id;
+      html += '<div class="compare-card' + (recommended ? ' recommended' : '') + '">' +
+        (recommended ? '<span class="ribbon">推荐</span>' : '') +
+        '<h4>' + esc(s.label) + '</h4><p class="intent">' + esc(s.intent) + '</p>' +
+        '<div class="compare-metrics">' +
+          '<div><b>' + esc(m.hard_pass ? "通过" : "未通过") + '</b><span>硬约束</span></div>' +
+          '<div><b>' + esc(m.score) + '</b><span>综合得分</span></div>' +
+          '<div><b>' + esc(m.total_cost_cny) + ' 元</b><span>方案费用</span></div>' +
+          '<div><b>' + esc(m.shoot_count) + ' 处</b><span>拍摄点</span></div>' +
+          '<div><b>' + esc(m.travel_count) + ' 次</b><span>转场</span></div>' +
+          '<div><b>' + esc(m.shoot_minutes) + ' 分</b><span>有效拍摄</span></div>' +
+        '</div>' +
+        '<h5>放弃了什么</h5><ul>' +
+        s.tradeoffs.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join("") +
+        '</ul>' +
+        (s.identical_to && s.identical_to.length
+          ? '<p class="compare-note">与 ' + esc(s.identical_to.join("、")) + ' 产出相同方案</p>'
+          : '') +
+        '<p class="compare-params">时长 ' + esc(s.request.hours) + 'h · 预算 ' +
+          esc(s.request.budget_cny) + ' 元' +
+          (s.request.avoid && s.request.avoid.length
+            ? ' · 排除 ' + esc(s.request.avoid.length) + ' 个地点' : '') + '</p>' +
+        '<button data-compare="' + index + '">用这个方向生成</button>' +
+      '</div>';
+    });
+    html += '</div>';
+    return html;
+  }
+
+  async function loadCompare() {
+    if (state.compareLoading) return;
+    state.compareLoading = true;
+    try {
+      var response = await fetch("/api/compare", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ request: buildBody() })
+      });
+      if (!response.ok) throw new Error("HTTP " + response.status);
+      state.compare = await response.json();
+    } catch (error) {
+      state.compare = { error: error.message };
+    } finally {
+      state.compareLoading = false;
+      if (state.tab === "compare") render();
+    }
+  }
+
   function render() {
     var r = state.result;
     var view = el("view");
     if (state.tab === "stats") { view.innerHTML = renderStats(); return; }
+    if (state.tab === "compare") {
+      if (!state.compare) {
+        view.innerHTML = '<div class="empty"><p>还没有对比</p><span>点一下「按当前表单重新对比」生成三种取向的方案</span>' +
+          '<br><button id="refresh-compare" class="secondary">按当前表单重新对比</button></div>';
+      } else if (state.compare.error) {
+        view.innerHTML = '<div class="issue hard"><code>对比失败</code><p>' +
+          esc(state.compare.error) + '</p></div>' +
+          '<button id="refresh-compare" class="secondary">重试</button>';
+      } else {
+        view.innerHTML = renderComparison(state.compare);
+      }
+      return;
+    }
     if (!r) return;
     if (state.tab === "plan") view.innerHTML = renderPlan(r);
     else if (state.tab === "validation") view.innerHTML = renderValidation(r);
@@ -491,6 +566,22 @@
   loadCatalog();
   document.addEventListener("click", function (event) {
     if (event.target && event.target.id === "refresh-stats") loadStats();
+    if (event.target && event.target.id === "refresh-compare") {
+      state.compare = null;
+      loadCompare();
+    }
+    if (event.target && event.target.dataset &&
+        event.target.dataset.compare !== undefined && state.compare && state.compare.strategies) {
+      var chosen = state.compare.strategies[Number(event.target.dataset.compare)];
+      if (chosen) {
+        fillForm(chosen.request);
+        state.tab = "plan";
+        document.querySelectorAll(".tab").forEach(function (t) {
+          t.classList.toggle("active", t.dataset.tab === "plan");
+        });
+        generate();
+      }
+    }
   });
   document.querySelectorAll(".tab").forEach(function (tab) {
     tab.addEventListener("click", function () {
@@ -500,6 +591,7 @@
       render();
       // Re-fetch on every visit so queue stats are current, not cached.
       if (state.tab === "stats") loadStats();
+      if (state.tab === "compare" && !state.compare) loadCompare();
     });
   });
   document.querySelectorAll("[data-preset]").forEach(function (button) {
