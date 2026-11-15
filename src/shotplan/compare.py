@@ -87,9 +87,11 @@ def _variant(request: PlanRequest, strategy_id: str, tools: KnowledgeTools) -> P
             preferences=list(dict.fromkeys([*req.preferences, "控制预算"])),
         )
     if strategy_id == "easy":
+        # Distinct from `budget` on purpose: two labels pointing at the same
+        # plan is exactly the fake choice this feature exists to avoid.
         return replace(
             req,
-            hours=max(3.0, req.hours - 1),
+            hours=max(4.0, req.hours - 2),
             avoid=_exclusions(req, "easy", tools),
             preferences=list(dict.fromkeys([*req.preferences, "少转场"])),
         )

@@ -27,7 +27,8 @@ def test_three_strategies_change_the_request_in_observable_ways():
     assert set(by_id) == {"showcase", "budget", "easy"}
     assert by_id["showcase"]["request"]["hours"] == 7
     assert by_id["budget"]["request"]["budget_cny"] < 1500
-    assert by_id["easy"]["request"]["hours"] == 5
+    assert by_id["easy"]["request"]["hours"] == 4
+    assert by_id["easy"]["request"]["hours"] != by_id["budget"]["request"]["hours"]
     assert by_id["budget"]["request"]["avoid"], "budget must exclude expensive stops"
     assert by_id["easy"]["request"]["avoid"], "easy must exclude distant stops"
     assert by_id["budget"]["request"]["avoid"] != by_id["easy"]["request"]["avoid"]
@@ -48,7 +49,8 @@ def test_every_strategy_runs_the_real_pipeline_and_is_measured():
 
 def test_strategies_produce_distinct_plans_and_duplicates_are_flagged():
     data = compare_strategies(_brief(), settings=CFG)
-    assert data["distinct_plans"] >= 2
+    assert data["distinct_plans"] == 3, "three labels must mean three plans"
+    assert all(not s["identical_to"] for s in data["strategies"])
     fingerprints = {
         s["id"]: tuple(
             (x["location_id"], x["activity"], x["start"], x["end"])
