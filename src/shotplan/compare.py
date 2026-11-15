@@ -74,44 +74,59 @@ def _exclusions(req: PlanRequest, strategy_id: str, tools: KnowledgeTools) -> li
 
 
 def _variant(request: PlanRequest, strategy_id: str, tools: KnowledgeTools) -> PlanRequest:
+    """Change the *preferences*, never the user's hard constraints.
+
+    An earlier version quietly stretched `hours` to 7 and shrank `budget_cny` to
+    65% so the three cards would look different. That produced plans which did
+    not satisfy the brief the user actually typed, while presenting them as
+    "your three options" -- a comparison built on a lie. Hours and budget are
+    now copied verbatim; only the preference words and the excluded candidates
+    differ, which changes what the planner optimises for without changing what
+    the user asked for.
+    """
     req = request.normalized()
     if strategy_id == "showcase":
-        prefs = list(dict.fromkeys([*req.preferences, "黄金光线"]))
-        return replace(req, hours=min(12.0, req.hours + 1), preferences=prefs)
+        prefs = list(dict.fromkeys([*req.preferences, "黄金光线", "多拍"]))
+        return replace(req, preferences=prefs)
     if strategy_id == "budget":
         return replace(
             req,
-            budget_cny=max(600, int(req.budget_cny * 0.65)),
-            hours=max(3.0, req.hours - 1),
             avoid=_exclusions(req, "budget", tools),
-            preferences=list(dict.fromkeys([*req.preferences, "控制预算"])),
+            preferences=list(dict.fromkeys([*req.preferences, "控制预算", "省钱"])),
         )
     if strategy_id == "easy":
-        # Distinct from `budget` on purpose: two labels pointing at the same
-        # plan is exactly the fake choice this feature exists to avoid.
         return replace(
             req,
-            hours=max(4.0, req.hours - 2),
             avoid=_exclusions(req, "easy", tools),
-            preferences=list(dict.fromkeys([*req.preferences, "少转场"])),
+            preferences=list(dict.fromkeys([*req.preferences, "少转场", "轻松"])),
         )
     return req
 
 
-def _measure(result: Any) -> dict[str, Any]:
+def _measure(result: Any, tools: KnowledgeTools) -> dict[str, Any]:
     plan, report = result.plan, result.validation
     shoot = [s for s in plan.slots if s.activity == "shoot"]
     travel = [s for s in plan.slots if s.activity == "travel"]
+    scene_travel = 0
+    for slot in shoot:
+        location = tools.location(plan.city, slot.location_id)
+        if location:
+            scene_travel += int(location.get("travel_min_from_center", 0))
     return {
         "status": result.status,
         "hard_pass": report.hard_pass,
         "score": report.score,
         "scores": dict(report.scores),
         "total_cost_cny": plan.total_cost_cny,
+        # LLM token spend for this strategy, so a triple run is not free-by-silence.
+        "cost_cny": round(float(getattr(result.trace, "total_cost_cny", 0.0)), 6),
         "slot_count": len(plan.slots),
         "shoot_count": len(shoot),
         "travel_count": len(travel),
         "shoot_minutes": sum(s.minutes() for s in shoot),
+        # Sum of the scenes' own distance from the city centre: this is what
+        # "less running around" actually means, not the fixed transfer block.
+        "scene_travel_minutes": scene_travel,
         "issue_codes": [i.code for i in report.issues][:6],
         "plan_id": plan.plan_id,
         "slots": [
@@ -146,12 +161,15 @@ def _tradeoffs(metrics: dict[str, Any], baseline: dict[str, Any]) -> list[str]:
 
 
 def _recommend(strategies: list[dict[str, Any]], request: PlanRequest) -> dict[str, Any]:
+    """Recommend only among options that actually honour the user's brief."""
     text = " ".join(request.preferences)
     evidence: list[str] = []
+    eligible = [s for s in strategies if s.get("within_original_constraints", True)]
+    pool = eligible or strategies
     chosen = None
     for strategy_id, words in PREFERENCE_HINTS.items():
         hit = next((w for w in words if w in text), None)
-        if hit:
+        if hit and any(s["id"] == strategy_id for s in pool):
             evidence.append(hit)
             chosen = strategy_id
             break
@@ -159,9 +177,9 @@ def _recommend(strategies: list[dict[str, Any]], request: PlanRequest) -> dict[s
         reason = f"你在偏好里提到「{'、'.join(evidence)}」，按这个方向推荐"
         basis = "preference"
     else:
-        viable = [s for s in strategies if s["metrics"]["hard_pass"]]
-        pool = viable or strategies
-        best = max(pool, key=lambda s: s["metrics"]["score"])
+        viable = [s for s in pool if s["metrics"]["hard_pass"]]
+        ranked = viable or pool
+        best = max(ranked, key=lambda s: s["metrics"]["score"])
         chosen = best["id"]
         reason = "你没有表达明确倾向，按「先过硬约束、再比综合得分」推荐"
         basis = "score"
@@ -184,17 +202,29 @@ def compare_strategies(
 
     for spec in STRATEGIES:
         variant = _variant(base, spec["id"], tools)
+        relaxations: list[str] = []
+        if variant.hours > base.hours:
+            relaxations.append(f"多留 {variant.hours - base.hours:g} 小时")
+        if variant.hours < base.hours:
+            relaxations.append(f"少留 {base.hours - variant.hours:g} 小时")
+        if variant.budget_cny > base.budget_cny:
+            relaxations.append(f"多预算 {variant.budget_cny - base.budget_cny} 元")
+        if variant.budget_cny < base.budget_cny:
+            relaxations.append(f"少预算 {base.budget_cny - variant.budget_cny} 元")
         entry: dict[str, Any] = {
             "id": spec["id"],
             "label": spec["label"],
             "intent": spec["intent"],
             "request": variant.to_dict(),
+            # Hard constraints must be identical to the brief the user typed.
+            "within_original_constraints": not relaxations,
+            "relaxations": relaxations,
         }
         try:
             from .pipeline import run_plan
 
             result = run_plan(variant, provider=agent, settings=cfg, max_repairs=0)
-            entry["metrics"] = _measure(result)
+            entry["metrics"] = _measure(result, tools)
         except ShotplanError as exc:
             entry["metrics"] = {
                 "status": "error", "hard_pass": False, "score": 0.0,
@@ -228,10 +258,16 @@ def compare_strategies(
     recommendation = _recommend(strategies, base)
     distinct = len({fingerprint(e) for e in strategies})
     if distinct < len(strategies):
-        recommendation["note"] = (
-            f"当前 provider 只产出 {distinct} 种不同方案，有策略结果重合；"
-            "接真实模型后差异会更大"
-        )
+        if distinct == 1:
+            recommendation["note"] = (
+                "在你的条件下三种取舍都收敛到同一方案——这说明它是个稳健解，"
+                "而不是我们随便挑了一个；愿意放宽时长或预算时才会出现真正的分岔"
+            )
+        else:
+            recommendation["note"] = (
+                f"当前条件只产出 {distinct} 种不同方案，其余策略与之重合；"
+                "重合的部分说明那个选择对多种目标都成立"
+            )
     return {
         "base_request": base.to_dict(),
         "strategies": strategies,

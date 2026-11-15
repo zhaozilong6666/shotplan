@@ -127,13 +127,29 @@ class MockProvider:
         distinct_tags = {tag for p in points for tag in p["tags"]}
         diversity = min(1.0, len(distinct_tags) / max(1, len(points) * 2))
 
+        wants_nearby = any(w in prefs for w in ("少转场", "轻松", "就近", "少走路"))
+        # Weights follow the requested trade-off instead of being fixed. Without
+        # this, "save money" and "less travel" could only be expressed by
+        # editing the user's budget/hours -- which is how the earlier version
+        # ended up presenting plans that violated the brief.
+        weights = {
+            "style": 0.30, "light": 0.22, "crowd": 0.18,
+            "travel": 0.14, "budget": 0.10, "diversity": 0.06,
+        }
+        if wants_nearby:
+            weights.update(travel=0.36, diversity=0.02, style=0.26, light=0.20, crowd=0.12, budget=0.04)
+        elif wants_cheap:
+            weights.update(budget=0.30, diversity=0.02, style=0.26, light=0.20, crowd=0.14, travel=0.08)
+        elif wants_quiet:
+            weights.update(crowd=0.32, diversity=0.02, style=0.28, light=0.20, travel=0.10, budget=0.08)
+
         return (
-            0.30 * style_fit
-            + 0.22 * light_fit
-            + 0.18 * crowd_fit
-            + 0.14 * travel_fit
-            + 0.10 * budget_fit
-            + 0.06 * diversity
+            weights["style"] * style_fit
+            + weights["light"] * light_fit
+            + weights["crowd"] * crowd_fit
+            + weights["travel"] * travel_fit
+            + weights["budget"] * budget_fit
+            + weights["diversity"] * diversity
         )
 
     def _choose_points(

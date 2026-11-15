@@ -152,6 +152,8 @@ def require_api_key(request: Request, cfg: SettingsDep) -> None:
 
 _RATE_LOCK = threading.Lock()
 _RATE_BUCKETS: dict[str, list[float]] = {}
+# Endpoints whose cost is measured in model calls, and how many slots each costs.
+_COSTLY_PATHS: dict[str, int] = {"/api/plan": 1, "/api/compare": 3}
 _RATE_BUCKET_SOFT_CAP = 4096
 
 
@@ -170,20 +172,24 @@ def _purge_idle_rate_buckets(now: float) -> None:
 
 @app.middleware("http")
 async def rate_limit(request: Request, call_next):
-    """Best-effort per-process limit for the expensive plan endpoint.
+    """Best-effort per-process limit for the endpoints that cost model calls.
 
     It is deliberately in-memory: the project has no Redis and a multi-worker
     deployment would need a shared store. It still stops a single client from
     hammering one process, which is the failure mode of a public demo.
+
+    `/api/compare` runs the pipeline three times, so it consumes three slots --
+    charging it one slot would let a caller buy 3x the work for the same budget.
     """
     cfg = _cached_settings(request)
-    if cfg.rate_limit_per_minute > 0 and request.url.path == "/api/plan":
+    cost = _COSTLY_PATHS.get(request.url.path)
+    if cfg.rate_limit_per_minute > 0 and cost:
         client = request.client.host if request.client else "unknown"
         now = time.monotonic()
         with _RATE_LOCK:
             _purge_idle_rate_buckets(now)
             bucket = [stamp for stamp in _RATE_BUCKETS.get(client, []) if now - stamp < 60]
-            if len(bucket) >= cfg.rate_limit_per_minute:
+            if len(bucket) + cost > cfg.rate_limit_per_minute:
                 _RATE_BUCKETS[client] = bucket
                 return JSONResponse(
                     status_code=429,
@@ -192,7 +198,7 @@ async def rate_limit(request: Request, call_next):
                         "request_id": getattr(request.state, "request_id", None),
                     },
                 )
-            bucket.append(now)
+            bucket.extend([now] * cost)
             _RATE_BUCKETS[client] = bucket
     return await call_next(request)
 
@@ -262,16 +268,26 @@ async def storage_error_handler(request: Request, exc: StorageError) -> JSONResp
     )
 
 
-@app.post("/api/compare")
+@app.post("/api/compare", dependencies=[Depends(require_api_key)])
 def compare_plans(payload: dict[str, Any], cfg: SettingsDep) -> dict[str, Any]:
-    """Three real plans, three explicit trade-offs, one evidenced recommendation."""
+    """Three real plans, three explicit trade-offs, one evidenced recommendation.
+
+    Runs the pipeline three times, so it must be behind the same auth and rate
+    limit as /api/plan -- an unauthenticated triple-run endpoint is a 3x cost
+    amplifier for anyone who finds it.
+    """
     raw = payload.get("request")
     if not isinstance(raw, dict):
         raise HTTPException(status_code=422, detail="request must be an object")
     request = PlanRequest.from_dict(raw)
-    return compare_strategies(
-        request, settings=cfg, provider=build_provider(cfg)
+    result = compare_strategies(request, settings=cfg, provider=build_provider(cfg))
+    # Cost is invisible otherwise: compare writes no runs, so /api/summary never
+    # sees these three generations unless they are reported here.
+    result["cost_cny"] = round(
+        sum(float(s["metrics"].get("cost_cny", 0.0)) for s in result["strategies"]), 6
     )
+    result["runs_executed"] = len(result["strategies"])
+    return result
 
 
 @app.post("/api/understand")
