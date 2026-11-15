@@ -157,7 +157,7 @@ shotplan/
 │   ├── web/           # Dependency-free single-page UI (shipped in the package)
 │   └── cli.py         # CLI entry point
 ├── evals/             # 80 cases + 200 holdout briefs, mutation/mining/HTTP/AB labs
-├── tests/             # 301 unit tests
+├── tests/             # unit tests (count: pytest --collect-only)
 └── docs/              # Architecture, metrics, 16 ADRs, ops; personal material in docs/portfolio/
 ```
 
