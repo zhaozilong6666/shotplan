@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from evals.fault_injection import render, run_matrix
@@ -56,3 +57,19 @@ def test_http_smoke_report_is_deterministic_and_all_green():
     assert len(checks) >= 10
     assert all(c.ok for c in checks), [(c.endpoint, c.detail) for c in checks if not c.ok]
     assert "10/10" in render(checks) or "PASS" in render(checks)
+
+
+def test_readme_numeric_claims_all_match_their_sources():
+    from pathlib import Path
+
+    from scripts.check_doc_claims import actuals, claims
+
+    values = actuals()
+    readme = (Path(__file__).resolve().parents[1] / "README.md").read_text(encoding="utf-8")
+    found = claims(readme)
+    assert len(found) >= 12, "the gate must actually find the headline numbers"
+    mismatches = [(name, declared, raw) for name, declared, raw in found
+                  if declared != values[name]]
+    assert not mismatches, (values, mismatches)
+    # A test count changes every time a test is added: forbid it in prose.
+    assert not re.search(r"\d+\s*个单元测试", readme)
