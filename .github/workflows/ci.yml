@@ -62,49 +62,16 @@ jobs:
       - name: Type check
         run: python -m mypy
 
-      - name: Evaluation gate
-        run: python -m evals.run_eval --write-report
+      # The gate list lives in exactly one place: the Makefile. Keeping a
+      # hand-copied list here is how CI drifted to 17 gates while the Makefile
+      # ran 25 and README claimed 25 -- three numbers, none of them equal.
+      - name: All quality gates (single source of truth: Makefile)
+        run: make gates
 
-      - name: Mutation gate (are the gates themselves effective?)
-        run: python -m evals.mutation_lab --check
+      - name: No generated artifact is stale
+        run: git diff --exit-code
 
-      - name: Repair-loop gate
-        run: python -m evals.repair_lab --check
-
-      - name: Failure-library gate
-        run: python -m evals.collect_failures --check
-
-      - name: Case-mining gate (holdout challenge set)
-        run: python -m evals.case_miner --check
-
-      - name: Fuzz gate
-        run: python -m evals.fuzz --check --iterations 500
-
-      - name: Benchmark gate
-        run: python -m evals.benchmark --check
-
-      - name: Concurrency gate
-        run: python -m evals.loadtest --check --requests 30
-
-      - name: Scaling gate
-        run: python -m evals.scaling --check --requests 300 --workers 1 2
-
-      - name: Real HTTP load gate
-        run: python -m evals.http_load --check
-
-      - name: Worker/persistence controlled experiment
-        run: python -m evals.worker_lab --check
-
-      - name: Write-behind persistence gate
-        run: python -m evals.persist_lab --check
-
-      - name: Pipeline contract doc is generated from code
-        run: python scripts/build_pipeline_doc.py --check
-
-      - name: Examples are up to date
-        run: python -m evals.examples --check
-
-      - name: Showcase is up to date
+      - name: Showcase page is generated from the archived numbers
         run: |
           python -m evals.cost_latency
           python scripts/build_showcase.py

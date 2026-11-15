@@ -28,21 +28,47 @@ from .knowledge.tools import KnowledgeTools, get_tools
 
 SOURCES = ("stated", "inferred", "default")
 
-CITY_ALIASES: dict[str, tuple[str, ...]] = {
-    "xian": ("西安", "长安", "xian"),
-    "suzhou": ("苏州", "姑苏", "suzhou"),
-    "nanjing": ("南京", "金陵", "nanjing"),
-    "hangzhou": ("杭州", "临安", "hangzhou"),
-    "luoyang": ("洛阳", "洛邑", "神都", "luoyang"),
+# Historical / poetic names only. The authoritative alias list is derived from
+# the knowledge base at call time, so adding a city to locations.json is enough
+# for the sentence parser to recognise its official name -- no code change.
+EXTRA_CITY_ALIASES: dict[str, tuple[str, ...]] = {
+    "xian": ("长安",),
+    "suzhou": ("姑苏",),
+    "nanjing": ("金陵",),
+    "hangzhou": ("临安",),
+    "luoyang": ("洛邑", "神都"),
 }
 
-STYLE_ALIASES: dict[str, tuple[str, ...]] = {
-    "tang": ("唐制", "唐风", "唐朝", "唐", "tang"),
-    "song": ("宋制", "宋风", "宋朝", "宋", "song"),
-    "ming": ("明制", "明风", "明朝", "明", "ming"),
-    "weijin": ("魏晋", "魏晋风", "weijin"),
-    "republic": ("民国", "旗袍", "旗装", "民国风", "republic"),
+
+def city_aliases(tools: KnowledgeTools) -> dict[str, tuple[str, ...]]:
+    aliases: dict[str, tuple[str, ...]] = {}
+    for city_id in tools.city_ids():
+        city = tools.city(city_id)
+        names = [city_id, str(city.get("name", "")), *EXTRA_CITY_ALIASES.get(city_id, ())]
+        aliases[city_id] = tuple(dict.fromkeys(name for name in names if name))
+    return aliases
+
+# Style-specific slang stays here (the data file has ids and names, not how
+# people actually say them). Everything authoritative comes from styles.json.
+EXTRA_STYLE_ALIASES: dict[str, tuple[str, ...]] = {
+    "tang": ("唐制", "唐风", "唐朝", "唐"),
+    "song": ("宋制", "宋风", "宋朝", "宋"),
+    "ming": ("明制", "明风", "明朝", "明"),
+    "weijin": ("魏晋", "魏晋风"),
+    "republic": ("民国", "旗袍", "旗装", "民国风"),
 }
+
+
+def style_aliases(tools: KnowledgeTools) -> dict[str, tuple[str, ...]]:
+    aliases: dict[str, tuple[str, ...]] = {}
+    for style in tools.styles():
+        style_id = style["id"]
+        names = [
+            style_id, str(style.get("name", "")), str(style.get("era", "")),
+            *EXTRA_STYLE_ALIASES.get(style_id, ()),
+        ]
+        aliases[style_id] = tuple(dict.fromkeys(name for name in names if name))
+    return aliases
 
 LIGHT_WORDS = ("上午", "中午前", "中午之前", "早上", "晨光", "半天", "傍晚", "黄金光线", "夕阳")
 QUIET_WORDS = ("人少", "安静", "避开人群", "不要人多", "冷门", "小众")
@@ -193,9 +219,10 @@ def understand(
         assumptions.append(Assumption(name, value, source, confidence, evidence or "", note))
 
     available = set(tools.city_ids())
+    aliases_by_city = city_aliases(tools)
     city = None
     city_evidence = None
-    for city_id, aliases in CITY_ALIASES.items():
+    for city_id, aliases in aliases_by_city.items():
         if city_id not in available:
             continue
         hit = _find(raw, aliases)
@@ -222,11 +249,12 @@ def understand(
         "未说明预算，按中档妆造+外景估算" if src == "default" else "")
 
     mood_evidence: list[str] = []
-    styles = [sid for sid, aliases in STYLE_ALIASES.items()
+    style_alias_map = style_aliases(tools)
+    styles = [sid for sid, aliases in style_alias_map.items()
               if sid in tools.style_ids() and _find(raw, aliases)]
     if styles:
         add("styles", styles[:2], "stated", 1.0,
-            "、".join(_find(raw, STYLE_ALIASES[s]) or s for s in styles[:2]))
+            "、".join(_find(raw, style_alias_map[s]) or s for s in styles[:2]))
     else:
         # No explicit dynasty was named. Try the aesthetic vocabulary instead.
         for sid, words in MOOD_HINTS.items():

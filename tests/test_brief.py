@@ -95,3 +95,29 @@ def test_api_understand_endpoint_contract():
         assert bad.status_code == 422
         bad_date = client.post("/api/understand", json={"text": "去西安", "today": "oops"})
         assert bad_date.status_code == 422
+
+
+def test_city_and_style_aliases_come_from_the_knowledge_base():
+    """Adding a city to locations.json must be enough for the parser to see it."""
+    from shotplan.brief import city_aliases, style_aliases
+
+    tools = get_tools()
+    cities = city_aliases(tools)
+    for city_id in tools.city_ids():
+        assert city_id in cities
+        assert tools.city(city_id)["name"] in cities[city_id], city_id
+
+    styles = style_aliases(tools)
+    for style in tools.styles():
+        assert style["id"] in styles
+        assert style["name"] in styles[style["id"]], style["id"]
+
+
+def test_every_supported_city_is_recognised_from_its_official_name():
+    tools = get_tools()
+    for city_id in tools.city_ids():
+        name = tools.city(city_id)["name"]
+        parsed = understand(f"想去{name}拍一套", today=TODAY, tools=tools)
+        assert parsed.request.city == city_id, (name, parsed.request.city)
+        source = next(a for a in parsed.assumptions if a.field == "city")
+        assert source.source == "stated"
