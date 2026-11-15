@@ -248,7 +248,11 @@ def _safe_save(store: RunSink | None, result: PlanResult) -> None:
         return
     try:
         store.save(result)
-    except StorageError as exc:
+    # OSError matters as much as StorageError: a full disk (ENOSPC) or a
+    # permission change can surface before the SQLite layer wraps it. Letting
+    # it escape would turn a valid plan into status=error, which is exactly
+    # what this function promises not to do.
+    except (StorageError, OSError) as exc:
         logger.warning("run history write failed for %s: %s", result.trace.run_id, exc)
         result.validation.issues.append(
             ValidationIssue(

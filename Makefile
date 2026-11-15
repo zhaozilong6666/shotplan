@@ -91,6 +91,10 @@ gates:
 	$(PYTHON) scripts/build_rule_map.py --check
 	$(PYTHON) -m evals.repair_attribution --check
 	$(PYTHON) scripts/check_knowledge_freshness.py --max-age-days 180
+	$(PYTHON) scripts/check_snapshot_hygiene.py
+	$(PYTHON) -m evals.fault_injection --check
+	$(PYTHON) -m evals.slo_baseline --check
+	$(PYTHON) scripts/check_gate_count.py
 	$(PYTHON) -m evals.scaling --check --requests 300
 	$(PYTHON) -m evals.examples --check
 

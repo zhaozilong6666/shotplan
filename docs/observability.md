@@ -127,3 +127,7 @@ storage / dashboard 里是 **LLM token 花费**。保留旧键以兼容，但新
 
 跨端点比较数字前，先确认看的是哪一种 cost。`eval-report.md` 用的是事件求和口径，
 dashboard 用墙钟，两者不可直接比。
+
+## SLO
+
+指标怎么变成可报警的线、以及为什么 `/metrics` 的 gauge 不能直接做 `rate()`，见 [slo.md](slo.md)；阈值依据见 [slo-baseline.md](slo-baseline.md)。

@@ -6,6 +6,9 @@
 
 ### Added
 
+- **全仓体检 + 阶段 9 两项落地**：8 份快照/报告对全部同步、3 项辅助门禁通过、ADR 17/17、无残留断点。查出并修掉 4 个真实问题：① 上一轮 P1/P2 重构 19 个文件**未提交**（已补 `8fe1616`）；② 两份历史快照含完整 endpoint URL → 新增 `check_snapshot_hygiene.py`，历史显式列为例外、新快照再犯即红；③ README「16 道门禁」vs Makefile 实际 21 道 → 新增 `check_gate_count.py` 自动校验 README 每一处声明；④ `_safe_save` 漏捕获 `OSError ENOSPC`，会把有效方案变成 error，已修并在故障注入里验证。详见 [architecture-review.md](docs/architecture-review.md) 末节。
+- **故障注入矩阵**（`evals/fault_injection.py`，12/12，纯离线、进门禁）：provider 超时/429/502、解析失败、SQLite 锁、磁盘满、无权限、知识库损坏、校验器异常、断供不污染分母、API 502/503 映射。绿色标准是「失败被分类、可追溯、不污染质量指标」，不只是「没抛异常」。见 [docs/fault-injection.md](docs/fault-injection.md)。
+- **SLO 从实测推出**（`evals/slo_baseline.py` + [docs/slo.md](docs/slo.md)）：基线表由 7 份快照生成并纳入门禁。**纠正原假设**「95% 请求 30s 内返回」——实测 P50 40.5–91.5s、P95 63.9–171.8s，该目标从写下起就不可能达成。改为 P50 ≤95s / P95 ≤180s / 通过率 ≥90% / 上游错误率 ≤5% / 单次 ≤¥0.08，附 PromQL、告警规则、误差预算，并写清 gauge 不能用 `rate()`、可用性必须靠黑盒探针。
 - **P1/P2 重构后的端到端复测（¥0.14）**：同批 4 例，重构前后通过率均 1.0、逐例 prompt 版本分布 `{v2:2,v3:2}` 完全一致；新快照带 22 项 `effective_config`，`temperature` 从 settings 读取（0.25）而非硬编码。首次运行上游挂起触发 deadline 降级（旧实现会无限卡住），并暴露 `real_model_lab` 只认 `PIPELINE_ERROR` 导致超时原因写成含糊文案——已抽成 `_fatal_message()` 覆盖 `DEADLINE_EXCEEDED` 并加单测；断点续跑 4/4 零错误。得分变化明确标注为**不可归因**（temperature 变动 + 单轮 4 例）。
 - **架构收敛第二轮（P1/P2，13 个新单测，零 API 成本）**：见 [ADR 0017](docs/adr/0017-one-settings-object-per-run.md) 与 [架构评审末节](docs/architecture-review.md)。
   - **一个请求一个 Settings**：`get_settings()` 唯一入口、`build_provider(settings)` 强制传参、双对象触发 `ConfigError`（且不降级）；`run_plan` 顶层错误边界把 preflight/检索/validate 异常变成 `status=error` 而非 500。

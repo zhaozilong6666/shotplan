@@ -122,8 +122,8 @@
 - [x] **架构评审 P1/P2 收敛**：见 [architecture-review.md](architecture-review.md) 末节与 [ADR 0017](adr/0017-one-settings-object-per-run.md)。`get_settings()` 成为唯一入口、`build_provider` 强制注入、双 Settings 对象触发 `ConfigError`；快照写入完整 `effective_config`；顶层错误边界不再冒 500；`REPAIR_FAILED` 可见；异常文案脱敏；写锁按库分片；窗口排序加 tiebreak。**剩余最高风险已清零**
 - [x] 端到端一致性复测（¥0.24）：router 开启下 4 条 holdout 的快照给出 `{v2:2, v3:2}` 逐例分布；CLI 两次 `--persist` 在 DB 中分别落 v3/v2；注入一条 502 后生产侧 `hard_pass_rate` 仍是 1.0、`error_rate=0.5`。见 [architecture-review.md](architecture-review.md) 末节
 - [x] **P1/P2 重构后复测**（¥0.14）：同批 4 例，重构前后通过率均 1.0、逐例版本分布完全一致；新快照带 22 项 `effective_config`、`temperature` 读自 settings。首次运行因上游挂起触发 deadline 降级，并暴露「只认 `PIPELINE_ERROR`」的报告 bug，已修（`_fatal_message` + 单测）；断点续跑 4/4 零错误。得分 0.82→0.8662 **不归因于重构**（temperature 变了且单轮 4 例）
-- [ ] 故障注入：provider 超时/429、SQLite 锁、磁盘满，验证降级路径与告警
-- [ ] 定义 SLO（如「95% 请求在 30s 内返回且不 5xx」）并写对应监控查询
+- [x] 故障注入矩阵（`evals/fault_injection.py`，12/12 通过，纯离线、已进门禁）：provider 超时/429/502、解析失败、SQLite 锁、磁盘满 ENOSPC、无权限、知识库损坏、校验器异常、断供不污染分母、API 502/503 映射。顺带修掉 `_safe_save` 只捕获 `StorageError` 而漏掉 `OSError` 的真实缺陷。见 [fault-injection.md](fault-injection.md)
+- [x] 定义 SLO 与监控查询：见 [slo.md](slo.md) + [slo-baseline.md](slo-baseline.md)（由 7 份快照生成并纳入门禁）。**修正原假设**：「95% 请求 30s 内返回」与实测 P50 40.5–91.5s、P95 63.9–171.8s 矛盾，改为 P50 ≤95s / P95 ≤180s / 通过率 ≥90% / 上游错误率 ≤5% / 单次 ≤¥0.08，并写清 gauge 窗口语义与黑盒探针必要性
 - [ ] 部署到公网，跑一周真实流量，回收延迟与失败分布
 
 验收：能给出一周真实流量的分布图，并指出一个只有上线后才暴露的问题。

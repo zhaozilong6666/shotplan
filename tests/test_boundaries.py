@@ -97,3 +97,34 @@ def test_write_locks_are_scoped_to_each_database_file(tmp_path):
     again = RunStore(tmp_path / "a.db")
     assert first._write_lock() is not second._write_lock()
     assert first._write_lock() is again._write_lock()
+
+
+def test_snapshot_hygiene_gate_catches_new_but_not_legacy():
+    import scripts.check_snapshot_hygiene as hygiene
+
+    problems, scanned, legacy_hits = hygiene.audit()
+    assert scanned >= 8
+    assert legacy_hits >= 1, "the two historical snapshots must be explicitly declared"
+    assert problems == [], problems
+
+    assert hygiene.FULL_URL.search("HTTP 502 from https://relay.example/v1/chat: boom")
+    assert hygiene.SECRET.search("Authorization: Bearer abcdefghijklmnop")
+    assert not hygiene.FULL_URL.search("HTTP 502 from relay.example: boom")
+
+
+def test_disk_full_does_not_veto_a_valid_plan():
+    """_safe_save used to catch only StorageError; ENOSPC escaped as OSError."""
+    import errno
+
+    from shotplan.pipeline import _safe_save
+
+    class FullDisk:
+        def save(self, result):
+            raise OSError(errno.ENOSPC, "No space left on device")
+
+    result = run_plan(PlanRequest(), max_repairs=0)
+    assert result.status == "ok"
+    _safe_save(FullDisk(), result)
+    assert result.status == "ok", "a valid plan must survive a full disk"
+    assert any(issue.code == "PERSISTENCE_FAILED" and issue.severity == "soft"
+               for issue in result.validation.issues)

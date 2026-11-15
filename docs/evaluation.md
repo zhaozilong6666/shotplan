@@ -155,3 +155,5 @@ python -m pytest tests/test_scorers.py -q
 - [规则地图](rule-map.md)：每条校验规则守什么、真实触发过多少次、哪个测试会在删除它时报错；由 `scripts/build_rule_map.py` 生成并纳入门禁。
 - [修复循环归因](repair-attribution.md)：哪些初始失败被修复救回、哪些救不回、修过一次的最终通过率；由 `evals/repair_attribution.py` 汇总全部快照并纳入门禁。
 - [架构评审](architecture-review.md)：测量层与运行时层的三处分叉，以及为什么在修完 P0 之前不跑新实验。
+- [故障注入矩阵](fault-injection.md)：12 类注入故障下真实 `run_plan` / API 的降级行为，由 `evals/fault_injection.py` 生成并纳入门禁。
+- [SLO 实测基线](slo-baseline.md) 与 [SLO 定义](slo.md)：阈值从已归档快照推出，而不是拍脑袋；含 PromQL、告警规则与误差预算。
