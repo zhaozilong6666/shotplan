@@ -14,11 +14,11 @@ from ..domain.constraints import (
     BUDGET_TOLERANCE_CNY,
     MAX_OVERRUN_MINUTES,
     MIN_ALTERNATIVES,
-    MIN_SHOOT_BLOCK_MINUTES,
     MIN_SOURCE_REFS,
     MIN_TRANSFER_MINUTES,
     REQUIRED_ACTIVITIES,
     SCORE_WEIGHTS,
+    min_shoot_block_minutes,
     wants_morning_finish,
 )
 from ..domain.models import (
@@ -236,12 +236,15 @@ def validate(
 
     # --- 7. Soft quality signals ------------------------------------------------
     for idx in shoot_indices:
-        if slots[idx].minutes() < MIN_SHOOT_BLOCK_MINUTES:
+        # The floor scales with the booking: a 1.5h session cannot hold 60 minutes.
+        block_floor = min_shoot_block_minutes(request.hours)
+        if slots[idx].minutes() < block_floor:
             add(
                 "SHOOT_TOO_SHORT", "soft",
-                f"拍摄块 {idx} 只有 {slots[idx].minutes()} 分钟",
+                f"拍摄块 {idx} 只有 {slots[idx].minutes()} 分钟"
+                f"（预约 {request.hours:g} 小时的门槛是 {block_floor} 分钟）",
                 slot_index=idx,
-                expected=f">= {MIN_SHOOT_BLOCK_MINUTES} min",
+                expected=f">= {block_floor} min",
                 suggestion="合并相邻拍摄块或延长时长",
             )
 

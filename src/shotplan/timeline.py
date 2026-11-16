@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from .domain.constraints import MIN_SHOOT_BLOCK_MINUTES
+from .domain.constraints import min_shoot_block_minutes
 from .domain.models import Plan, PlanRequest, fmt_minutes, to_minutes
 
 
@@ -32,7 +32,7 @@ def repair_short_shoots(plan: Plan, req: PlanRequest) -> Plan | None:
         return None
 
     last = max(shoots, key=lambda slot: to_minutes(slot.start))
-    if last.minutes() >= MIN_SHOOT_BLOCK_MINUTES:
+    if last.minutes() >= min_shoot_block_minutes(req.hours):
         return None
     if plan.slots[-1] is not last:
         return None
@@ -41,7 +41,7 @@ def repair_short_shoots(plan: Plan, req: PlanRequest) -> Plan | None:
     session_end = session_start + int(round(req.hours * 60))
     if to_minutes(last.end) >= session_end:
         return None
-    if session_end - to_minutes(last.start) < MIN_SHOOT_BLOCK_MINUTES:
+    if session_end - to_minutes(last.start) < min_shoot_block_minutes(req.hours):
         return None
 
     slots = list(plan.slots)

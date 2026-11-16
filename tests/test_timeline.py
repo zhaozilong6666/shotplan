@@ -66,3 +66,34 @@ def test_the_extended_block_never_exceeds_the_booked_window():
     fixed = repair_short_shoots(_plan(_slots(40)), req)
     assert fixed is not None
     assert to_minutes(fixed.slots[-1].end) <= to_minutes(fixed.slots[0].start) + int(req.hours * 60)
+
+
+def test_the_floor_scales_with_the_booking():
+    """A 1.5h session cannot hold a 60-minute block; the rule must know that."""
+    from shotplan.domain.constraints import min_shoot_block_minutes as floor
+
+    assert floor(1.5) == 30      # 90 min booking -> floor, not 60
+    assert floor(2.0) == 30
+    assert floor(2.5) == 37
+    assert floor(3.0) == 45
+    assert floor(4.0) == 60      # from here the ceiling applies
+    assert floor(7.0) == 60
+
+
+def test_a_physically_short_block_is_not_flagged():
+    """The 8 real-model failures were mostly 1.5-3h briefs, i.e. impossible asks."""
+    from shotplan.agents import validate
+
+    # 1.5h session: makeup 90 + travel 20 leaves 40 for the shoot.
+    slots = [
+        TimeSlot("08:00", "09:30", "makeup", "indoor_studio", "妆造", 400),
+        TimeSlot("09:30", "09:50", "travel", "city_wall", "转场", 50),
+        TimeSlot("09:50", "10:30", "shoot", "city_wall", "城墙", 120),
+    ]
+    req = _req(hours=1.5)
+    codes = [i.code for i in validate(_plan(slots), req, None).issues]
+    assert "SHOOT_TOO_SHORT" not in codes
+
+    # With 7 hours the same 40-minute block really is a planning mistake.
+    codes = [i.code for i in validate(_plan(slots), _req(hours=7), None).issues]
+    assert "SHOOT_TOO_SHORT" in codes

@@ -1,8 +1,8 @@
 {
   "baseline": {
     "cases_failed": 0,
-    "delta": 0.6773,
-    "good_avg": 0.9787,
+    "delta": 0.6781,
+    "good_avg": 0.9795,
     "good_hard_pass_rate": 1.0,
     "naive_avg": 0.3014,
     "naive_hard_pass_rate": 0.1375,
@@ -10,7 +10,7 @@
       "BUDGET_EXCEEDED": 69,
       "NO_ALTERNATIVE": 69,
       "NO_SOURCE_REF": 69,
-      "SHOOT_TOO_SHORT": 69,
+      "SHOOT_TOO_SHORT": 63,
       "TIME_OVERRUN": 64,
       "TRANSFER_BUFFER": 198,
       "UNKNOWN_LOCATION": 186
@@ -33,7 +33,7 @@
       "good_hard_pass_rate": 0.1375,
       "key": "planner/no-transfer",
       "naive_avg": 0.3014,
-      "score_delta": -0.8412,
+      "score_delta": -0.842,
       "side": "planner",
       "signals": [
         "avg_score 0.1375 is below threshold 0.8",
@@ -47,20 +47,20 @@
       "cases_failed": 69,
       "caught": true,
       "caught_by_legacy_gate": true,
-      "delta": 0.4244,
+      "delta": 0.4252,
       "description": "转场费从 50 元抬到 5000 元",
       "disabled_rules": [],
-      "good_avg": 0.7258,
+      "good_avg": 0.7266,
       "good_hard_pass_rate": 0.1375,
       "key": "planner/transfer-cost-5000",
       "naive_avg": 0.3014,
       "score_delta": -0.2529,
       "side": "planner",
       "signals": [
-        "avg_score 0.7258 is below threshold 0.8",
+        "avg_score 0.7266 is below threshold 0.8",
         "hard_pass_rate 0.1375 is below 0.9",
         "69 case(s) failed their expectation",
-        "control delta 0.4244 is below 0.45: good and bad outputs are no longer distinguishable"
+        "control delta 0.4252 is below 0.45: good and bad outputs are no longer distinguishable"
       ]
     },
     {
@@ -74,7 +74,7 @@
       "good_hard_pass_rate": 0.1375,
       "key": "planner/no-makeup",
       "naive_avg": 0.3014,
-      "score_delta": -0.0882,
+      "score_delta": -0.089,
       "side": "planner",
       "signals": [
         "hard_pass_rate 0.1375 is below 0.9",
@@ -85,12 +85,12 @@
       "cases_failed": 0,
       "caught": true,
       "caught_by_legacy_gate": false,
-      "delta": 0.5043,
+      "delta": 0.5051,
       "description": "预算容差改成 10^9，BUDGET_EXCEEDED 永不触发",
       "disabled_rules": [
         "BUDGET_EXCEEDED"
       ],
-      "good_avg": 0.9787,
+      "good_avg": 0.9795,
       "good_hard_pass_rate": 1.0,
       "key": "validator/budget-tolerance",
       "naive_avg": 0.4744,
@@ -105,15 +105,15 @@
       "cases_failed": 0,
       "caught": true,
       "caught_by_legacy_gate": false,
-      "delta": 0.6636,
+      "delta": 0.6639,
       "description": "转场下限改成 0，TRANSFER_BUFFER 永不触发",
       "disabled_rules": [
         "TRANSFER_BUFFER"
       ],
-      "good_avg": 0.9787,
+      "good_avg": 0.9795,
       "good_hard_pass_rate": 1.0,
       "key": "validator/no-transfer-rule",
-      "naive_avg": 0.3151,
+      "naive_avg": 0.3156,
       "score_delta": 0.0,
       "side": "validator",
       "signals": [
@@ -124,12 +124,12 @@
       "cases_failed": 0,
       "caught": true,
       "caught_by_legacy_gate": false,
-      "delta": 0.6773,
+      "delta": 0.6781,
       "description": "时长宽限改成 10^6 分钟，TIME_OVERRUN 永不触发",
       "disabled_rules": [
         "TIME_OVERRUN"
       ],
-      "good_avg": 0.9787,
+      "good_avg": 0.9795,
       "good_hard_pass_rate": 1.0,
       "key": "validator/no-time-limit",
       "naive_avg": 0.3014,
@@ -143,12 +143,12 @@
       "cases_failed": 0,
       "caught": true,
       "caught_by_legacy_gate": false,
-      "delta": 0.6768,
+      "delta": 0.6776,
       "description": "所有地点 id 都视为存在，UNKNOWN_LOCATION 永不触发",
       "disabled_rules": [
         "UNKNOWN_LOCATION"
       ],
-      "good_avg": 0.9787,
+      "good_avg": 0.9795,
       "good_hard_pass_rate": 1.0,
       "key": "validator/no-grounding",
       "naive_avg": 0.3019,
@@ -177,7 +177,7 @@
       "good_hard_pass_rate": 1.0,
       "key": "validator/always-pass",
       "naive_avg": 1.0,
-      "score_delta": 0.0213,
+      "score_delta": 0.0205,
       "side": "validator",
       "signals": [
         "control group scored at or above the planner: measurement is broken",
@@ -195,7 +195,7 @@
     }
   ],
   "restored": true,
-  "restored_avg": 0.9787,
+  "restored_avg": 0.9795,
   "restored_cases_failed": 0,
   "restored_checks": 8,
   "restored_hard_pass_rate": 1.0,

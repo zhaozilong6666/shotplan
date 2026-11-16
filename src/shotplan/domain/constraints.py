@@ -16,8 +16,21 @@ MAX_OVERRUN_MINUTES = 15
 # Minimum buffer between two different shooting locations.
 MIN_TRANSFER_MINUTES = 20
 
-# A shoot block shorter than this is not worth setting up lights for.
+# A shoot block shorter than this is not worth setting up lights for. This is
+# the CEILING: with time to spare, a block should be at least this long.
 MIN_SHOOT_BLOCK_MINUTES = 60
+
+# But a 1.5-hour booking is makeup (90 min) + one transfer (20 min) + whatever
+# is left. Demanding a 60-minute block there flagged 7 of 8 real-model failures
+# that were physically impossible, not badly planned. The floor now scales with
+# the booking, capped at the ceiling above.
+MIN_SHOOT_BLOCK_FLOOR = 30
+
+
+def min_shoot_block_minutes(available_hours: float) -> int:
+    """Smallest sensible shoot block for this booking, between floor and ceiling."""
+    proportional = int(available_hours * 60 * 0.25)
+    return max(MIN_SHOOT_BLOCK_FLOOR, min(MIN_SHOOT_BLOCK_MINUTES, proportional))
 
 # Below this, makeup + one transfer + one shoot cannot fit at all.
 MIN_FEASIBLE_HOURS = 1.5
@@ -147,8 +160,11 @@ RULES: list[dict[str, str]] = [
     {
         "code": "SHOOT_TOO_SHORT",
         "severity": "soft",
-        "rule": f"单个拍摄块不少于 {MIN_SHOOT_BLOCK_MINUTES} 分钟",
-        "why": "过短的拍摄块性价比低",
+        "rule": (
+            f"单个拍摄块不少于 max({MIN_SHOOT_BLOCK_FLOOR}, 预约时长的 25%)，"
+            f"上限 {MIN_SHOOT_BLOCK_MINUTES} 分钟"
+        ),
+        "why": "过短的拍摄块性价比低；但短预约在物理上装不下 60 分钟，门槛需随时长缩放",
     },
     {
         "code": "LIGHT_MISUSE",

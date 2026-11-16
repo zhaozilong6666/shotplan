@@ -17,7 +17,7 @@
 | `MISSING_REQUIRED_LOCATION` | hard | 6 | 1 | `test_validator.py::test_missing_required_location_is_hard`, `test_validator.py::test_required_location_satisfied_by_a_shoot_block` | 用户明确要求的地点被忽略，方案即使自洽也不可交付 |
 | `AVOIDED_LOCATION` | hard | 4 | 0 | `test_validator.py::test_avoided_location_is_hard`, `test_validator.py::test_unused_avoid_entry_is_not_an_issue` | 排除项是用户给的硬约束；只把它当检索提示，模型可以绕过 |
 | `UNKNOWN_SOURCE_REF` | hard | 0 | 0 | `test_validator.py::test_unknown_source_ref_is_hard`, `test_validator.py::test_valid_source_refs_are_accepted` | 引用不存在的来源等于伪造溯源，比不引用更糟 |
-| `SHOOT_TOO_SHORT` | soft | 0 | 5 | `test_validator.py::test_soft_rules_fire` | 过短的拍摄块性价比低 |
+| `SHOOT_TOO_SHORT` | soft | 0 | 5 | `test_timeline.py::test_a_physically_short_block_is_not_flagged`, `test_validator.py::test_soft_rules_fire` | 过短的拍摄块性价比低；但短预约在物理上装不下 60 分钟，门槛需随时长缩放 |
 | `LIGHT_MISUSE` | soft | 0 | 26 | `test_light.py::test_the_validator_stops_flagging_morning_finish_briefs`, `test_light.py::test_pipeline_repairs_the_light_without_asking_the_model_again` | 光线是成片质量的主要变量 |
 | `NO_ALTERNATIVE` | soft | 0 | 0 | `test_validator.py::test_soft_rules_fire` | 户外拍摄受天气与客流影响，必须有 Plan B |
 | `NO_SOURCE_REF` | soft | 0 | 0 | `test_validator.py::test_soft_rules_fire` | 可溯源是判断输出是否可信的前提 |
