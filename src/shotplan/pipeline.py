@@ -45,8 +45,32 @@ from .domain.models import (
     ValidationReport,
 )
 from .knowledge.tools import KnowledgeTools, get_tools
+from .light import align_light_window
 from .storage import RunSink
 from .tracing import TraceCollector
+
+
+def _validate_with_light(
+    plan: Plan, req: PlanRequest, kb: KnowledgeTools
+) -> tuple[Plan, ValidationReport, bool]:
+    """Validate, then let code (not the prompt) place the golden-hour shoot.
+
+    Full real-model runs put LIGHT_MISUSE at 31 of 46 issues: the model writes
+    plausible prose about light and then schedules the shoot at 11:00. The
+    aligner moves the trailing outdoor block into the window, but the aligned
+    plan is kept only when it ranks at least as well -- a light fix must never
+    buy a time or budget violation.
+    """
+    report = validate(plan, req, kb)
+    if not any(issue.code == "LIGHT_MISUSE" for issue in report.issues):
+        return plan, report, False
+    aligned = align_light_window(plan, req, kb)
+    if aligned is None:
+        return plan, report, False
+    aligned_report = validate(aligned, req, kb)
+    if (aligned_report.hard_pass, aligned_report.score) < (report.hard_pass, report.score):
+        return plan, report, False
+    return aligned, aligned_report, True
 
 logger = logging.getLogger(__name__)
 
@@ -489,13 +513,15 @@ def _run_plan(
         )
 
     # 4. Validation --------------------------------------------------------------
+    # The golden-hour placement is decided here, by code, not by the prompt.
     tick = time.perf_counter()
-    report = validate(plan, req, kb)
+    plan, report, light_aligned = _validate_with_light(plan, req, kb)
     collector.record(
         "validate", tick,
         score=round(report.score, 3),
         hard_issues=len(report.hard_issues),
         soft_issues=len(report.soft_issues),
+        light_aligned=light_aligned,
     )
 
     # 5. Repair loop -------------------------------------------------------------
@@ -527,7 +553,7 @@ def _run_plan(
         try:
             fixed = call_generate(hint)
             candidate = parse_plan(fixed.payload, req, agent.name, effective_prompt)
-            candidate_report = validate(candidate, req, kb)
+            candidate, candidate_report, _ = _validate_with_light(candidate, req, kb)
         except ShotplanError as exc:
             collector.record(f"repair_{repairs}", tick, outcome="error", reason=str(exc)[:120])
             # Previously this broke silently with status='ok': the caller saw a

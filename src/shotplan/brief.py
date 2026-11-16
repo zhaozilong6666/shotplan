@@ -260,9 +260,9 @@ def _parse_budget(text: str) -> tuple[int, str | None, str, float]:
     # to hand it the raw token -- and to insist the value could plausibly be
     # money (>= 100), which keeps 「三小时」「两个人」 out.
     for token in re.findall("[" + "".join(CN_DIGITS) + "".join(CN_UNITS) + "]+", text):
-        value = cn_to_int(token)
-        if value and value >= 100:
-            return value, token, "stated", 1.0
+        amount = cn_to_int(token)
+        if amount is not None and amount >= 100:
+            return amount, token, "stated", 1.0
     return 1500, None, "default", 0.0
 
 

@@ -28,6 +28,19 @@ MIN_TRANSFER_COST_CNY = 50
 # Makeup and costume must happen before the first shoot block.
 REQUIRED_ACTIVITIES = ("makeup", "shoot")
 
+# Phrases that mean "I want to wrap up before noon". When one of these is
+# present, an empty golden-light window is the CORRECT outcome, not a defect:
+# the user asked for a morning session. Both the validator (which used to flag
+# every such plan with LIGHT_MISUSE) and the light aligner must agree on this.
+MORNING_FINISH_WORDS = (
+    "上午", "中午前", "中午之前", "收工早", "早点拍完", "早上拍",
+)
+
+
+def wants_morning_finish(preferences: list[str]) -> bool:
+    text = " ".join(preferences)
+    return any(word in text for word in MORNING_FINISH_WORDS)
+
 # Hard ceiling: no plan may exceed the stated budget.
 BUDGET_TOLERANCE_CNY = 0
 

@@ -19,6 +19,7 @@ from ..domain.constraints import (
     MIN_TRANSFER_MINUTES,
     REQUIRED_ACTIVITIES,
     SCORE_WEIGHTS,
+    wants_morning_finish,
 )
 from ..domain.models import (
     Plan,
@@ -258,7 +259,14 @@ def validate(
             for s in slots
             if s.activity == "shoot"
         )
-        if outdoor_shoot and minutes_in_window == 0:
+        # A brief that explicitly asks to wrap up by noon makes an empty
+        # golden window the correct answer. Flagging it taught the repair
+        # loop to violate the user's own request.
+        if (
+            outdoor_shoot
+            and minutes_in_window == 0
+            and not wants_morning_finish(list(request.preferences))
+        ):
             add(
                 "LIGHT_MISUSE", "soft", f"黄金光线时段 {light_start}-{light_end} 完全没有外景拍摄",
                 expected="黄金时段内安排外景",
