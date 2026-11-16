@@ -70,6 +70,63 @@ def style_aliases(tools: KnowledgeTools) -> dict[str, tuple[str, ...]]:
         aliases[style_id] = tuple(dict.fromkeys(name for name in names if name))
     return aliases
 
+CN_DIGITS = {
+    "零": 0, "〇": 0, "一": 1, "壹": 1, "二": 2, "两": 2, "贰": 2,
+    "三": 3, "叁": 3, "四": 4, "肆": 4, "五": 5, "伍": 5,
+    "六": 6, "陆": 6, "七": 7, "柒": 7, "八": 8, "捌": 8, "九": 9, "玖": 9,
+}
+CN_UNITS = {"十": 10, "拾": 10, "百": 100, "佰": 100, "千": 1000, "仟": 1000, "万": 10000}
+
+
+def cn_to_int(text: str) -> int | None:
+    """Parse spoken Chinese numerals, including the elided form 一千五 = 1500.
+
+    Rules and durations are overwhelmingly spoken, so 「八百块」「三小时」
+    must parse as readily as 「800 元」「3 小时」. Returns None on anything
+    that is not a pure numeral.
+    """
+    if not text:
+        return None
+    total = 0
+    number = 0
+    last_unit = 0
+    seen_unit = False
+    for char in text:
+        if char in CN_DIGITS:
+            number = CN_DIGITS[char]
+        elif char in CN_UNITS:
+            unit = CN_UNITS[char]
+            if unit == 10000:
+                total = (total + (number or 1)) * unit
+            else:
+                total += (number or 1) * unit
+            last_unit = unit
+            number = 0
+            seen_unit = True
+        else:
+            return None
+    if number:
+        if seen_unit and last_unit:
+            # 一千五 / 一百五 / 十五: the trailing digit is one unit lower.
+            total += number * (last_unit // 10)
+        else:
+            total += number
+    return total if (total or text) else None
+
+
+def _cn_number_in(text: str, suffix: str) -> tuple[int, str, str, float] | None:
+    """Find 「<chinese numeral><suffix>」 such as 八百块 / 三小时.
+
+    The numeral is captured as a group: slicing the match by ``len(suffix)``
+    would cut by the length of the *pattern*, not of the text it matched
+    (「八百块」 became 「八百」 and parsed as 800 -> sometimes 8).
+    """
+    charset = "[" + "".join(CN_DIGITS) + "".join(CN_UNITS) + "]+"
+    for match in re.finditer("(" + charset + ")" + suffix, text):
+        value = cn_to_int(match.group(1))
+        if value:
+            return value, match.group(0), "stated", 1.0
+    return None
 LIGHT_WORDS = ("上午", "中午前", "中午之前", "早上", "晨光", "半天", "傍晚", "黄金光线", "夕阳")
 QUIET_WORDS = ("人少", "安静", "避开人群", "不要人多", "冷门", "小众")
 INDOOR_WORDS = ("室内", "下雨", "雨天", "怕晒")
@@ -163,6 +220,10 @@ def _parse_hours(text: str) -> tuple[float, str | None, str, float]:
     match = re.search(r"(\d+(?:\.\d+)?)\s*(?:个)?\s*(?:小时|钟头|h)", text, re.I)
     if match:
         return min(12.0, max(1.0, float(match.group(1)))), match.group(0), "stated", 1.0
+    spoken = _cn_number_in(text, r"\s*(?:个)?\s*(?:小时|钟头)")
+    if spoken:
+        value, evidence, source, confidence = spoken
+        return min(12.0, max(1.0, float(value))), evidence, source, confidence
     if "一整天" in text or "全天" in text:
         return 8.0, _find(text, ("一整天", "全天")), "inferred", 0.8
     if "半天" in text:
@@ -175,15 +236,32 @@ def _parse_hours(text: str) -> tuple[float, str | None, str, float]:
 def _parse_budget(text: str) -> tuple[int, str | None, str, float]:
     # A bare 4-digit number is far more likely to be a year than a budget.
     # Only accept money when it is marked as money.
+    # 「1200 到 1500」means the acceptable range, so the upper bound is the budget.
+    span = re.search(r"([1-9]\d{2,5})\s*(?:元|块)?\s*(?:到|至|-|~|—)\s*([1-9]\d{2,5})\s*(?:元|块)?", text)
+    if span:
+        return int(span.group(2)), span.group(0), "stated", 1.0
     patterns = (
-        r"(?:预算|花费|大概|差不多|不超过|最多|控制在|封顶)\s*([1-9]\d{2,5})\s*(?:元|块|块钱)?",
+        r"(?:预算|花费|大概|差不多|不超过|别超过|不要超过|最多|控制在|封顶)\s*([1-9]\d{2,5})\s*(?:元|块|块钱)?",
         r"([1-9]\d{2,5})\s*(?:元|块钱|块)(?:以内|左右|以下)?",
         r"([1-9]\d{2,5})\s*(?:以内|以下)\s*(?:元|块)?",
+        # Postfix form: 「2000 预算」「1500 预算够吗」
+        r"([1-9]\d{2,5})\s*(?:元|块)?\s*(?:的)?\s*预算",
     )
     for pattern in patterns:
         match = re.search(pattern, text, re.I)
         if match:
             return int(match.group(1)), match.group(0), "stated", 1.0
+    spoken = _cn_number_in(text, r"\s*(?:元|块钱|块)")
+    if spoken:
+        value, evidence, source, confidence = spoken
+        return value, evidence, source, confidence
+    # 「一千八」「两千五」: a thousands digit followed by a bare units digit and
+    # no unit word at all. Checked before the single-word fallbacks, which would
+    # otherwise read 「一千八」 as 「一千」.
+    loose = re.search(r"([一二两三四五六七八九])\s*千\s*([一二三四五六七八九])(?![千百十])", text)
+    if loose:
+        value = CN_DIGITS[loose.group(1)] * 1000 + CN_DIGITS[loose.group(2)] * 100
+        return value, loose.group(0), "stated", 1.0
     for word, value in (("两千", 2000), ("一千五", 1500), ("一千", 1000)):
         if word in text:
             return value, word, "stated", 1.0
@@ -196,8 +274,12 @@ def _parse_party(text: str) -> tuple[int, str | None, str, float]:
         return min(10, max(1, int(match.group(1)))), match.group(0), "stated", 1.0
     if "两个人" in text or "俩人" in text:
         return 2, _find(text, ("两个人", "俩人")), "stated", 1.0
-    if "情侣" in text or "和对象" in text:
-        return 2, _find(text, ("情侣", "和对象")), "inferred", 0.8
+    # 「带女朋友」「和对象一起」 imply a second person even without a numeral.
+    company = _find(text, ("女朋友", "男朋友", "对象", "老公", "老婆", "闺蜜", "朋友", "伴侣"))
+    if company:
+        return 2, company, "inferred", 0.85
+    if "情侣" in text:
+        return 2, "情侣", "inferred", 0.8
     return 1, None, "default", 0.0
 
 
