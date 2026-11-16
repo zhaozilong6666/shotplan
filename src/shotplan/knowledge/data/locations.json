@@ -14,8 +14,15 @@
           "last_verified_at": "2026-11-13",
           "name": "西安城墙",
           "district": "beilin",
-          "tags": ["tang", "architecture", "outdoor"],
-          "best_light": ["morning", "golden"],
+          "tags": [
+            "tang",
+            "architecture",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning",
+            "golden"
+          ],
           "indoor": false,
           "min_minutes": 90,
           "travel_min_from_center": 20,
@@ -30,8 +37,16 @@
           "last_verified_at": "2026-11-13",
           "name": "大雁塔北广场",
           "district": "yanta",
-          "tags": ["tang", "architecture", "night", "outdoor"],
-          "best_light": ["golden", "night"],
+          "tags": [
+            "tang",
+            "architecture",
+            "night",
+            "outdoor"
+          ],
+          "best_light": [
+            "golden",
+            "night"
+          ],
           "indoor": false,
           "min_minutes": 60,
           "travel_min_from_center": 25,
@@ -46,8 +61,16 @@
           "last_verified_at": "2026-11-13",
           "name": "大唐芙蓉园",
           "district": "yanta",
-          "tags": ["tang", "garden", "night", "outdoor"],
-          "best_light": ["golden", "night"],
+          "tags": [
+            "tang",
+            "garden",
+            "night",
+            "outdoor"
+          ],
+          "best_light": [
+            "golden",
+            "night"
+          ],
           "indoor": false,
           "min_minutes": 120,
           "travel_min_from_center": 30,
@@ -62,8 +85,16 @@
           "last_verified_at": "2026-11-13",
           "name": "青龙寺",
           "district": "yanta",
-          "tags": ["tang", "garden", "quiet", "outdoor"],
-          "best_light": ["morning", "golden"],
+          "tags": [
+            "tang",
+            "garden",
+            "quiet",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning",
+            "golden"
+          ],
           "indoor": false,
           "min_minutes": 90,
           "travel_min_from_center": 30,
@@ -78,8 +109,16 @@
           "last_verified_at": "2026-11-13",
           "name": "大明宫国家遗址公园",
           "district": "weiyang",
-          "tags": ["tang", "architecture", "open", "outdoor"],
-          "best_light": ["morning", "golden"],
+          "tags": [
+            "tang",
+            "architecture",
+            "open",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning",
+            "golden"
+          ],
           "indoor": false,
           "min_minutes": 120,
           "travel_min_from_center": 40,
@@ -94,8 +133,15 @@
           "last_verified_at": "2026-11-13",
           "name": "书院门古文化街",
           "district": "beilin",
-          "tags": ["ming", "street", "human", "outdoor"],
-          "best_light": ["morning"],
+          "tags": [
+            "ming",
+            "street",
+            "human",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning"
+          ],
           "indoor": false,
           "min_minutes": 60,
           "travel_min_from_center": 15,
@@ -110,8 +156,16 @@
           "last_verified_at": "2026-11-13",
           "name": "广仁寺",
           "district": "lianhu",
-          "tags": ["tang", "architecture", "quiet", "outdoor"],
-          "best_light": ["morning", "golden"],
+          "tags": [
+            "tang",
+            "architecture",
+            "quiet",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning",
+            "golden"
+          ],
           "indoor": false,
           "min_minutes": 60,
           "travel_min_from_center": 25,
@@ -126,8 +180,14 @@
           "last_verified_at": "2026-11-13",
           "name": "室内古风影棚",
           "district": "yanta",
-          "tags": ["indoor", "minimal", "controlled"],
-          "best_light": ["any"],
+          "tags": [
+            "indoor",
+            "minimal",
+            "controlled"
+          ],
+          "best_light": [
+            "any"
+          ],
           "indoor": true,
           "min_minutes": 90,
           "travel_min_from_center": 25,
@@ -148,8 +208,16 @@
           "last_verified_at": "2026-11-13",
           "name": "洛邑古城",
           "district": "laocheng",
-          "tags": ["tang", "street", "night", "outdoor"],
-          "best_light": ["golden", "night"],
+          "tags": [
+            "tang",
+            "street",
+            "night",
+            "outdoor"
+          ],
+          "best_light": [
+            "golden",
+            "night"
+          ],
           "indoor": false,
           "min_minutes": 90,
           "travel_min_from_center": 15,
@@ -164,8 +232,16 @@
           "last_verified_at": "2026-11-13",
           "name": "应天门",
           "district": "xigong",
-          "tags": ["tang", "architecture", "night", "outdoor"],
-          "best_light": ["golden", "night"],
+          "tags": [
+            "tang",
+            "architecture",
+            "night",
+            "outdoor"
+          ],
+          "best_light": [
+            "golden",
+            "night"
+          ],
           "indoor": false,
           "min_minutes": 90,
           "travel_min_from_center": 20,
@@ -180,8 +256,16 @@
           "last_verified_at": "2026-11-13",
           "name": "龙门石窟",
           "district": "luolong",
-          "tags": ["tang", "architecture", "open", "outdoor"],
-          "best_light": ["morning", "golden"],
+          "tags": [
+            "tang",
+            "architecture",
+            "open",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning",
+            "golden"
+          ],
           "indoor": false,
           "min_minutes": 120,
           "travel_min_from_center": 40,
@@ -196,8 +280,16 @@
           "last_verified_at": "2026-11-13",
           "name": "白马寺",
           "district": "luolong",
-          "tags": ["tang", "architecture", "quiet", "outdoor"],
-          "best_light": ["morning", "golden"],
+          "tags": [
+            "tang",
+            "architecture",
+            "quiet",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning",
+            "golden"
+          ],
           "indoor": false,
           "min_minutes": 90,
           "travel_min_from_center": 45,
@@ -212,8 +304,16 @@
           "last_verified_at": "2026-11-13",
           "name": "丽景门",
           "district": "laocheng",
-          "tags": ["tang", "street", "human", "outdoor"],
-          "best_light": ["morning", "night"],
+          "tags": [
+            "tang",
+            "street",
+            "human",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning",
+            "night"
+          ],
           "indoor": false,
           "min_minutes": 60,
           "travel_min_from_center": 10,
@@ -228,8 +328,15 @@
           "last_verified_at": "2026-11-13",
           "name": "明堂天堂",
           "district": "xigong",
-          "tags": ["tang", "architecture", "night", "indoor"],
-          "best_light": ["any"],
+          "tags": [
+            "tang",
+            "architecture",
+            "night",
+            "indoor"
+          ],
+          "best_light": [
+            "any"
+          ],
           "indoor": true,
           "min_minutes": 90,
           "travel_min_from_center": 20,
@@ -244,8 +351,15 @@
           "last_verified_at": "2026-11-13",
           "name": "洛阳博物馆",
           "district": "luolong",
-          "tags": ["ming", "indoor", "controlled", "human"],
-          "best_light": ["any"],
+          "tags": [
+            "ming",
+            "indoor",
+            "controlled",
+            "human"
+          ],
+          "best_light": [
+            "any"
+          ],
           "indoor": true,
           "min_minutes": 90,
           "travel_min_from_center": 30,
@@ -260,8 +374,14 @@
           "last_verified_at": "2026-11-13",
           "name": "洛阳室内影棚",
           "district": "xigong",
-          "tags": ["indoor", "minimal", "controlled"],
-          "best_light": ["any"],
+          "tags": [
+            "indoor",
+            "minimal",
+            "controlled"
+          ],
+          "best_light": [
+            "any"
+          ],
           "indoor": true,
           "min_minutes": 90,
           "travel_min_from_center": 20,
@@ -282,8 +402,16 @@
           "last_verified_at": "2026-11-13",
           "name": "西湖断桥",
           "district": "xihu",
-          "tags": ["song", "garden", "open", "outdoor"],
-          "best_light": ["morning", "golden"],
+          "tags": [
+            "song",
+            "garden",
+            "open",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning",
+            "golden"
+          ],
           "indoor": false,
           "min_minutes": 120,
           "travel_min_from_center": 20,
@@ -298,8 +426,16 @@
           "last_verified_at": "2026-11-13",
           "name": "灵隐寺",
           "district": "xihu",
-          "tags": ["song", "architecture", "quiet", "outdoor"],
-          "best_light": ["morning", "golden"],
+          "tags": [
+            "song",
+            "architecture",
+            "quiet",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning",
+            "golden"
+          ],
           "indoor": false,
           "min_minutes": 90,
           "travel_min_from_center": 40,
@@ -314,8 +450,17 @@
           "last_verified_at": "2026-11-13",
           "name": "河坊街",
           "district": "shangcheng",
-          "tags": ["song", "republic", "street", "human", "outdoor"],
-          "best_light": ["morning", "night"],
+          "tags": [
+            "song",
+            "republic",
+            "street",
+            "human",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning",
+            "night"
+          ],
           "indoor": false,
           "min_minutes": 60,
           "travel_min_from_center": 15,
@@ -330,8 +475,17 @@
           "last_verified_at": "2026-11-13",
           "name": "西溪湿地",
           "district": "xihu",
-          "tags": ["song", "garden", "open", "quiet", "outdoor"],
-          "best_light": ["morning", "golden"],
+          "tags": [
+            "song",
+            "garden",
+            "open",
+            "quiet",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning",
+            "golden"
+          ],
           "indoor": false,
           "min_minutes": 120,
           "travel_min_from_center": 45,
@@ -346,8 +500,16 @@
           "last_verified_at": "2026-11-13",
           "name": "雷峰塔",
           "district": "xihu",
-          "tags": ["song", "architecture", "night", "outdoor"],
-          "best_light": ["golden", "night"],
+          "tags": [
+            "song",
+            "architecture",
+            "night",
+            "outdoor"
+          ],
+          "best_light": [
+            "golden",
+            "night"
+          ],
           "indoor": false,
           "min_minutes": 90,
           "travel_min_from_center": 25,
@@ -362,8 +524,16 @@
           "last_verified_at": "2026-11-13",
           "name": "胡雪岩故居",
           "district": "shangcheng",
-          "tags": ["ming", "architecture", "garden", "outdoor"],
-          "best_light": ["morning", "golden"],
+          "tags": [
+            "ming",
+            "architecture",
+            "garden",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning",
+            "golden"
+          ],
           "indoor": false,
           "min_minutes": 90,
           "travel_min_from_center": 25,
@@ -378,8 +548,15 @@
           "last_verified_at": "2026-11-13",
           "name": "杭州博物馆",
           "district": "shangcheng",
-          "tags": ["ming", "indoor", "controlled", "human"],
-          "best_light": ["any"],
+          "tags": [
+            "ming",
+            "indoor",
+            "controlled",
+            "human"
+          ],
+          "best_light": [
+            "any"
+          ],
           "indoor": true,
           "min_minutes": 90,
           "travel_min_from_center": 20,
@@ -394,8 +571,14 @@
           "last_verified_at": "2026-11-13",
           "name": "杭州室内影棚",
           "district": "gongshu",
-          "tags": ["indoor", "minimal", "controlled"],
-          "best_light": ["any"],
+          "tags": [
+            "indoor",
+            "minimal",
+            "controlled"
+          ],
+          "best_light": [
+            "any"
+          ],
           "indoor": true,
           "min_minutes": 90,
           "travel_min_from_center": 20,
@@ -795,6 +978,230 @@
           "crowd": "low",
           "weather_risk": "low",
           "notes": "雨天兜底，光线完全可控"
+        }
+      ]
+    },
+    "chengdu": {
+      "name": "成都",
+      "center": "天府广场",
+      "locations": [
+        {
+          "source": "curation:web-2026-11-16",
+          "last_verified_at": "2026-11-16",
+          "indoor": false,
+          "min_minutes": 90,
+          "weather_risk": "medium",
+          "id": "wuhouci",
+          "name": "武侯祠",
+          "district": "wuhou",
+          "tags": [
+            "ming",
+            "architecture",
+            "garden",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning",
+            "golden"
+          ],
+          "travel_min_from_center": 25,
+          "cost_cny": 50,
+          "crowd": "high",
+          "notes": "全价 50 元（官网 wuhouci.net.cn），09:00-18:00、17:00 停止入馆；红墙竹影最出片，节假日需提前预约"
+        },
+        {
+          "source": "curation:web-2026-11-16",
+          "last_verified_at": "2026-11-16",
+          "indoor": false,
+          "min_minutes": 90,
+          "weather_risk": "medium",
+          "id": "dufu_caotang",
+          "name": "杜甫草堂",
+          "district": "qingyang",
+          "tags": [
+            "tang",
+            "garden",
+            "quiet",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning",
+            "golden"
+          ],
+          "travel_min_from_center": 30,
+          "cost_cny": 50,
+          "crowd": "medium",
+          "notes": "全价 50 元、学生 25 元；园林与竹林，上午人少；与浣花溪相邻可连拍"
+        },
+        {
+          "source": "curation:web-2026-11-16",
+          "last_verified_at": "2026-11-16",
+          "indoor": false,
+          "min_minutes": 60,
+          "weather_risk": "medium",
+          "id": "jinli",
+          "name": "锦里古街",
+          "district": "wuhou",
+          "tags": [
+            "song",
+            "street",
+            "human",
+            "night",
+            "outdoor"
+          ],
+          "best_light": [
+            "golden",
+            "night"
+          ],
+          "travel_min_from_center": 25,
+          "cost_cny": 0,
+          "crowd": "high",
+          "notes": "紧邻武侯祠，免费开放；傍晚亮灯后川西民居氛围最好，主街小吃溢价高"
+        },
+        {
+          "source": "curation:web-2026-11-16",
+          "last_verified_at": "2026-11-16",
+          "indoor": false,
+          "min_minutes": 60,
+          "weather_risk": "medium",
+          "id": "kuanzhai",
+          "name": "宽窄巷子",
+          "district": "qingyang",
+          "tags": [
+            "ming",
+            "street",
+            "human",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning",
+            "golden"
+          ],
+          "travel_min_from_center": 15,
+          "cost_cny": 0,
+          "crowd": "high",
+          "notes": "清代街巷格局，主街区免费；人流大，清晨最容易拍到空镜"
+        },
+        {
+          "source": "curation:web-2026-11-16",
+          "last_verified_at": "2026-11-16",
+          "indoor": false,
+          "min_minutes": 60,
+          "weather_risk": "medium",
+          "id": "renmin_park",
+          "name": "人民公园",
+          "district": "qingyang",
+          "tags": [
+            "weijin",
+            "open",
+            "garden",
+            "quiet",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning"
+          ],
+          "travel_min_from_center": 10,
+          "cost_cny": 0,
+          "crowd": "medium",
+          "notes": "免费入园（鹤鸣茶社茶水另计）；市井感强，适合生活化与魏晋风的松弛感"
+        },
+        {
+          "source": "curation:web-2026-11-16",
+          "last_verified_at": "2026-11-16",
+          "indoor": false,
+          "min_minutes": 90,
+          "weather_risk": "medium",
+          "id": "wenshu_yuan",
+          "name": "文殊院",
+          "district": "qingyang",
+          "tags": [
+            "song",
+            "ming",
+            "quiet",
+            "architecture",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning"
+          ],
+          "travel_min_from_center": 20,
+          "cost_cny": 0,
+          "crowd": "low",
+          "notes": "免费开放，红墙竹影出片率高；寺院内需保持安静，商业拍摄可能被劝阻"
+        },
+        {
+          "source": "curation:web-2026-11-16",
+          "last_verified_at": "2026-11-16",
+          "indoor": false,
+          "min_minutes": 90,
+          "weather_risk": "medium",
+          "id": "dongjiao_memory",
+          "name": "东郊记忆",
+          "district": "chenghua",
+          "tags": [
+            "republic",
+            "street",
+            "architecture",
+            "night",
+            "outdoor"
+          ],
+          "best_light": [
+            "golden",
+            "night"
+          ],
+          "travel_min_from_center": 40,
+          "cost_cny": 0,
+          "crowd": "medium",
+          "notes": "老厂房改造的文创园区，免费开放到 22:00；工业风与民国复古都成立，展演另计"
+        },
+        {
+          "source": "curation:web-2026-11-16",
+          "last_verified_at": "2026-11-16",
+          "indoor": false,
+          "min_minutes": 90,
+          "weather_risk": "medium",
+          "id": "huanhuaxi",
+          "name": "浣花溪公园",
+          "district": "qingyang",
+          "tags": [
+            "weijin",
+            "open",
+            "garden",
+            "quiet",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning",
+            "golden"
+          ],
+          "travel_min_from_center": 32,
+          "cost_cny": 0,
+          "crowd": "low",
+          "notes": "免费的城市森林公园，竹林溪流与诗歌大道；紧邻杜甫草堂，适合连拍"
+        },
+        {
+          "source": "curation:web-2026-11-16",
+          "last_verified_at": "2026-11-16",
+          "indoor": true,
+          "min_minutes": 60,
+          "weather_risk": "low",
+          "id": "indoor_studio_cd",
+          "name": "春熙路室内影棚",
+          "district": "jinjiang",
+          "tags": [
+            "indoor",
+            "controlled",
+            "minimal",
+            "ming"
+          ],
+          "best_light": [
+            "any"
+          ],
+          "travel_min_from_center": 20,
+          "cost_cny": 400,
+          "crowd": "low",
+          "notes": "室内补光可控，雨天备选首选；含基础布景，复杂置景需加价"
         }
       ]
     }

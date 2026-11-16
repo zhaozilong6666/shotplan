@@ -7,6 +7,8 @@ import json
 from evals import CASES_DIR, case_miner
 from evals.run_eval import load_cases
 
+from shotplan.knowledge.tools import get_tools
+
 
 def _write_artifacts(result: dict, directory) -> None:
     (directory / "cases.jsonl").write_text(
@@ -31,7 +33,9 @@ def test_candidate_grid_is_deterministic_and_complete():
     first = case_miner.candidate_briefs()
     second = case_miner.candidate_briefs()
     assert first == second
-    assert len(first) == 5 * 5 * len(case_miner.PRESSURES)
+    cities = len(get_tools().city_ids())
+    styles = len(get_tools().style_ids())
+    assert len(first) == cities * styles * len(case_miner.PRESSURES)
     assert len({case_miner.canonical(c["brief"]) for c in first}) == len(first)
     assert {c["season"] for c in first} == {name for name, _ in case_miner.SEASONS}
     assert {c["pressure"] for c in first} == set(case_miner.PRESSURES)
@@ -89,8 +93,19 @@ def test_negative_controls_and_coverage_invariants():
     result = case_miner.mine()
     snapshot = result["snapshot"]
     expected_negative = snapshot["grid"]["cities"] * snapshot["grid"]["styles"]
-    assert snapshot["rejected"] == expected_negative
-    assert all(item["pressure"] == "conflicting" for item in result["rejected"])
+    duplicates = snapshot["reject_reasons"].get(
+        "duplicate of a regression-suite brief", 0)
+    # One negative control per city x style cell, plus any candidate that
+    # happened to duplicate a regression-suite brief. Assuming "rejected ==
+    # grid cells" breaks the moment a duplicate appears.
+    assert snapshot["rejected"] == expected_negative + duplicates
+    # Every rejection must be a designed conflicting control, except a
+    # candidate that happened to duplicate a regression-suite brief.
+    assert all(
+        item["pressure"] == "conflicting"
+        or any("duplicate" in reason for reason in item["reasons"])
+        for item in result["rejected"]
+    )
     assert snapshot["coverage_before"] < snapshot["coverage_total"]
     assert snapshot["coverage_after"] == snapshot["coverage_total"]
     assert snapshot["good"]["hard_pass_rate"] == 1.0

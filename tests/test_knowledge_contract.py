@@ -7,13 +7,23 @@ import json
 
 from scripts import validate_knowledge as vk
 
-TODAY = dt.date(2026, 11, 15)
+from shotplan.knowledge.tools import get_tools
+
+# Must not be earlier than the newest last_verified_at in the knowledge base,
+# otherwise fresh data is reported as "future". Bump when data is re-verified.
+TODAY = dt.date(2026, 11, 16)
 
 
 def test_current_knowledge_passes_every_rule():
     problems, stats = vk.validate(TODAY)
     assert problems == [], problems[:10]
-    assert stats["cities"] == 5 and stats["locations"] == 40 and stats["styles"] == 5
+    # Counts come from the data contract, not a remembered number: hard-coding
+    # them means every city addition silently breaks this test.
+    assert stats["cities"] == len(get_tools().city_ids())
+    assert stats["locations"] == sum(
+        len(get_tools().locations(city_id)) for city_id in get_tools().city_ids()
+    )
+    assert stats["styles"] == len(get_tools().styles())
 
 
 def test_gate_detects_missing_source_bad_light_and_future_date(tmp_path, monkeypatch):

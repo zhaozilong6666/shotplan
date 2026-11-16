@@ -472,8 +472,9 @@ def build_report(result: dict[str, Any]) -> str:
         "",
         "## 负向对照：可行性判定挡住了什么",
         "",
-        f"被筛掉的 **{s['rejected']}** 个候选全部来自 `conflicting` 配置"
-        f"（{grid['cities']} 城 × {grid['styles']} 风格 = {negative_controls}）。"
+        f"被筛掉的 **{s['rejected']}** 个候选里，{negative_controls} 个来自 "
+        f"`conflicting` 配置（{grid['cities']} 城 × {grid['styles']} 风格），"
+        f"其余 {s['rejected'] - negative_controls} 个与回归集用例重复。"
         "它们不是「规划器写不出来」，而是生成前的 `check_feasibility` 直接返回 "
         "`CONFLICTING_CONSTRAINTS`，两个 provider 都停止生成、得 0 分，"
         "因此不构成可比较的一对方案。",
