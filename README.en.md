@@ -3,7 +3,7 @@
 > Turn a vague "I want a Hanfu photoshoot in Xi'an" into an **executable, checkable, traceable** hour-by-hour plan.
 > An evaluable agent system, not another chat box.
 
-[中文 README](README.md) · ![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![CI](https://github.com/zhaozilong6666/shotplan/actions/workflows/ci.yml/badge.svg) ![coverage](https://img.shields.io/badge/coverage-89%25-brightgreen)
+[中文 README](README.md) · ![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![CI](https://github.com/zhaozilong6666/shotplan/actions/workflows/ci.yml/badge.svg) ![coverage](https://img.shields.io/badge/coverage-93.6%25-brightgreen)
 
 ---
 
@@ -21,7 +21,7 @@ Hanfu travel photography was chosen because its constraints are real: golden-hou
 | Quality | Try another prompt | 15 deterministic rules + dimension scores |
 | Impossible brief | Fabricate a plan anyway | Pre-generation check returns reasons, gaps, suggestions and theoretical minimums |
 | Failure handling | Regenerate once | Validation report becomes a repair hint; **worse drafts are rejected** |
-| Evidence | Screenshots | 80 regression cases + 200 holdout briefs + real HTTP load test + three-arm persistence experiment + 16 CI gates |
+| Evidence | Screenshots | 80 regression cases + 200 holdout briefs + real HTTP load test + three-arm persistence experiment + 26 CI gates |
 | Gate validity | "CI is green" | 8 injected mutations must all be caught by the real gate |
 | Unseen inputs | One hand-written suite | 200 mined holdout briefs, kept separate so baselines stay comparable |
 | Grounding | None | Every location id must exist in the knowledge base |

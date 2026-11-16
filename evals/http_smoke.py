@@ -91,6 +91,29 @@ def walk(base_url: str) -> list[Check]:
                       and p.get("overall", {}).get("ok_runs") == 1
                       and p.get("overall", {}).get("error_runs") == 0, ""))
 
+    get("/api/catalog", "catalog is generated from the knowledge base",
+        lambda r, p: (r.status_code == 200 and isinstance(p, dict)
+                      and p.get("city_count", 0) >= 5 and p.get("style_count", 0) >= 5
+                      and bool(p.get("knowledge_version")), str(p)[:120]))
+
+    post("/api/understand", "one sentence -> request + assumptions",
+         {"text": "国庆去西安拍唐风，预算 1500，最好上午收工"},
+         lambda r, p: (r.status_code == 200 and isinstance(p, dict)
+                       and p.get("request", {}).get("city") == "xian"
+                       and bool(p.get("assumptions"))
+                       and p.get("feasibility", {}).get("feasible") is True,
+                       str(p)[:160]))
+
+    post("/api/compare", "three strategies, all executable under the same brief",
+         {"request": {"city": "xian", "date": "2026-10-04", "hours": 6,
+                      "budget_cny": 1500, "styles": ["tang"]}},
+         lambda r, p: (r.status_code == 200 and isinstance(p, dict)
+                       and p.get("runs_executed") == 3
+                       and all(s.get("metrics", {}).get("status") == "ok"
+                               and s.get("metrics", {}).get("hard_pass") is True
+                               for s in p.get("strategies", [])),
+                       str(p.get("recommendation", {}))[:120]))
+
     def verify_metrics(r, p):
         text = r.text
         needed = ("shotplan_runs", "shotplan_error_rate", "shotplan_llm_cost_cny",
@@ -131,12 +154,14 @@ def render(checks: list[Check]) -> str:
         "真实 SQLite 文件与多端点之间的状态传递。`config.py` / `api.py` / `observability.py`",
         "的改动恰恰最容易在这些地方出问题，而单测仍全绿。",
         "",
-        "重点验证的三条契约：",
+        "重点验证的四条契约：",
         "",
         "1. 预检拒绝（`infeasible`）会被持久化，但不算进质量分母：",
         "   `total_runs=2, ok_runs=1, hard_pass_rate=1.0`。",
         "2. `/api/summary`（全表 SQL）与 `/api/stats`（最近 N 条）在状态口径上一致。",
         "3. `/metrics` 输出状态感知的 gauge（`error_rate` / `llm_cost_cny`），且是 `text/plain`。",
+        "4. 新交互层在真实服务下可用：`/api/understand` 返回假设清单，"
+        "`/api/compare` 三份方案全部满足同一份原始 brief。",
         "",
         "## 覆盖边界",
         "",

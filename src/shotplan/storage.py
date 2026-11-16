@@ -105,7 +105,7 @@ class RunStore:
                 return
             try:
                 self.path.parent.mkdir(parents=True, exist_ok=True)
-                with self._connect() as conn:
+                with contextlib.closing(self._connect()) as conn:
                     # WAL lets readers proceed during a write and removes the
                     # rollback-journal fsync from the commit path. Measured by
                     # evals/loadtest.py: at 4 concurrent writers p95 fell from
@@ -130,6 +130,8 @@ class RunStore:
                         )
                     if version < _SCHEMA_VERSION:
                         conn.execute(f"PRAGMA user_version = {_SCHEMA_VERSION}")
+                    # closing() does not commit; the migration must survive.
+                    conn.commit()
                 self._INITIALISED.add(key)
             except (OSError, sqlite3.Error) as exc:
                 raise StorageError(
@@ -196,7 +198,7 @@ class RunStore:
 
     def recent(self, limit: int = 20) -> list[dict[str, Any]]:
         try:
-            with self._connect() as conn:
+            with contextlib.closing(self._connect()) as conn:
                 rows = conn.execute(
                     """SELECT run_id, created_at, provider, prompt_version, score,
                               hard_pass, repair_count, duration_ms, cost_cny
@@ -224,7 +226,7 @@ class RunStore:
             "repairs", "duration_ms", "cost_cny",
         )
         try:
-            with self._connect() as conn:
+            with contextlib.closing(self._connect()) as conn:
                 rows = conn.execute(
                     "SELECT provider, prompt_version, status, score, hard_pass, "
                     "repair_count AS repairs, duration_ms, cost_cny "
@@ -278,7 +280,7 @@ class RunStore:
         """Full stored results, newest first. Used by detail views."""
         capped = min(max(limit, 1), 1000)
         try:
-            with self._connect() as conn:
+            with contextlib.closing(self._connect()) as conn:
                 rows = conn.execute(
                     "SELECT payload FROM runs ORDER BY created_at DESC, run_id DESC LIMIT ?",
                     (capped,),
@@ -289,7 +291,7 @@ class RunStore:
 
     def get(self, run_id: str) -> dict[str, Any] | None:
         try:
-            with self._connect() as conn:
+            with contextlib.closing(self._connect()) as conn:
                 row = conn.execute(
                     "SELECT payload FROM runs WHERE run_id = ?", (run_id,)
                 ).fetchone()
@@ -305,7 +307,7 @@ class RunStore:
         failed call was still billed.
         """
         try:
-            with self._connect() as conn:
+            with contextlib.closing(self._connect()) as conn:
                 row = conn.execute(
                     """SELECT COUNT(*),
                               SUM(CASE WHEN status='ok' THEN 1 ELSE 0 END),

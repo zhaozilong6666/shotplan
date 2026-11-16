@@ -144,6 +144,28 @@ def _store(cfg: Settings) -> RunStore:
 SettingsDep = Annotated[Settings, Depends(app_settings)]
 
 
+async def enforce_body_limit(request: Request, cfg: SettingsDep) -> None:
+    """Cap request bodies on the JSON endpoints that skip /api/plan's parser.
+
+    /api/plan reads the raw body and checks it before json.loads; the newer
+    endpoints let FastAPI parse the body first. Without this dependency the
+    public deployment promise "request size is capped" would only hold on one
+    endpoint. `request.body()` caches, so the later model parsing still works.
+    """
+    declared = request.headers.get("content-length", "")
+    if declared.isdigit() and int(declared) > cfg.max_body_bytes:
+        raise HTTPException(
+            status_code=413,
+            detail=f"request body exceeds {cfg.max_body_bytes} bytes",
+        )
+    body = await request.body()
+    if len(body) > cfg.max_body_bytes:
+        raise HTTPException(
+            status_code=413,
+            detail=f"request body exceeds {cfg.max_body_bytes} bytes",
+        )
+
+
 def require_api_key(request: Request, cfg: SettingsDep) -> None:
     """Optional bearer check: off by default, on as soon as a key is configured."""
     if cfg.api_key and request.headers.get("x-api-key", "") != cfg.api_key:
@@ -268,7 +290,10 @@ async def storage_error_handler(request: Request, exc: StorageError) -> JSONResp
     )
 
 
-@app.post("/api/compare", dependencies=[Depends(require_api_key)])
+@app.post(
+    "/api/compare",
+    dependencies=[Depends(require_api_key), Depends(enforce_body_limit)],
+)
 def compare_plans(payload: dict[str, Any], cfg: SettingsDep) -> dict[str, Any]:
     """Three real plans, three explicit trade-offs, one evidenced recommendation.
 
@@ -290,7 +315,7 @@ def compare_plans(payload: dict[str, Any], cfg: SettingsDep) -> dict[str, Any]:
     return result
 
 
-@app.post("/api/understand")
+@app.post("/api/understand", dependencies=[Depends(enforce_body_limit)])
 def understand_brief(payload: dict[str, Any]) -> dict[str, Any]:
     """One free-form sentence -> structured request + visible assumptions.
 

@@ -229,6 +229,17 @@ def test_request_body_limit_is_enforced(client_for):
         assert client.post("/api/plan", json=huge).status_code == 413
 
 
+def test_new_json_endpoints_enforce_the_same_body_limit(client_for):
+    """A body cap that only protects /api/plan is not a body cap."""
+    with client_for("body-new", SHOTPLAN_MAX_BODY_BYTES="1024") as client:
+        assert client.post(
+            "/api/compare", json={"request": {"city": "x" * 2000}}
+        ).status_code == 413
+        assert client.post(
+            "/api/understand", json={"text": "x" * 2000}
+        ).status_code == 413
+
+
 def test_plan_rate_limit_is_enforced(client_for):
     from shotplan.api import _RATE_BUCKETS
 

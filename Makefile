@@ -19,6 +19,7 @@ help:
 	@echo "  workerlab 持久化开/关对照实验，验证多 worker 瓶颈归因"
 	@echo "  persistlab 写入 off/sync/async 三组对照，验证异步化收益与不丢写"
 	@echo "  pipelinedoc 从代码里的状态表重新生成流水线契约文档"
+	@echo "  productlab 产品层测量（一句话理解 / 三策略 / 协商）"
 	@echo "  scale     线程 vs 进程扩展性对比"
 	@echo "  examples  重新生成 docs/examples.md 真实输出示例"
 	@echo "  gates     本地跑一遍 CI 的全部质量门禁"
@@ -89,6 +90,7 @@ gates:
 	$(PYTHON) -m evals.persist_lab --check
 	$(PYTHON) scripts/build_pipeline_doc.py --check
 	$(PYTHON) scripts/build_rule_map.py --check
+	$(PYTHON) -m evals.product_lab --check
 	$(PYTHON) -m evals.repair_attribution --check
 	$(PYTHON) scripts/check_knowledge_freshness.py --max-age-days 180
 	$(PYTHON) scripts/check_snapshot_hygiene.py

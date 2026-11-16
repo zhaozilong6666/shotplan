@@ -13,10 +13,13 @@
 | `/api/runs` | GET | 200 | both runs persisted | PASS |
 | `/api/summary` | GET | 200 | status split: 1 ok + 1 infeasible, pass stays 1.0 | PASS |
 | `/api/stats` | GET | 200 | dashboard agrees with summary | PASS |
+| `/api/catalog` | GET | 200 | catalog is generated from the knowledge base | PASS |
+| `/api/understand` | POST | 200 | one sentence -> request + assumptions | PASS |
+| `/api/compare` | POST | 200 | three strategies, all executable under the same brief | PASS |
 | `/metrics` | GET | 200 | Prometheus text with status-aware gauges | PASS |
 | `/` | GET | 200 | built-in web UI served | PASS |
 
-**10/10 通过。**
+**13/13 通过。**
 
 ## 为什么需要这一层
 
@@ -24,12 +27,13 @@
 真实 SQLite 文件与多端点之间的状态传递。`config.py` / `api.py` / `observability.py`
 的改动恰恰最容易在这些地方出问题，而单测仍全绿。
 
-重点验证的三条契约：
+重点验证的四条契约：
 
 1. 预检拒绝（`infeasible`）会被持久化，但不算进质量分母：
    `total_runs=2, ok_runs=1, hard_pass_rate=1.0`。
 2. `/api/summary`（全表 SQL）与 `/api/stats`（最近 N 条）在状态口径上一致。
 3. `/metrics` 输出状态感知的 gauge（`error_rate` / `llm_cost_cny`），且是 `text/plain`。
+4. 新交互层在真实服务下可用：`/api/understand` 返回假设清单，`/api/compare` 三份方案全部满足同一份原始 brief。
 
 ## 覆盖边界
 

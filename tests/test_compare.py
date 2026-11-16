@@ -170,3 +170,56 @@ def test_compare_counts_as_three_rate_limit_slots():
 
     assert _COSTLY_PATHS["/api/compare"] == 3
     assert _COSTLY_PATHS["/api/plan"] == 1
+
+
+def test_recommendation_never_picks_a_hard_failed_strategy():
+    """Preference words must not override the hard-constraint gate."""
+    from shotplan.compare import _recommend
+
+    strategies = [
+        {"id": "showcase", "label": "出片优先", "within_original_constraints": True,
+         "metrics": {"hard_pass": True, "score": 0.85}},
+        {"id": "budget", "label": "省钱优先", "within_original_constraints": True,
+         "metrics": {"hard_pass": False, "score": 0.99}},
+        {"id": "easy", "label": "轻松优先", "within_original_constraints": True,
+         "metrics": {"hard_pass": True, "score": 0.82}},
+    ]
+    rec = _recommend(strategies, _brief(preferences=["控制预算"]))
+    assert rec["id"] == "showcase"
+    assert rec["basis"] == "constraint_fallback"
+    assert rec["fallback_from"] == "budget"
+    assert "没有通过硬约束" in rec["reason"]
+
+
+def test_all_failed_strategies_are_flagged_as_unexecutable():
+    from shotplan.compare import _recommend
+
+    strategies = [
+        {"id": sid, "label": label, "within_original_constraints": True,
+         "metrics": {"hard_pass": False, "score": score}}
+        for sid, label, score in (
+            ("showcase", "出片优先", 0.4), ("budget", "省钱优先", 0.5), ("easy", "轻松优先", 0.3),
+        )
+    ]
+    rec = _recommend(strategies, _brief(preferences=[]))
+    assert "不应直接执行" in rec.get("note", "")
+
+
+def test_relaxations_detect_any_hard_constraint_change():
+    from dataclasses import replace
+
+    from shotplan.compare import _relaxations
+
+    base = _brief()
+    assert _relaxations(base, base) == []
+
+    relaxed = replace(base, city="suzhou", hours=7, budget_cny=1600, party_size=2)
+    found = _relaxations(relaxed, base)
+    assert any("换城市" in item for item in found)
+    assert any("多留" in item for item in found)
+    assert any("多预算" in item for item in found)
+    assert any("改人数" in item for item in found)
+
+    # Less time/budget is still within the request, so it is not a relaxation.
+    tightened = replace(base, hours=4, budget_cny=800)
+    assert _relaxations(tightened, base) == []

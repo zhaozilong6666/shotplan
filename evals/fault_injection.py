@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import errno
+import gc
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -208,6 +209,13 @@ def run_matrix() -> list[Result]:
                 name, "api", type(exc).__name__, str(code), [], 0, False,
                 code == expected, "OK" if code == expected else f"want {expected}, got {code}",
             ))
+
+        # Windows keeps SQLite files locked while a connection object is alive.
+        # Coverage instrumentation can keep frames (and therefore connections)
+        # referenced after the block, so force a collection before the temp
+        # directory is removed. This is harness cleanup, not product behaviour.
+        store = None
+        gc.collect()
     return rows
 
 

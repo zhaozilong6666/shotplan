@@ -9,8 +9,9 @@ each result with the real validator, and states what each option gives up.
 It does not invent a fourth "best" answer -- the recommendation is derived
 from the user's own preference words, with the evidence shown.
 
-All three runs go through the real `run_plan`, so every number here is
-traceable and every plan has passed the same checks.
+All three runs go through the real `run_plan` with the same settings as
+`/api/plan` (including the repair policy), so every number here is traceable
+and every plan has been through the same checks.
 """
 
 from __future__ import annotations
@@ -28,17 +29,17 @@ STRATEGIES: tuple[dict[str, str], ...] = (
     {
         "id": "showcase",
         "label": "出片优先",
-        "intent": "把可用时间与预算用满，多走几个外景，优先黄金光线",
+        "intent": "优先黄金光线与外景数量，在给定时间内多拍",
     },
     {
         "id": "budget",
         "label": "省钱优先",
-        "intent": "压缩预算与外景数量，保留一套完整妆造和最出片的场地",
+        "intent": "在给定预算内优先便宜场地，保留完整妆造",
     },
     {
         "id": "easy",
         "label": "轻松优先",
-        "intent": "减少转场与赶场，把时间留给妆造和从容拍摄",
+        "intent": "优先近距离场地，减少转场与赶场",
     },
 )
 
@@ -103,6 +104,36 @@ def _variant(request: PlanRequest, strategy_id: str, tools: KnowledgeTools) -> P
     return req
 
 
+def _relaxations(variant: PlanRequest, base: PlanRequest) -> list[str]:
+    """Hard facts that became looser than the brief the user actually typed.
+
+    Reducing hours or budget is still within the request, so it is allowed.
+    Increasing them, changing city/date/party, dropping a required place,
+    dropping an exclusion, or dropping a style is a relaxation and must be
+    visible instead of silently presented as "your option".
+    """
+    out: list[str] = []
+    if variant.city != base.city:
+        out.append(f"换城市：{base.city} → {variant.city}")
+    if variant.date != base.date:
+        out.append(f"换日期：{base.date} → {variant.date}")
+    if variant.party_size != base.party_size:
+        out.append(f"改人数：{base.party_size} → {variant.party_size}")
+    if variant.hours > base.hours:
+        out.append(f"多留 {variant.hours - base.hours:g} 小时")
+    if variant.budget_cny > base.budget_cny:
+        out.append(f"多预算 {variant.budget_cny - base.budget_cny} 元")
+    missing_required = sorted(set(base.must_include) - set(variant.must_include))
+    if missing_required:
+        out.append(f"少了必去地点：{', '.join(missing_required)}")
+    dropped_avoid = sorted(set(base.avoid) - set(variant.avoid))
+    if dropped_avoid:
+        out.append(f"去掉了排除项：{', '.join(dropped_avoid)}")
+    if set(base.styles) - set(variant.styles):
+        out.append("少了风格")
+    return out
+
+
 def _measure(result: Any, tools: KnowledgeTools) -> dict[str, Any]:
     plan, report = result.plan, result.validation
     shoot = [s for s in plan.slots if s.activity == "shoot"]
@@ -127,6 +158,7 @@ def _measure(result: Any, tools: KnowledgeTools) -> dict[str, Any]:
         # Sum of the scenes' own distance from the city centre: this is what
         # "less running around" actually means, not the fixed transfer block.
         "scene_travel_minutes": scene_travel,
+        "repair_count": int(getattr(result.trace, "repair_count", 0)),
         "issue_codes": [i.code for i in report.issues][:6],
         "plan_id": plan.plan_id,
         "slots": [
@@ -164,27 +196,54 @@ def _recommend(strategies: list[dict[str, Any]], request: PlanRequest) -> dict[s
     """Recommend only among options that actually honour the user's brief."""
     text = " ".join(request.preferences)
     evidence: list[str] = []
-    eligible = [s for s in strategies if s.get("within_original_constraints", True)]
-    pool = eligible or strategies
+    compliant = [s for s in strategies if s.get("within_original_constraints", True)]
+    viable = [s for s in compliant if s["metrics"]["hard_pass"]]
+    pool = viable or compliant or strategies
     chosen = None
+    blocked: tuple[str, str] | None = None
     for strategy_id, words in PREFERENCE_HINTS.items():
         hit = next((w for w in words if w in text), None)
-        if hit and any(s["id"] == strategy_id for s in pool):
+        if not hit:
+            continue
+        if any(s["id"] == strategy_id for s in pool):
             evidence.append(hit)
             chosen = strategy_id
             break
+        # The user asked for this direction, but that plan failed hard rules.
+        # Say so instead of recommending an unexecutable plan.
+        blocked = (strategy_id, hit)
+    all_failed = not viable
     if chosen:
         reason = f"你在偏好里提到「{'、'.join(evidence)}」，按这个方向推荐"
         basis = "preference"
-    else:
-        viable = [s for s in pool if s["metrics"]["hard_pass"]]
-        ranked = viable or pool
-        best = max(ranked, key=lambda s: s["metrics"]["score"])
-        chosen = best["id"]
-        reason = "你没有表达明确倾向，按「先过硬约束、再比综合得分」推荐"
-        basis = "score"
-        evidence.append(f"最高得分 {best['metrics']['score']}")
-    return {"id": chosen, "reason": reason, "basis": basis, "evidence": evidence}
+        result = {"id": chosen, "reason": reason, "basis": basis, "evidence": evidence}
+        if all_failed:
+            result["note"] = "本次没有策略通过硬约束；这个推荐只是得分最高的草稿，不应直接执行。"
+        return result
+
+    best = max(pool, key=lambda s: s["metrics"]["score"])
+    if blocked:
+        reason = (
+            f"你提到「{blocked[1]}」，但该策略没有通过硬约束；"
+            f"已改推荐满足约束且得分最高的「{best['label']}」"
+        )
+        evidence.append(blocked[1])
+        result = {
+            "id": best["id"],
+            "reason": reason,
+            "basis": "constraint_fallback",
+            "evidence": evidence,
+            "fallback_from": blocked[0],
+        }
+        if all_failed:
+            result["note"] = "本次没有策略通过硬约束；这个推荐只是得分最高的草稿，不应直接执行。"
+        return result
+    reason = "你没有表达明确倾向，按「先过硬约束、再比综合得分」推荐"
+    evidence.append(f"最高得分 {best['metrics']['score']}")
+    result = {"id": best["id"], "reason": reason, "basis": "score", "evidence": evidence}
+    if all_failed:
+        result["note"] = "本次没有策略通过硬约束；这个推荐只是得分最高的草稿，不应直接执行。"
+    return result
 
 
 def compare_strategies(
@@ -202,15 +261,7 @@ def compare_strategies(
 
     for spec in STRATEGIES:
         variant = _variant(base, spec["id"], tools)
-        relaxations: list[str] = []
-        if variant.hours > base.hours:
-            relaxations.append(f"多留 {variant.hours - base.hours:g} 小时")
-        if variant.hours < base.hours:
-            relaxations.append(f"少留 {base.hours - variant.hours:g} 小时")
-        if variant.budget_cny > base.budget_cny:
-            relaxations.append(f"多预算 {variant.budget_cny - base.budget_cny} 元")
-        if variant.budget_cny < base.budget_cny:
-            relaxations.append(f"少预算 {base.budget_cny - variant.budget_cny} 元")
+        relaxations = _relaxations(variant, base)
         entry: dict[str, Any] = {
             "id": spec["id"],
             "label": spec["label"],
@@ -223,13 +274,16 @@ def compare_strategies(
         try:
             from .pipeline import run_plan
 
-            result = run_plan(variant, provider=agent, settings=cfg, max_repairs=0)
+            result = run_plan(
+                variant, provider=agent, settings=cfg, max_repairs=cfg.max_repairs
+            )
             entry["metrics"] = _measure(result, tools)
         except ShotplanError as exc:
             entry["metrics"] = {
                 "status": "error", "hard_pass": False, "score": 0.0,
-                "scores": {}, "total_cost_cny": 0, "slot_count": 0,
-                "shoot_count": 0, "travel_count": 0, "shoot_minutes": 0,
+                "scores": {}, "total_cost_cny": 0, "cost_cny": 0.0,
+                "slot_count": 0, "shoot_count": 0, "travel_count": 0,
+                "shoot_minutes": 0, "scene_travel_minutes": 0, "repair_count": 0,
                 "issue_codes": [type(exc).__name__], "plan_id": "", "slots": [],
             }
             entry["error"] = str(exc)[:200]
@@ -238,7 +292,7 @@ def compare_strategies(
     baseline = strategies[0]["metrics"]
     for entry in strategies[1:]:
         entry["tradeoffs"] = _tradeoffs(entry["metrics"], baseline)
-    strategies[0]["tradeoffs"] = ["作为对照基准：时间与预算都用满"]
+    strategies[0]["tradeoffs"] = ["作为对照基准：按用户原始时长与预算安排"]
 
     # A comparison that shows three identical plans is worse than no
     # comparison. Detect it and say so instead of pretending there is a choice.
