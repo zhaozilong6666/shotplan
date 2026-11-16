@@ -11,7 +11,7 @@
 >
 > **不能直接相减**：两次采样不是同一批用例（80 例全量 vs 30 例分层），0.099 的提升里有采样成分。能站得住的结论只有一条：**`LIGHT_MISUSE` 从 31 次降到 0 次**，而这条恰好是唯一被代码接管的判断。剩下的 `SHOOT_TOO_SHORT`（4 次）是另一个问题，不在本次改动范围内，也不该被这次提升掩盖。
 
-命令：`python -m evals.real_model_lab --profile iterate --concurrency 6 --write` ｜ 数据源：`临时快照（未入库）` ｜ 历史对照：[real-model-comparison.md](real-model-comparison.md)
+命令：`python -m evals.real_model_lab --write` ｜ 数据源：`D:/WorkBuddy/temp/real_iterate.json` ｜ 历史对照：[real-model-comparison.md](real-model-comparison.md)
 
 模型 `deepseek-v4.1-flash`（<relay-base-url>（私有中转站，不公开），temperature 0.2，并发 6）｜ prompt `planner-v2` ｜ 实际分布：`planner-v2` × 30 ｜ 30 个用例，其中 23 个需要生成方案
 
@@ -56,11 +56,11 @@
 | `prompt_router` | `False` |
 | `eval_min_score` | `0.8` |
 
-## 最常见的硬问题
+## 最常见的问题
 
-| 规则 | 触发次数 |
-| --- | ---: |
-| `SHOOT_TOO_SHORT` | 4 |
+| 规则 | 级别 | 触发次数 |
+| --- | --- | ---: |
+| `SHOOT_TOO_SHORT` | soft | 4 |
 
 ## 这份数据不能证明什么
 

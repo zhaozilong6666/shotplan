@@ -69,7 +69,7 @@ flowchart TB
 3. `PlanProvider.generate()` 返回原始 payload。真实 provider 走 urllib 调 OpenAI 兼容接口，并按版本取系统提示词；离线 provider 用确定性规则生成。
 4. `parse_plan()` 是信任边界：抽取 JSON（容忍 markdown 围栏和前后解释）、校验字段、统一时间格式、按时间排序、计算成本。任何不合法都抛 `ParseError`。
 5. `validate()` 执行 15 条规则（10 硬 + 5 软），产出问题清单、5 个维度分与用 `math.fsum` 聚合的加权总分。
-   - 校验之前，`light.align_light_window()` 先试一次**纯代码的光线排程**：把整条时间轴整体平移，让最后一段外景落进黄金窗口，总时长与活动顺序不变。只有对齐后 `(hard_pass, score)` 不劣化才采纳。真实模型 80 例实测里 `LIGHT_MISUSE` 占硬问题的 31/46，说明「让模型排光线」本身就是错的分工。
+   - 校验之前，`light.align_light_window()` 先试一次**纯代码的光线排程**：把整条时间轴整体平移，让最后一段外景落进黄金窗口，总时长与活动顺序不变。只有对齐后 `(hard_pass, score)` 不劣化才采纳。真实模型 80 例实测里 `LIGHT_MISUSE`（soft）占全部问题 47 条中的 31 条，说明「让模型排光线」本身就是错的分工。
    - 若用户明确要求「上午收工」，黄金窗口空着是**正确**结果：校验器与对齐器共用 `constraints.wants_morning_finish()`，不会为了凑光线而违背 brief。
 6. 若存在硬约束问题且还有修复轮次，`build_repair_hint()` 把报告转成精确修复指令再生成一次。**只有当新草稿严格更优时才替换**，避免修复把方案改坏。
 7. `TraceCollector` 汇总每步耗时 / token / 成本。运行历史有两种写入策略，共用同一张表：`RunStore` 同步提交（默认，响应返回前已落库）；`RunWriter` 交给进程内单写线程批量提交，`flush()` 才是「已落库」的屏障（ADR 0012）。

@@ -33,10 +33,13 @@ from evals.scorers import CaseOutcome, evaluate_case, failed_case
 from shotplan.agents import build_provider
 from shotplan.agents.prompts import PROMPT_VERSION
 from shotplan.config import get_settings
+from shotplan.domain.constraints import RULES as _RULES
 from shotplan.domain.models import PlanRequest
 from shotplan.pipeline import run_plan
 
 ROOT = Path(__file__).resolve().parents[1]
+
+_SEVERITY: dict[str, str] = {rule["code"]: rule["severity"] for rule in _RULES}
 SNAPSHOT = ROOT / "evals" / "real-model.json"
 REPORT = ROOT / "docs" / "real-model.md"
 
@@ -216,12 +219,19 @@ def summarise_repeats(
     errors = [o for o in all_outcomes if o.error]
     durations = [o.duration_ms for o in all_outcomes if not o.error]
     issue_codes: dict[str, int] = {}
+    hard_issue_codes: dict[str, int] = {}
+    soft_issue_codes: dict[str, int] = {}
     for outcome in all_outcomes:
         if outcome.group == _PREFLIGHT_ONLY:
             continue
         for code in outcome.issues:
             key = code.split(":")[0].strip()
             issue_codes[key] = issue_codes.get(key, 0) + 1
+            # Severity comes from the single rule table, never from a guess at
+            # the report site: calling a soft rule "hard" once already shipped.
+            bucket = (hard_issue_codes if _SEVERITY.get(key) == "hard"
+                      else soft_issue_codes)
+            bucket[key] = bucket.get(key, 0) + 1
 
     return {
         "generated_by": "evals.real_model_lab",
@@ -279,6 +289,8 @@ def summarise_repeats(
         "tokens_out": sum(o.tokens_out for o in all_outcomes),
         "cost_cny": round(sum(o.cost_cny for o in all_outcomes), 4),
         "top_issue_codes": dict(sorted(issue_codes.items(), key=lambda kv: -kv[1])[:8]),
+        "hard_issue_codes": dict(sorted(hard_issue_codes.items(), key=lambda kv: -kv[1])[:8]),
+        "soft_issue_codes": dict(sorted(soft_issue_codes.items(), key=lambda kv: -kv[1])[:8]),
         "prompt_version_distribution": dict(
             sorted(
                 Counter(
@@ -300,10 +312,15 @@ def summarise(outcomes: list[CaseOutcome], settings: Any) -> dict[str, Any]:
     hard_pass = sum(o.hard_pass for o in planned)
     durations = [o.duration_ms for o in outcomes if not o.error]
     issue_codes: dict[str, int] = {}
+    hard_issue_codes: dict[str, int] = {}
+    soft_issue_codes: dict[str, int] = {}
     for outcome in planned:
         for code in outcome.issues:
             code = code.split(":")[0].strip()
             issue_codes[code] = issue_codes.get(code, 0) + 1
+            bucket = (hard_issue_codes if _SEVERITY.get(code) == "hard"
+                      else soft_issue_codes)
+            bucket[code] = bucket.get(code, 0) + 1
 
     return {
         "generated_by": "evals.real_model_lab",
@@ -349,6 +366,8 @@ def summarise(outcomes: list[CaseOutcome], settings: Any) -> dict[str, Any]:
         "tokens_out": sum(o.tokens_out for o in outcomes),
         "cost_cny": round(sum(o.cost_cny for o in outcomes), 4),
         "top_issue_codes": dict(sorted(issue_codes.items(), key=lambda kv: -kv[1])[:8]),
+        "hard_issue_codes": dict(sorted(hard_issue_codes.items(), key=lambda kv: -kv[1])[:8]),
+        "soft_issue_codes": dict(sorted(soft_issue_codes.items(), key=lambda kv: -kv[1])[:8]),
         "prompt_version_distribution": dict(
             sorted(
                 Counter(
@@ -662,15 +681,19 @@ def build_report(
             if key in config:
                 lines.append(f"| `{key}` | `{config[key]}` |")
         lines.append("")
-    lines += [
-        "## 最常见的硬问题",
-        "",
-    ]
-    if snapshot["top_issue_codes"]:
-        lines += ["| 规则 | 触发次数 |", "| --- | ---: |"]
-        lines += [f"| `{code}` | {count} |" for code, count in snapshot["top_issue_codes"].items()]
+    # Severity is shown per row instead of splitting the table in two: the old
+    # "most common HARD issues" table listed soft rules (SHOOT_TOO_SHORT) as
+    # hard, which is worse than no table at all.
+    codes = snapshot.get("top_issue_codes") or {}
+    lines += ["## 最常见的问题", ""]
+    if codes:
+        lines += ["| 规则 | 级别 | 触发次数 |", "| --- | --- | ---: |"]
+        lines += [
+            f"| `{code}` | {_SEVERITY.get(code, '—')} | {count} |"
+            for code, count in codes.items()
+        ]
     else:
-        lines.append("本轮没有触发任何硬问题。")
+        lines.append("本轮没有触发任何问题。")
 
     if snapshot.get("error_messages"):
         lines += ["", "## 异常分布", "", "| 错误 | 次数 |", "| --- | ---: |"]

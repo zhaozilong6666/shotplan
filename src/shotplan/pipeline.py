@@ -47,6 +47,7 @@ from .domain.models import (
 from .knowledge.tools import KnowledgeTools, get_tools
 from .light import align_light_window
 from .storage import RunSink
+from .timeline import repair_short_shoots
 from .tracing import TraceCollector
 
 
@@ -71,6 +72,26 @@ def _validate_with_light(
     if (aligned_report.hard_pass, aligned_report.score) < (report.hard_pass, report.score):
         return plan, report, False
     return aligned, aligned_report, True
+
+
+def _validate_and_repair(
+    plan: Plan, req: PlanRequest, kb: KnowledgeTools
+) -> tuple[Plan, ValidationReport, bool]:
+    """Validate, then apply the two repairs code can do better than a prompt.
+
+    Both are kept only when the plan does not get worse: a nicer block length is
+    not worth a time or budget violation.
+    """
+    plan, report, light_aligned = _validate_with_light(plan, req, kb)
+    if not any(issue.code == "SHOOT_TOO_SHORT" for issue in report.issues):
+        return plan, report, light_aligned
+    fixed = repair_short_shoots(plan, req)
+    if fixed is None:
+        return plan, report, light_aligned
+    fixed_report = validate(fixed, req, kb)
+    if (fixed_report.hard_pass, fixed_report.score) < (report.hard_pass, report.score):
+        return plan, report, light_aligned
+    return fixed, fixed_report, light_aligned
 
 logger = logging.getLogger(__name__)
 
@@ -515,7 +536,7 @@ def _run_plan(
     # 4. Validation --------------------------------------------------------------
     # The golden-hour placement is decided here, by code, not by the prompt.
     tick = time.perf_counter()
-    plan, report, light_aligned = _validate_with_light(plan, req, kb)
+    plan, report, light_aligned = _validate_and_repair(plan, req, kb)
     collector.record(
         "validate", tick,
         score=round(report.score, 3),
@@ -553,7 +574,7 @@ def _run_plan(
         try:
             fixed = call_generate(hint)
             candidate = parse_plan(fixed.payload, req, agent.name, effective_prompt)
-            candidate, candidate_report, _ = _validate_with_light(candidate, req, kb)
+            candidate, candidate_report, _ = _validate_and_repair(candidate, req, kb)
         except ShotplanError as exc:
             collector.record(f"repair_{repairs}", tick, outcome="error", reason=str(exc)[:120])
             # Previously this broke silently with status='ok': the caller saw a

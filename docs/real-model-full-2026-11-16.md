@@ -3,7 +3,7 @@
 > **这份是主证据**：80 例全量、单次采样。8 例 smoke 见 [real-model-smoke-2026-11-16.md](real-model-smoke-2026-11-16.md)，两次之间知识库从 5 城扩到 6 城，差异不全是采样波动。
 > **一句话结论**：真实模型守得住硬约束（88.4%），但**光线排程明显不如规则规划器**（硬问题里 `LIGHT_MISUSE` 占 31 次），且 P95 逼近 120s 预算、4 例直接超时。
 
-命令：`python -m evals.real_model_lab --limit 80 --repeat 1 --concurrency 6 --write` ｜ 数据源：`临时快照（未入库）` ｜ 历史对照：[real-model-comparison.md](real-model-comparison.md)
+命令：`python -m evals.real_model_lab --write` ｜ 数据源：`D:/WorkBuddy/temp/real_full.json` ｜ 历史对照：[real-model-comparison.md](real-model-comparison.md)
 
 模型 `deepseek-v4.1-flash`（<relay-base-url>（私有中转站，不公开），temperature 0.2，并发 6）｜ prompt `planner-v2` ｜ 实际分布：`planner-v2` × 80 ｜ 80 个用例，其中 69 个需要生成方案
 
@@ -46,18 +46,18 @@
 | `prompt_router` | `False` |
 | `eval_min_score` | `0.8` |
 
-## 最常见的硬问题
+## 最常见的问题
 
-| 规则 | 触发次数 |
-| --- | ---: |
-| `LIGHT_MISUSE` | 31 |
-| `SHOOT_TOO_SHORT` | 4 |
-| `REPAIR_FAILED` | 4 |
-| `DEADLINE_EXCEEDED` | 4 |
-| `UNKNOWN_LOCATION` | 2 |
-| `TIME_OVERRUN` | 1 |
-| `UNKNOWN_SOURCE_REF` | 1 |
-| `MISSING_ACTIVITY` | 1 |
+| 规则 | 级别 | 触发次数 |
+| --- | --- | ---: |
+| `LIGHT_MISUSE` | soft | 31 |
+| `SHOOT_TOO_SHORT` | soft | 4 |
+| `REPAIR_FAILED` | — | 4 |
+| `DEADLINE_EXCEEDED` | — | 4 |
+| `UNKNOWN_LOCATION` | hard | 2 |
+| `TIME_OVERRUN` | hard | 1 |
+| `UNKNOWN_SOURCE_REF` | hard | 1 |
+| `MISSING_ACTIVITY` | hard | 1 |
 
 ## 异常分布
 

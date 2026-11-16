@@ -25,7 +25,7 @@
 | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
 | `planner/no-transfer` | 生成端不再插入转场时间块（校验端仍要求 20 分钟） | 0.1375 (-0.8412) | 14% | 69 | 0.3014 | -0.1639 | 拦截：avg_score 0.1375 is below threshold 0.8 等 5 项 |
 | `planner/transfer-cost-5000` | 转场费从 50 元抬到 5000 元 | 0.7258 (-0.2529) | 14% | 69 | 0.3014 | 0.4244 | 拦截：avg_score 0.7258 is below threshold 0.8 等 4 项 |
-| `planner/no-makeup` | 生成端删掉必需的妆造时间块 | 0.8890 (-0.0897) | 14% | 69 | 0.3014 | 0.5876 | 拦截：hard_pass_rate 0.1375 is below 0.9 等 2 项 |
+| `planner/no-makeup` | 生成端删掉必需的妆造时间块 | 0.8905 (-0.0882) | 14% | 69 | 0.3014 | 0.5891 | 拦截：hard_pass_rate 0.1375 is below 0.9 等 2 项 |
 | `validator/budget-tolerance` | 预算容差改成 10^9，BUDGET_EXCEEDED 永不触发 | 0.9787 (+0.0000) | 100% | 0 | 0.4744 | 0.5043 | 拦截：control avg_score 0.4744 exceeds 0.45: the validator may have been weakened 等 2 项 |
 | `validator/no-transfer-rule` | 转场下限改成 0，TRANSFER_BUFFER 永不触发 | 0.9787 (+0.0000) | 100% | 0 | 0.3151 | 0.6636 | 拦截：control rule TRANSFER_BUFFER fired 0 times, expected >= 100: a validator rule appears to be disabled |
 | `validator/no-time-limit` | 时长宽限改成 10^6 分钟，TIME_OVERRUN 永不触发 | 0.9787 (+0.0000) | 100% | 0 | 0.3014 | 0.6773 | 拦截：control rule TIME_OVERRUN fired 0 times, expected >= 30: a validator rule appears to be disabled |
