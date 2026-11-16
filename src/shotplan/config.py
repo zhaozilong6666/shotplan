@@ -92,11 +92,13 @@ class Settings:
     # loss window on a hard kill. See ADR 0012 and docs/persistence.md.
     persist_mode: str = "sync"
     # Wall-clock ceiling for one plan request, repairs included. 0 disables it.
-    # Must exceed the real provider's P99, not its P95. Measured on
-    # deepseek-v4.1-flash: P95 119.8s and one legitimate case (C17) needs
-    # ~160s, so a 60/120s budget guaranteed ~4% hard failures that had
-    # nothing to do with plan quality.
-    pipeline_budget_s: float = 180.0
+    # Must exceed the provider's P99, not its P95. Two regimes were measured
+    # on deepseek-v4.1-flash:
+    #   default reasoning: P95 119.8s, one case needs ~160s -> 180s
+    #   reasoning_effort=low: P50 33s, P99 85s, max 88s -> 120s leaves 36% headroom
+    # The default follows the recommended setting (low). Raise it if you run a
+    # reasoning-heavy model, or the budget itself becomes the failure mode.
+    pipeline_budget_s: float = 120.0
     # Optional deployment guards. All default to "off" so the offline demo keeps
     # working with no configuration; a public deployment should set at least a
     # key and a rate limit.
@@ -152,7 +154,7 @@ class Settings:
             eval_min_score=_env_float("SHOTPLAN_EVAL_MIN_SCORE", 0.80),
             log_level=_env("SHOTPLAN_LOG_LEVEL", "INFO").upper(),
             persist_mode=raw_mode,
-            pipeline_budget_s=max(0.0, _env_float("SHOTPLAN_PIPELINE_BUDGET_S", 180.0)),
+            pipeline_budget_s=max(0.0, _env_float("SHOTPLAN_PIPELINE_BUDGET_S", 120.0)),
             api_key=_env("SHOTPLAN_API_KEY", ""),
             rate_limit_per_minute=max(0, _env_int("SHOTPLAN_RATE_LIMIT_PER_MINUTE", 0)),
             max_body_bytes=max(1024, _env_int("SHOTPLAN_MAX_BODY_BYTES", 1_000_000)),
