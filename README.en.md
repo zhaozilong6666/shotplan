@@ -21,9 +21,9 @@ Hanfu travel photography was chosen because its constraints are real: golden-hou
 | Quality | Try another prompt | 15 deterministic rules + dimension scores |
 | Impossible brief | Fabricate a plan anyway | Pre-generation check returns reasons, gaps, suggestions and theoretical minimums |
 | Failure handling | Regenerate once | Validation report becomes a repair hint; **worse drafts are rejected** |
-| Evidence | Screenshots | 80 regression cases + 280 holdout briefs + real HTTP load test + three-arm persistence experiment + 26 CI gates |
+| Evidence | Screenshots | 80 regression cases + 320 holdout briefs + real HTTP load test + three-arm persistence experiment + 26 CI gates |
 | Gate validity | "CI is green" | 8 injected mutations must all be caught by the real gate |
-| Unseen inputs | One hand-written suite | 280 mined holdout briefs, kept separate so baselines stay comparable |
+| Unseen inputs | One hand-written suite | 320 mined holdout briefs, kept separate so baselines stay comparable |
 | Grounding | None | Every location id must exist in the knowledge base |
 | Run records | None | Full trace, latency, tokens and estimated cost per run |
 | Barrier to entry | Needs an API key | Core is standard-library only; runs right after `git clone` |
@@ -97,7 +97,7 @@ The generated [eval report](docs/eval-report.md) is committed, so a reviewer can
 
 ## Holdout challenge set (unseen briefs)
 
-80/80 green can also mean the rules were tuned against those exact 80 briefs. So the [failure library](docs/failure-gallery.md) and the knowledge base drive a deterministic grid of **315 candidate briefs** (7 cities x 5 styles x 9 pressure profiles x 4 rotating seasons). The miner **never reads any case's expected output**; it only sees brief fingerprints for deduplication. 35 deliberately contradictory briefs are rejected by the pre-generation feasibility check, leaving **280 unseen holdout cases**; city x style coverage goes from 19/35 to **35/35**, good hard-pass 100%, naive 0%, minimum score gap 0.7687. See the [mining report](docs/case-mining.md) and [ADR 0010](docs/adr/0010-holdout-challenge-set.md).
+80/80 green can also mean the rules were tuned against those exact 80 briefs. So the [failure library](docs/failure-gallery.md) and the knowledge base drive a deterministic grid of **360 candidate briefs** (8 cities x 5 styles x 9 pressure profiles x 4 rotating seasons). The miner **never reads any case's expected output**; it only sees brief fingerprints for deduplication. 40 deliberately contradictory briefs are rejected by the pre-generation feasibility check, leaving **320 unseen holdout cases**; city x style coverage goes from 19/40 to **40/40**, good hard-pass 100%, naive 0%, minimum score gap 0.7687. See the [mining report](docs/case-mining.md) and [ADR 0010](docs/adr/0010-holdout-challenge-set.md).
 
 The holdout lives in `evals/challenge/` and is **not** read by `run_eval`: the main suite stays a stable regression baseline so v1-v6 snapshots remain comparable. `python -m evals.case_miner --check` is CI gate #12.
 
@@ -135,7 +135,7 @@ The retry count alone does not bound latency: two generations x three HTTP attem
 4. **[Gate-sensitivity lab](docs/mutation-report.md)** — 8 controlled mutations (3 on generation, 5 on validation) are injected in-process, run through the same 80 cases and the real gate, and must all be rejected; every one is rolled back and compared field-by-field. The previous gate caught only **4/8**; the fixed gate catches **8/8**.
 5. **Engineering evidence** — [fuzzing](docs/fuzz-report.md) (1000 mutated inputs, 0 crashes), [benchmark](docs/benchmark.md) (p50 ≈0.2 ms), [load test](docs/loadtest.md) (600 concurrent requests, 0 errors / 0 lost writes), [real output examples](docs/examples.md) and [threads vs processes](docs/scaling.md) (1.04× vs 1.72×).
 
-6. **[Holdout challenge set](docs/case-mining.md)** — 315 mined candidates, 280 unseen briefs accepted, 35 infeasible negative controls rejected, coverage 19/35 -> 35/35. Independent of the regression suite so historical baselines stay comparable.
+6. **[Holdout challenge set](docs/case-mining.md)** — 360 mined candidates, 320 unseen briefs accepted, 40 infeasible negative controls rejected, coverage 19/40 -> 40/40. Independent of the regression suite so historical baselines stay comparable.
 
 7. **[Real HTTP load test](docs/http-load.md)** — 1/2/4 uvicorn workers, ~251/s at concurrency 8, 1000 requests with 0 errors / 0 lost writes; 4 workers are slower than 1 (the write-lock attribution is tested in the section above).
 

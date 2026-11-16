@@ -1,6 +1,6 @@
 {
-  "accepted": 280,
-  "candidate_count": 315,
+  "accepted": 320,
+  "candidate_count": 360,
   "code_city_counts": {
     "AVOIDED_LOCATION|xian": 4,
     "BUDGET_EXCEEDED|hangzhou": 9,
@@ -28,9 +28,9 @@
     "UNKNOWN_LOCATION|suzhou": 36,
     "UNKNOWN_LOCATION|xian": 30
   },
-  "coverage_after": 35,
+  "coverage_after": 40,
   "coverage_before": 19,
-  "coverage_total": 35,
+  "coverage_total": 40,
   "failure_codes": [
     "AVOIDED_LOCATION",
     "BUDGET_EXCEEDED",
@@ -41,17 +41,18 @@
   ],
   "failure_records": 527,
   "good": {
-    "avg_score": 0.9884,
-    "cases": 280,
+    "avg_score": 0.9885,
+    "cases": 320,
     "hard_pass_rate": 1.0,
     "min_score": 0.9525
   },
   "grid": {
-    "cities": 7,
+    "cities": 8,
     "city_ids": [
       "beijing",
       "chengdu",
       "hangzhou",
+      "kaifeng",
       "luoyang",
       "nanjing",
       "suzhou",
@@ -65,20 +66,20 @@
   "min_gap_required": 0.3,
   "naive": {
     "avg_score": 0.19,
-    "cases": 280,
+    "cases": 320,
     "hard_pass_rate": 0.0
   },
-  "new_style_cells": 16,
+  "new_style_cells": 21,
   "quality_floor": 0.7,
   "regression_cases": 80,
   "reject_reasons": {
-    "good hard constraints failed: INFEASIBLE": 35,
-    "good score 0.0 below 0.7": 35,
-    "good status=infeasible": 35,
-    "good/naive gap 0.0 below 0.3": 35,
-    "no comparable pair of plans (a provider refused)": 35
+    "good hard constraints failed: INFEASIBLE": 40,
+    "good score 0.0 below 0.7": 40,
+    "good status=infeasible": 40,
+    "good/naive gap 0.0 below 0.3": 40,
+    "no comparable pair of plans (a provider refused)": 40
   },
-  "rejected": 35,
+  "rejected": 40,
   "rejected_examples": [
     {
       "city": "beijing",
@@ -214,6 +215,6 @@
     "xian|tang": 14,
     "xian|weijin": 4
   },
-  "unseen_briefs": 280,
+  "unseen_briefs": 320,
   "version": 1
 }

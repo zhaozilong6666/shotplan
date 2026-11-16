@@ -1426,6 +1426,230 @@
           "notes": "室内布光可控，北京冬季与雾霾天的备选；含基础置景，宫墙/窗棂类布景需加价"
         }
       ]
+    },
+    "kaifeng": {
+      "name": "开封",
+      "center": "鼓楼广场",
+      "locations": [
+        {
+          "source": "curation:web-2026-11-16",
+          "last_verified_at": "2026-11-16",
+          "indoor": false,
+          "min_minutes": 120,
+          "weather_risk": "medium",
+          "id": "qingming_park",
+          "name": "清明上河园",
+          "district": "longting",
+          "tags": [
+            "song",
+            "architecture",
+            "street",
+            "human",
+            "night",
+            "outdoor"
+          ],
+          "best_light": [
+            "golden",
+            "night"
+          ],
+          "travel_min_from_center": 20,
+          "cost_cny": 120,
+          "crowd": "high",
+          "notes": "120 元、三日内不限次入园；08:30-23:30。北宋市井复建，虹桥与汴河最出片，夜场灯影可拍到 21:00 后；园内实景演出时段人流集中"
+        },
+        {
+          "source": "curation:web-2026-11-16",
+          "last_verified_at": "2026-11-16",
+          "indoor": false,
+          "min_minutes": 90,
+          "weather_risk": "medium",
+          "id": "kaifeng_fu",
+          "name": "开封府",
+          "district": "gulou",
+          "tags": [
+            "song",
+            "ming",
+            "architecture",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning"
+          ],
+          "travel_min_from_center": 15,
+          "cost_cny": 59,
+          "crowd": "medium",
+          "notes": "线上 59 元、门市 65 元；07:30-22:00。9:00 与 10:00 有开衙/包公断案表演，仪式感强但人挤，拍摄建议避开表演时段"
+        },
+        {
+          "source": "curation:web-2026-11-16",
+          "last_verified_at": "2026-11-16",
+          "indoor": false,
+          "min_minutes": 90,
+          "weather_risk": "medium",
+          "id": "longting",
+          "name": "龙亭公园",
+          "district": "longting",
+          "tags": [
+            "song",
+            "tang",
+            "architecture",
+            "open",
+            "garden",
+            "outdoor"
+          ],
+          "best_light": [
+            "golden"
+          ],
+          "travel_min_from_center": 15,
+          "cost_cny": 45,
+          "crowd": "medium",
+          "notes": "45 元（含天波杨府联票 50 元）；08:00-22:00。宋代皇宫台基加潘杨二湖，登顶可俯瞰御道；秋菊展期间布景最满"
+        },
+        {
+          "source": "curation:web-2026-11-16",
+          "last_verified_at": "2026-11-16",
+          "indoor": false,
+          "min_minutes": 90,
+          "weather_risk": "medium",
+          "id": "daxiangguo",
+          "name": "大相国寺",
+          "district": "gulou",
+          "tags": [
+            "song",
+            "ming",
+            "quiet",
+            "architecture",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning"
+          ],
+          "travel_min_from_center": 12,
+          "cost_cny": 38,
+          "crowd": "low",
+          "notes": "37.5 元；08:00-18:30。北宋皇家寺院，千手千眼观音木雕镇寺；晨间香火与光柱最好，殿内需保持安静、商业拍摄需报备"
+        },
+        {
+          "source": "curation:web-2026-11-16",
+          "last_verified_at": "2026-11-16",
+          "indoor": false,
+          "min_minutes": 90,
+          "weather_risk": "medium",
+          "id": "tieta",
+          "name": "铁塔公园",
+          "district": "longting",
+          "tags": [
+            "song",
+            "architecture",
+            "open",
+            "quiet",
+            "outdoor"
+          ],
+          "best_light": [
+            "golden"
+          ],
+          "travel_min_from_center": 20,
+          "cost_cny": 30,
+          "crowd": "low",
+          "notes": "30 元、三日内不限次；北宋开宝寺塔，琉璃砖夕阳下呈鎏金色，是开封最稳的傍晚机位；园内空旷，风大注意发型"
+        },
+        {
+          "source": "curation:web-2026-11-16",
+          "last_verified_at": "2026-11-16",
+          "indoor": false,
+          "min_minutes": 60,
+          "weather_risk": "medium",
+          "id": "baogong_ci",
+          "name": "包公祠",
+          "district": "gulou",
+          "tags": [
+            "song",
+            "quiet",
+            "architecture",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning"
+          ],
+          "travel_min_from_center": 15,
+          "cost_cny": 29,
+          "crowd": "low",
+          "notes": "29 元；包公湖畔仿宋建筑群，人少安静，适合正剧向宋制；湖面可借倒影，阴天也能出片"
+        },
+        {
+          "source": "curation:web-2026-11-16",
+          "last_verified_at": "2026-11-16",
+          "indoor": false,
+          "min_minutes": 90,
+          "weather_risk": "medium",
+          "id": "city_wall_kf",
+          "name": "开封城墙（大梁门）",
+          "district": "longting",
+          "tags": [
+            "ming",
+            "republic",
+            "architecture",
+            "open",
+            "night",
+            "outdoor"
+          ],
+          "best_light": [
+            "golden",
+            "night"
+          ],
+          "travel_min_from_center": 18,
+          "cost_cny": 38,
+          "crowd": "medium",
+          "notes": "38 元；元明城墙遗存，可上墙行走。日落与亮灯后都好拍，城墙砖面粗糙，适合硬朗质感；含《微梦大梁门》观影"
+        },
+        {
+          "source": "curation:web-2026-11-16",
+          "last_verified_at": "2026-11-16",
+          "indoor": false,
+          "min_minutes": 60,
+          "weather_risk": "medium",
+          "id": "gulou_street",
+          "name": "鼓楼夜市·书店街",
+          "district": "gulou",
+          "tags": [
+            "republic",
+            "street",
+            "human",
+            "night",
+            "outdoor"
+          ],
+          "best_light": [
+            "night"
+          ],
+          "travel_min_from_center": 10,
+          "cost_cny": 0,
+          "crowd": "high",
+          "notes": "免费街区；书店街是民国建筑立面，鼓楼夜市傍晚后灯牌密集。夜市人流极大，宽幅构图比特写更稳"
+        },
+        {
+          "source": "curation:web-2026-11-16",
+          "last_verified_at": "2026-11-16",
+          "indoor": true,
+          "min_minutes": 60,
+          "weather_risk": "low",
+          "id": "indoor_studio_kf",
+          "name": "龙亭室内影棚",
+          "district": "longting",
+          "tags": [
+            "indoor",
+            "controlled",
+            "minimal",
+            "song"
+          ],
+          "best_light": [
+            "any"
+          ],
+          "travel_min_from_center": 18,
+          "cost_cny": 380,
+          "crowd": "low",
+          "notes": "室内布光可控，开封冬季与雨天备选；含宋式屏风与窗棂布景，复杂置景加价"
+        }
+      ]
     }
   }
 }
