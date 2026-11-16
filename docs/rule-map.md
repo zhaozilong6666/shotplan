@@ -21,7 +21,7 @@
 | `LIGHT_MISUSE` | soft | 0 | 26 | `test_light.py::test_the_validator_stops_flagging_morning_finish_briefs`, `test_light.py::test_pipeline_repairs_the_light_without_asking_the_model_again` | 光线是成片质量的主要变量 |
 | `NO_ALTERNATIVE` | soft | 0 | 0 | `test_validator.py::test_soft_rules_fire` | 户外拍摄受天气与客流影响，必须有 Plan B |
 | `NO_SOURCE_REF` | soft | 0 | 0 | `test_validator.py::test_soft_rules_fire` | 可溯源是判断输出是否可信的前提 |
-| `STYLE_MISMATCH` | soft | 0 | 1 | `test_validator.py::test_soft_rules_fire` | 唐制配现代极简场景会显得违和 |
+| `STYLE_MISMATCH` | soft | 0 | 1 | `test_domain_portability.py::test_only_style_matching_is_declared_domain_specific`, `test_validator.py::test_soft_rules_fire` | 唐制配现代极简场景会显得违和 |
 
 ## 缺口
 
