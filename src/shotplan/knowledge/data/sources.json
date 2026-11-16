@@ -1,0 +1,10 @@
+{
+  "chengdu/wuhouci": {
+    "url": "https://www.wuhouci.net.cn/",
+    "note": "官网票务栏：全价 50 / 半价 25，09:00-18:00，17:00 停止售票"
+  },
+  "beijing/gugong": {
+    "url": "http://www.dpm.org.cn/",
+    "note": "官网首页：08:30 开放入馆，16:00 停止入馆，17:00 闭馆，周一闭馆"
+  }
+}
