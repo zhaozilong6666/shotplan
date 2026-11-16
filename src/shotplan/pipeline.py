@@ -44,6 +44,7 @@ from .domain.models import (
     ValidationIssue,
     ValidationReport,
 )
+from .grounding import sanitize_source_refs
 from .knowledge.tools import KnowledgeTools, get_tools
 from .light import align_light_window
 from .storage import RunSink
@@ -82,6 +83,9 @@ def _validate_and_repair(
     Both are kept only when the plan does not get worse: a nicer block length is
     not worth a time or budget violation.
     """
+    # Fabricated citations are dropped before anything else: one invented
+    # pointer should not fail an otherwise deliverable plan.
+    plan, dropped_refs = sanitize_source_refs(plan, kb)
     plan, report, light_aligned = _validate_with_light(plan, req, kb)
     if not any(issue.code == "SHOOT_TOO_SHORT" for issue in report.issues):
         return plan, report, light_aligned

@@ -39,7 +39,7 @@ def _clamp(value: float) -> float:
     return max(0.0, min(1.0, value))
 
 
-def _source_ref_exists(ref: str, plan: Plan, kb: KnowledgeTools) -> bool:
+def source_ref_exists(ref: str, plan: Plan, kb: KnowledgeTools) -> bool:
     """A citation is only real if the id resolves in the knowledge base."""
     text = str(ref).strip()
     prefix, separator, item_id = text.partition("#")
@@ -222,7 +222,7 @@ def validate(
                 list(plan.source_refs)
                 + [ref for slot in slots for ref in slot.source_refs]
             )
-            if not _source_ref_exists(str(ref), plan, kb)
+            if not source_ref_exists(str(ref), plan, kb)
         }
     )
     if unknown_refs:
