@@ -255,16 +255,14 @@ def _parse_budget(text: str) -> tuple[int, str | None, str, float]:
     if spoken:
         value, evidence, source, confidence = spoken
         return value, evidence, source, confidence
-    # 「一千八」「两千五」: a thousands digit followed by a bare units digit and
-    # no unit word at all. Checked before the single-word fallbacks, which would
-    # otherwise read 「一千八」 as 「一千」.
-    loose = re.search(r"([一二两三四五六七八九])\s*千\s*([一二三四五六七八九])(?![千百十])", text)
-    if loose:
-        value = CN_DIGITS[loose.group(1)] * 1000 + CN_DIGITS[loose.group(2)] * 100
-        return value, loose.group(0), "stated", 1.0
-    for word, value in (("两千", 2000), ("一千五", 1500), ("一千", 1000)):
-        if word in text:
-            return value, word, "stated", 1.0
+    # 「一千八」「九百五」「六百五」: a numeral with no unit word at all.
+    # `cn_to_int` already parses all of these correctly, so the only job here is
+    # to hand it the raw token -- and to insist the value could plausibly be
+    # money (>= 100), which keeps 「三小时」「两个人」 out.
+    for token in re.findall("[" + "".join(CN_DIGITS) + "".join(CN_UNITS) + "]+", text):
+        value = cn_to_int(token)
+        if value and value >= 100:
+            return value, token, "stated", 1.0
     return 1500, None, "default", 0.0
 
 
@@ -274,6 +272,12 @@ def _parse_party(text: str) -> tuple[int, str | None, str, float]:
         return min(10, max(1, int(match.group(1)))), match.group(0), "stated", 1.0
     if "两个人" in text or "俩人" in text:
         return 2, _find(text, ("两个人", "俩人")), "stated", 1.0
+    # 「三个人」「四个人」: spoken counts arrive as Chinese numerals too.
+    spoken = re.search("([一二两三四五六七八九十]+)\\s*(?:个)?\\s*人", text)
+    if spoken:
+        value = cn_to_int(spoken.group(1))
+        if value:
+            return min(10, max(1, value)), spoken.group(0), "stated", 1.0
     # 「带女朋友」「和对象一起」 imply a second person even without a numeral.
     company = _find(text, ("女朋友", "男朋友", "对象", "老公", "老婆", "闺蜜", "朋友", "伴侣"))
     if company:
