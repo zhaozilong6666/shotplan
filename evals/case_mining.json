@@ -1,6 +1,6 @@
 {
-  "accepted": 239,
-  "candidate_count": 270,
+  "accepted": 280,
+  "candidate_count": 315,
   "code_city_counts": {
     "AVOIDED_LOCATION|xian": 4,
     "BUDGET_EXCEEDED|hangzhou": 9,
@@ -28,9 +28,9 @@
     "UNKNOWN_LOCATION|suzhou": 36,
     "UNKNOWN_LOCATION|xian": 30
   },
-  "coverage_after": 30,
+  "coverage_after": 35,
   "coverage_before": 19,
-  "coverage_total": 30,
+  "coverage_total": 35,
   "failure_codes": [
     "AVOIDED_LOCATION",
     "BUDGET_EXCEEDED",
@@ -41,14 +41,15 @@
   ],
   "failure_records": 527,
   "good": {
-    "avg_score": 0.9887,
-    "cases": 239,
+    "avg_score": 0.9884,
+    "cases": 280,
     "hard_pass_rate": 1.0,
     "min_score": 0.9525
   },
   "grid": {
-    "cities": 6,
+    "cities": 7,
     "city_ids": [
+      "beijing",
       "chengdu",
       "hangzhou",
       "luoyang",
@@ -64,24 +65,23 @@
   "min_gap_required": 0.3,
   "naive": {
     "avg_score": 0.19,
-    "cases": 239,
+    "cases": 280,
     "hard_pass_rate": 0.0
   },
-  "new_style_cells": 11,
+  "new_style_cells": 16,
   "quality_floor": 0.7,
   "regression_cases": 80,
   "reject_reasons": {
-    "duplicate of a regression-suite brief": 1,
-    "good hard constraints failed: INFEASIBLE": 30,
-    "good score 0.0 below 0.7": 30,
-    "good status=infeasible": 30,
-    "good/naive gap 0.0 below 0.3": 30,
-    "no comparable pair of plans (a provider refused)": 30
+    "good hard constraints failed: INFEASIBLE": 35,
+    "good score 0.0 below 0.7": 35,
+    "good status=infeasible": 35,
+    "good/naive gap 0.0 below 0.3": 35,
+    "no comparable pair of plans (a provider refused)": 35
   },
-  "rejected": 31,
+  "rejected": 35,
   "rejected_examples": [
     {
-      "city": "chengdu",
+      "city": "beijing",
       "good_score": 0.0,
       "naive_score": 0.0,
       "pressure": "conflicting",
@@ -95,7 +95,7 @@
       "style": "tang"
     },
     {
-      "city": "chengdu",
+      "city": "beijing",
       "good_score": 0.0,
       "naive_score": 0.0,
       "pressure": "conflicting",
@@ -109,7 +109,7 @@
       "style": "song"
     },
     {
-      "city": "chengdu",
+      "city": "beijing",
       "good_score": 0.0,
       "naive_score": 0.0,
       "pressure": "conflicting",
@@ -123,7 +123,7 @@
       "style": "ming"
     },
     {
-      "city": "chengdu",
+      "city": "beijing",
       "good_score": 0.0,
       "naive_score": 0.0,
       "pressure": "conflicting",
@@ -137,7 +137,7 @@
       "style": "weijin"
     },
     {
-      "city": "chengdu",
+      "city": "beijing",
       "good_score": 0.0,
       "naive_score": 0.0,
       "pressure": "conflicting",
@@ -151,7 +151,7 @@
       "style": "republic"
     },
     {
-      "city": "hangzhou",
+      "city": "chengdu",
       "good_score": 0.0,
       "naive_score": 0.0,
       "pressure": "conflicting",
@@ -165,7 +165,7 @@
       "style": "tang"
     },
     {
-      "city": "hangzhou",
+      "city": "chengdu",
       "good_score": 0.0,
       "naive_score": 0.0,
       "pressure": "conflicting",
@@ -179,7 +179,7 @@
       "style": "song"
     },
     {
-      "city": "hangzhou",
+      "city": "chengdu",
       "good_score": 0.0,
       "naive_score": 0.0,
       "pressure": "conflicting",
@@ -214,6 +214,6 @@
     "xian|tang": 14,
     "xian|weijin": 4
   },
-  "unseen_briefs": 239,
+  "unseen_briefs": 280,
   "version": 1
 }

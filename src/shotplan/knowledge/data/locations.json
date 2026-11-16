@@ -1204,6 +1204,228 @@
           "notes": "室内补光可控，雨天备选首选；含基础布景，复杂置景需加价"
         }
       ]
+    },
+    "beijing": {
+      "name": "北京",
+      "center": "天安门",
+      "locations": [
+        {
+          "source": "curation:web-2026-11-16",
+          "last_verified_at": "2026-11-16",
+          "indoor": false,
+          "min_minutes": 120,
+          "weather_risk": "medium",
+          "id": "gugong",
+          "name": "故宫",
+          "district": "dongcheng",
+          "tags": [
+            "ming",
+            "architecture",
+            "garden",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning",
+            "golden"
+          ],
+          "travel_min_from_center": 15,
+          "cost_cny": 60,
+          "crowd": "high",
+          "notes": "旺季 60 元、淡季 40 元；08:30 开馆、16:00 停止入馆、17:00 闭馆，周一闭馆。必须提前 7 天实名预约，院内禁用大型器材与换装"
+        },
+        {
+          "source": "curation:web-2026-11-16",
+          "last_verified_at": "2026-11-16",
+          "indoor": false,
+          "min_minutes": 120,
+          "weather_risk": "high",
+          "id": "yiheyuan",
+          "name": "颐和园",
+          "district": "haidian",
+          "tags": [
+            "tang",
+            "song",
+            "garden",
+            "open",
+            "quiet",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning",
+            "golden"
+          ],
+          "travel_min_from_center": 40,
+          "cost_cny": 30,
+          "crowd": "high",
+          "notes": "旺季 30 元、淡季 20 元；06:30 开园。长廊与西堤出片，园内拍摄人流大，清晨或闭园前两小时最稳"
+        },
+        {
+          "source": "curation:web-2026-11-16",
+          "last_verified_at": "2026-11-16",
+          "indoor": false,
+          "min_minutes": 90,
+          "weather_risk": "medium",
+          "id": "tiantan",
+          "name": "天坛公园",
+          "district": "dongcheng",
+          "tags": [
+            "ming",
+            "architecture",
+            "open",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning"
+          ],
+          "travel_min_from_center": 20,
+          "cost_cny": 15,
+          "crowd": "medium",
+          "notes": "公园门票 15 元、联票 34 元；06:00 开园。祈年殿蓝瓦红墙最出片，上午光线顺，午后逆光"
+        },
+        {
+          "source": "curation:web-2026-11-16",
+          "last_verified_at": "2026-11-16",
+          "indoor": false,
+          "min_minutes": 90,
+          "weather_risk": "medium",
+          "id": "gongwangfu",
+          "name": "恭王府",
+          "district": "xicheng",
+          "tags": [
+            "ming",
+            "garden",
+            "architecture",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning",
+            "golden"
+          ],
+          "travel_min_from_center": 20,
+          "cost_cny": 40,
+          "crowd": "medium",
+          "notes": "40 元；08:30-17:00、16:10 停止入园。府邸加花园两段，适合明清题材；院内空间窄，长焦难展开"
+        },
+        {
+          "source": "curation:web-2026-11-16",
+          "last_verified_at": "2026-11-16",
+          "indoor": false,
+          "min_minutes": 60,
+          "weather_risk": "medium",
+          "id": "jingshan",
+          "name": "景山公园",
+          "district": "xicheng",
+          "tags": [
+            "ming",
+            "open",
+            "garden",
+            "outdoor"
+          ],
+          "best_light": [
+            "golden"
+          ],
+          "travel_min_from_center": 15,
+          "cost_cny": 2,
+          "crowd": "medium",
+          "notes": "2 元；万春亭可俯瞰故宫全景，是北京唯一的高点机位。台阶多，长裙需注意；日落前 1 小时最佳"
+        },
+        {
+          "source": "curation:web-2026-11-16",
+          "last_verified_at": "2026-11-16",
+          "indoor": false,
+          "min_minutes": 60,
+          "weather_risk": "medium",
+          "id": "shichahai",
+          "name": "什刹海",
+          "district": "xicheng",
+          "tags": [
+            "street",
+            "human",
+            "open",
+            "night",
+            "outdoor"
+          ],
+          "best_light": [
+            "golden",
+            "night"
+          ],
+          "travel_min_from_center": 20,
+          "cost_cny": 0,
+          "crowd": "high",
+          "notes": "开放式水域街区，免费；傍晚水面反光与胡同灯影都可用。游客密集，建议避开周末下午"
+        },
+        {
+          "source": "curation:web-2026-11-16",
+          "last_verified_at": "2026-11-16",
+          "indoor": false,
+          "min_minutes": 60,
+          "weather_risk": "medium",
+          "id": "nanluoguxiang",
+          "name": "南锣鼓巷",
+          "district": "dongcheng",
+          "tags": [
+            "republic",
+            "street",
+            "human",
+            "outdoor"
+          ],
+          "best_light": [
+            "golden"
+          ],
+          "travel_min_from_center": 18,
+          "cost_cny": 0,
+          "crowd": "high",
+          "notes": "免费步行街，元明清胡同格局；两侧支巷比主街安静，适合民国与生活感题材。主街商业拍摄可能被劝离"
+        },
+        {
+          "source": "curation:web-2026-11-16",
+          "last_verified_at": "2026-11-16",
+          "indoor": false,
+          "min_minutes": 90,
+          "weather_risk": "high",
+          "id": "beihai",
+          "name": "北海公园",
+          "district": "xicheng",
+          "tags": [
+            "tang",
+            "weijin",
+            "garden",
+            "open",
+            "outdoor"
+          ],
+          "best_light": [
+            "morning",
+            "golden"
+          ],
+          "travel_min_from_center": 25,
+          "cost_cny": 10,
+          "crowd": "medium",
+          "notes": "旺季 10 元、淡季 5 元；06:30 开园。白塔与太液池是经典构图，划船需另付费"
+        },
+        {
+          "source": "curation:web-2026-11-16",
+          "last_verified_at": "2026-11-16",
+          "indoor": true,
+          "min_minutes": 60,
+          "weather_risk": "low",
+          "id": "indoor_studio_bj",
+          "name": "东城室内影棚",
+          "district": "dongcheng",
+          "tags": [
+            "indoor",
+            "controlled",
+            "minimal",
+            "ming"
+          ],
+          "best_light": [
+            "any"
+          ],
+          "travel_min_from_center": 15,
+          "cost_cny": 420,
+          "crowd": "low",
+          "notes": "室内布光可控，北京冬季与雾霾天的备选；含基础置景，宫墙/窗棂类布景需加价"
+        }
+      ]
     }
   }
 }

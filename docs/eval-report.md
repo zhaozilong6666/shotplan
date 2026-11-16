@@ -126,11 +126,11 @@
 | C31 | infeasible | 预算 100 元低于最低可执行成本 | 通过 | 1.0 | INFEASIBLE | 是 |
 | C32 | infeasible | 预算为 0 | 通过 | 1.0 | INFEASIBLE | 是 |
 | C33 | infeasible | 1 小时排不下妆造+转场+拍摄 | 通过 | 1.0 | INFEASIBLE | 是 |
-| C34 | infeasible | 知识库不支持的城市 | 通过 | 1.0 | INFEASIBLE | 是 |
+| C34 | infeasible | 知识库不支持的城市（虚构 id，扩城不会让它失效） | 通过 | 1.0 | INFEASIBLE | 是 |
 | C35 | infeasible | 同一地点同时被 must_include 与 avoid 指定 | 通过 | 1.0 | INFEASIBLE | 是 |
 | C36 | infeasible | 预算与时长同时不足，应返回多条原因 | 通过 | 1.0 | INFEASIBLE | 是 |
 | C49 | infeasible | 洛阳预算 100 元低于最低成本 | 通过 | 1.0 | INFEASIBLE | 是 |
-| C50 | infeasible | 知识库不支持的城市（当前用未收录的北京；若收录请换其他未收录城市） | 通过 | 1.0 | INFEASIBLE | 是 |
+| C50 | infeasible | 知识库不支持的城市（虚构 id，扩城不会让它失效） | 通过 | 1.0 | INFEASIBLE | 是 |
 | C60 | infeasible | 杭州预算 100 元低于最低成本 | 通过 | 1.0 | INFEASIBLE | 是 |
 | C70 | infeasible | 苏州同一地点既要求包含又被排除，约束互斥 | 通过 | 1.0 | INFEASIBLE | 是 |
 | C80 | infeasible | 南京预算 120 元低于最低可执行成本 | 通过 | 1.0 | INFEASIBLE | 是 |

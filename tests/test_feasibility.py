@@ -34,7 +34,7 @@ def test_time_below_minimum_is_refused(tools):
 
 
 def test_unsupported_city_is_refused(tools):
-    report = check_feasibility(PlanRequest(city="beijing"), tools)
+    report = check_feasibility(PlanRequest(city="atlantis"), tools)
     assert "UNSUPPORTED_CITY" in reason_codes(report)
     assert "xian" in report.reasons[0].shortfall
 
@@ -99,7 +99,7 @@ def test_infeasible_pipeline_never_calls_the_provider(tools):
 def test_infeasible_result_serialises_and_persists(tools, tmp_path):
     store = RunStore(tmp_path / "runs.db")
     result = run_plan(
-        PlanRequest(city="beijing"), provider=_ExplodingProvider(),
+        PlanRequest(city="atlantis"), provider=_ExplodingProvider(),
         tools=tools, store=store, max_repairs=0,
     )
     payload = result.to_dict()
