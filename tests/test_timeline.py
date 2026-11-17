@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from shotplan.domain.models import Plan, PlanRequest, TimeSlot, to_minutes
-from shotplan.timeline import repair_short_shoots
+from shotplan.timeline import compress_styling_for_shoots, repair_short_shoots
 
 
 def _req(hours: float = 6) -> PlanRequest:
@@ -97,3 +97,87 @@ def test_a_physically_short_block_is_not_flagged():
     # With 7 hours the same 40-minute block really is a planning mistake.
     codes = [i.code for i in validate(_plan(slots), _req(hours=7), None).issues]
     assert "SHOOT_TOO_SHORT" in codes
+
+
+def _tight_slots(makeup_minutes: int = 85, shoot_minutes: int = 5) -> list[TimeSlot]:
+    """The real C46 shape: 1.5h booking, 85 min styling, 5 min of shooting."""
+    fmt = lambda m: f"{m // 60:02d}:{m % 60:02d}"  # noqa: E731
+    start = 14 * 60 + 47
+    makeup_end = start + makeup_minutes
+    shoot_end = makeup_end + shoot_minutes
+    return [
+        TimeSlot(fmt(start), fmt(makeup_end), "makeup", "lijing_gate", "妆造", 400),
+        TimeSlot(fmt(makeup_end), fmt(shoot_end), "shoot", "lijing_gate", "拍摄", 120),
+    ]
+
+
+def test_oversized_styling_gives_time_to_the_short_shoot():
+    req = _req(hours=1.5)
+    plan = _plan(_tight_slots())
+    fixed = compress_styling_for_shoots(plan, req)
+    assert fixed is not None
+    assert fixed.slots[0].minutes() == 60, "styling capped for a 90-minute booking"
+    assert fixed.slots[1].minutes() == 30, "the shoot gets the floor, not five minutes"
+    # Nothing after the shoot moved, and the original plan is untouched.
+    assert fixed.slots[1].end == plan.slots[1].end
+    assert plan.slots[0].minutes() == 85
+    # The trade must be visible to the client, not silent.
+    assert "压缩为 60 分钟" in fixed.slots[0].notes
+
+
+def test_styling_is_not_cut_when_the_shoot_already_fits():
+    """7h booking: the floor is 60 and the 85-minute styling is not the problem."""
+    req = _req(hours=7)
+    plan = _plan(_tight_slots(makeup_minutes=85, shoot_minutes=40))
+    assert compress_styling_for_shoots(plan, req) is None
+
+
+def test_a_transfer_between_styling_and_shoot_blocks_the_repair():
+    """Only an immediately adjacent pair is safe; otherwise later slots would move."""
+    req = _req(hours=1.5)
+    slots = _tight_slots()
+    slots.insert(1, TimeSlot("16:12", "16:32", "travel", "lijing_gate", "转场", 50))
+    assert compress_styling_for_shoots(_plan(slots), req) is None
+
+
+def test_split_styling_blocks_are_treated_as_one_run():
+    """The model writes "60 min makeup" + "25 min costume"; both are styling."""
+    req = _req(hours=1.5)
+    slots = [
+        TimeSlot("09:00", "10:00", "makeup", "lijing_gate", "妆面", 300),
+        TimeSlot("10:00", "10:25", "makeup", "lijing_gate", "换装", 100),
+        TimeSlot("10:25", "10:30", "shoot", "lijing_gate", "快拍", 120),
+    ]
+    fixed = compress_styling_for_shoots(_plan(slots), req)
+    assert fixed is not None
+    assert [s.activity for s in fixed.slots] == ["makeup", "shoot"]
+    assert fixed.slots[0].minutes() == 60
+    assert fixed.slots[1].minutes() == 30
+    assert fixed.slots[1].end == "10:30", "the shoot keeps its end"
+
+
+def test_the_shoots_own_prose_is_corrected_not_left_contradicting_itself():
+    """The model writes "only 5 minutes left"; after the repair it is 30."""
+    req = _req(hours=1.5)
+    slots = [
+        TimeSlot("09:00", "10:00", "makeup", "lijing_gate", "妆面", 300),
+        TimeSlot("10:00", "10:25", "makeup", "lijing_gate", "换装", 100),
+        TimeSlot("10:25", "10:30", "shoot", "lijing_gate", "仅能安排5分钟快拍", 120),
+    ]
+    fixed = compress_styling_for_shoots(_plan(slots), req)
+    assert fixed is not None
+    # The label said "5 分钟"; it must not survive next to a 30-minute block.
+    assert "5分钟" not in fixed.slots[1].label
+    assert "30 分钟" in fixed.slots[1].label
+    assert "补足为 30 分钟" in fixed.slots[1].notes, "and the change is recorded"
+
+
+def test_the_styling_summary_follows_the_compressed_block():
+    req = _req(hours=1.5)
+    plan = _plan(_tight_slots())
+    plan = Plan(city="xian", date="2026-10-04", slots=plan.slots, total_cost_cny=600,
+                styling={"style_id": "republic", "makeup_minutes": 60, "costume_minutes": 25})
+    fixed = compress_styling_for_shoots(plan, req)
+    assert fixed is not None
+    assert fixed.styling["makeup_minutes"] == 35, "60 - 25 given to the shoot"
+    assert fixed.styling["costume_minutes"] == 25, "costume duration is untouched"

@@ -49,7 +49,7 @@ from .grounding import sanitize_source_refs
 from .knowledge.tools import KnowledgeTools, get_tools
 from .light import align_light_window
 from .storage import RunSink
-from .timeline import repair_short_shoots
+from .timeline import compress_styling_for_shoots, repair_short_shoots
 from .tracing import TraceCollector
 
 
@@ -76,19 +76,39 @@ def _validate_with_light(
     return aligned, aligned_report, True
 
 
+def _compress_styling(plan: Plan, req: PlanRequest, kb: KnowledgeTools) -> Plan:
+    """Give time back from an oversized styling block to the shoot after it.
+
+    Validation is the referee here too: a longer shoot is not worth a broken
+    opening hour or a budget overrun. The compression is written into the
+    styling block's notes, so the client can see what was traded away.
+    """
+    compressed = compress_styling_for_shoots(plan, req)
+    if compressed is None:
+        return plan
+    before = validate(plan, req, kb)
+    after = validate(compressed, req, kb)
+    if (after.hard_pass, after.score) < (before.hard_pass, before.score):
+        return plan
+    return compressed
+
+
 def _validate_and_repair(
     plan: Plan, req: PlanRequest, kb: KnowledgeTools
 ) -> tuple[Plan, ValidationReport, bool, int]:
-    """Validate, then apply the two repairs code can do better than a prompt.
+    """Validate, then apply the three repairs code can do better than a prompt.
 
-    Both are kept only when the plan does not get worse: a nicer block length is
-    not worth a time or budget violation. Dropped citations are returned too:
-    silently deleting a model's source list is itself a data change, so the
-    caller records the count in the trace instead of hiding it.
+    All of them are kept only when the plan does not get worse: a nicer block
+    length is not worth a time or budget violation. Dropped citations are
+    returned too: silently deleting a model's source list is itself a data
+    change, so the caller records the count in the trace instead of hiding it.
     """
     # Fabricated citations are dropped before anything else: one invented
     # pointer should not fail an otherwise deliverable plan.
     plan, dropped_refs = sanitize_source_refs(plan, kb)
+    # Styling gives time back BEFORE the light alignment: the freed 25 minutes
+    # are only useful if the whole timeline can then be shifted into the window.
+    plan = _compress_styling(plan, req, kb)
     plan, report, light_aligned = _validate_with_light(plan, req, kb)
     if not any(issue.code == "SHOOT_TOO_SHORT" for issue in report.issues):
         return plan, report, light_aligned, dropped_refs

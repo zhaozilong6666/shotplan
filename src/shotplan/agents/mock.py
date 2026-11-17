@@ -18,7 +18,11 @@ import json
 import time
 from typing import Any
 
-from ..domain.constraints import MIN_TRANSFER_COST_CNY, MIN_TRANSFER_MINUTES
+from ..domain.constraints import (
+    MIN_TRANSFER_COST_CNY,
+    MIN_TRANSFER_MINUTES,
+    styling_minutes_for,
+)
 from ..domain.models import PlanRequest, fmt_minutes
 from ..domain.models import to_minutes as _to_minutes
 from ..knowledge.tools import get_tools
@@ -227,7 +231,7 @@ class MockProvider:
         end_limit = cursor + total_minutes
 
         # Shorten the styling block when the booking is short, and say so.
-        makeup_minutes = min(style_total, max(60, int(total_minutes * 0.35)))
+        makeup_minutes = styling_minutes_for(style_total, req.hours)
         assumptions: list[str] = []
         if req.styles and style["id"] not in req.styles:
             assumptions.append(

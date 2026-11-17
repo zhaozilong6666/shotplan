@@ -32,6 +32,25 @@ def min_shoot_block_minutes(available_hours: float) -> int:
     proportional = int(available_hours * 60 * 0.25)
     return max(MIN_SHOOT_BLOCK_FLOOR, min(MIN_SHOOT_BLOCK_MINUTES, proportional))
 
+
+# Styling is the one block that can give time back. A 1.5-hour booking cannot
+# hold a full 85-minute 民国 styling block plus a shoot, but the answer is a
+# compressed styling, not a five-minute photoshoot -- which is what a real-model
+# run actually produced before this rule existed (C46).
+STYLING_SHARE = 0.35
+STYLING_FLOOR_MINUTES = 60
+
+
+def styling_minutes_for(standard_minutes: int, available_hours: float) -> int:
+    """How long the styling block may take inside this booking.
+
+    Never longer than the style's standard duration, never shorter than the
+    floor. Shared by the offline planner and the post-generation repair so the
+    two cannot disagree about what "compressed" means.
+    """
+    cap = max(STYLING_FLOOR_MINUTES, int(available_hours * 60 * STYLING_SHARE))
+    return min(standard_minutes, cap)
+
 # Below this, makeup + one transfer + one shoot cannot fit at all.
 MIN_FEASIBLE_HOURS = 1.5
 
