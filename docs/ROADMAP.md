@@ -2,6 +2,20 @@
 
 项目按数周到两个月的节奏推进。每个阶段都有**可验证的产出**，不是「继续优化」这种无法验收的任务。打勾表示代码与文档已经落地并通过本地验证。
 
+## 当前焦点 · 交互深度（2026-11-17 起）
+
+单轮已经到顶：80 例硬约束 80/80、均分 0.93，继续调它的边际收益接近零。真正没被
+测量过的是**第一轮之后**——真实用户不会一次把需求说清楚。
+
+第一次测量见 [multi-turn.md](multi-turn.md)：12 条多轮用例，**5 条通过（42%）**。
+`followup.py` 是一条关键词白名单，只认识「加」，不认识「砍」「便宜 300」「预算两千」
+「不要唐制」；7 条失败收敛到三个缺口——只做加法、不解析数字、不碰字段级修改。
+
+所以当前位置：把追问从「字段微调器」做成「能收敛的对话」。验收标准先立好——
+同一套 12 例通过率往上走，且每条失败都能指到一个明确的规则缺口，而不是「模型没懂」。
+
+发布 Demo 与公网流量不在此列：没有真实用户时，它增加的是维护面，不是信息量。
+
 ## 阶段 1 · 把「可执行」定义清楚 ✅
 
 - [x] 领域模型与规范化输入
@@ -41,7 +55,7 @@
 - [x] **持久化对照实验**：`SHOTPLAN_PERSIST_RUNS` 开关在同一份产品代码上做开/关对照，验证 v0.8.0 的写锁归因；判定允许输出「不确定」，结论随数据动态生成（见 [worker-bottleneck.md](worker-bottleneck.md)、[ADR 0011](adr/0011-controlled-experiment-over-inference.md)）
 - [x] **写入异步化**：`off/sync/async` 三组同批对照，异步相对同步 1 worker 2.96×、4 worker 1.95×，拿回约 47% 写库开销，三组 0 丢写；默认仍为 `sync`，硬杀丢失窗口用 `os._exit` 实测（见 [persistence.md](persistence.md)、[ADR 0012](adr/0012-write-behind-persistence.md)）
 - [x] **流水线契约与墙钟预算**：6 个节点写成状态表，图与逐节点 I/O 由代码生成、CI 比对漂移；超预算时降级返回最优草稿（见 [pipeline-contract.md](pipeline-contract.md)、[ADR 0013](adr/0013-explicit-stage-table-and-budget.md)）
-- [x] GitHub Actions：测试 + lint + **27 道质量门禁**（单元测试跑 3.10–3.13 矩阵，重门禁在 3.12 执行一次）
+- [x] GitHub Actions：测试 + lint + **28 道质量门禁**（单元测试跑 3.10–3.13 矩阵，重门禁在 3.12 执行一次）
 
 验收：`python -m evals.run_eval --write-report` 退出码 0；实测 80/80 通过、均分 0.9796、对照组 0.2974；`python -m evals.mutation_lab --check` 退出码 0 且 0 处变异存活；`python -m evals.case_miner --check` 退出码 0 且 320 个盲测 brief 全部与主集不重复；`python -m evals.http_load --check` 退出码 0 且真实 HTTP 请求 0 错误、0 丢写；`python -m evals.worker_lab --check` 退出码 0 且持久化开关语义正确（开 = 全落库、关 = 0 落库）；`python -m evals.persist_lab --check` 退出码 0 且三组各自满足落库契约；`python scripts/build_pipeline_doc.py --check` 退出码 0 且契约文档与代码一致。
 
@@ -67,17 +81,20 @@
 
 ## 阶段 5 · 上线与叙事 ⏳
 
-- [ ] 在线 Demo 部署（默认 `mock` 模式，避免公开课暴露密钥）
-- [ ] README 顶部放 Demo 链接与 30 秒演示动图
+- [x] ~~在线 Demo 部署~~ —— **判定不做**（2026-11-17）。理由不是做不到，是价值排序：
+  没有真实用户、没有反馈渠道，上线只多出一个需要长期维护的公开链接，以及一次
+  必须做对的脱敏打包（仓库里有 `.env`）。GitHub 上的代码、CI 与可 `--check`
+  的评测报告已经让结论完整可复现，公开链接没有增加任何可验证的信息。
+- [x] ~~README 顶部放 Demo 链接~~ —— 同上，等第一批真实用户出现再说。
 - [x] 可观测面板：按 provider / prompt 版本聚合通过率、延迟与成本（CLI / API / Web）
 - [x] 静态展示页（GitHub Pages）：指标、分组结果、修复实验、失败案例与 ADR 入口一页呈现
 - [x] 中文 + 英文 README 互链（投外企时切换）
 - [ ] 简历 3 条 bullets 与 10 分钟讲稿定稿
 - [ ] 按目标 JD 调整 README 关键词顺序
 
-验收：任意一个陌生人通过链接能在不改代码、不配 key 的情况下完成一次生成并看到校验报告。
+验收：任意一个陌生人 clone 仓库后，按 README 两步跑通一次生成并看到校验报告，无需 key、无需部署。
 
-**需要你做的**：部署账号与域名，步骤见 [portfolio/USER_TASKS.md](portfolio/USER_TASKS.md) 第 5 节。
+**需要你做的**：无。这一阶段剩下的只是简历 bullets 与讲稿，不需要账号或域名。
 
 ## 明确不做
 
@@ -126,7 +143,7 @@
 - [x] 故障注入矩阵（`evals/fault_injection.py`，12/12 通过，纯离线、已进门禁）：provider 超时/429/502、解析失败、SQLite 锁、磁盘满 ENOSPC、无权限、知识库损坏、校验器异常、断供不污染分母、API 502/503 映射。顺带修掉 `_safe_save` 只捕获 `StorageError` 而漏掉 `OSError` 的真实缺陷。见 [fault-injection.md](fault-injection.md)
 - [x] 定义 SLO 与监控查询：见 [slo.md](slo.md) + [slo-baseline.md](slo-baseline.md)（由 7 份快照生成并纳入门禁）。**修正原假设**：「95% 请求 30s 内返回」与实测 P50 40.5–91.5s、P95 63.9–171.8s 矛盾，改为 P50 ≤95s / P95 ≤180s / 通过率 ≥90% / 上游错误率 ≤5% / 单次 ≤¥0.08，并写清 gauge 窗口语义与黑盒探针必要性
 - [x] **一句话需求理解 + 假设透明 + 约束协商**：见 [intelligence-roadmap.md](intelligence-roadmap.md)
-- [ ] 部署到公网，跑一周真实流量，回收延迟与失败分布 —— **需要真实部署环境，无法由离线实验替代**；上线前的检查清单与「只有上线后才知道」的清单见 [release-readiness.md](release-readiness.md)
+- [ ] 部署到公网，跑一周真实流量，回收延迟与失败分布 —— **当前不投入**：需要真实部署环境与真实用户，两者都不具备，而离线实验无法替代。判断依据见下方「当前焦点」；上线前的检查清单与「只有上线后才知道」的清单仍保留在 [release-readiness.md](release-readiness.md)，具备条件时可原样执行
 
 验收：能给出一周真实流量的分布图，并指出一个只有上线后才暴露的问题。
 

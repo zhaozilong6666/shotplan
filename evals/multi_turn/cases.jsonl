@@ -1,0 +1,27 @@
+# 多轮追问用例。每条的 turns[0] 是表单初始值，之后每次 say 是一次用户输入。
+# expect 只断言最终 request 的字段（子集），expect_recognized 断言最后一轮是否该被识别。
+# 选例标准：人一听就懂，但当前的关键词白名单会做错 —— 这样才有测量价值。
+
+{"id": "M01", "kind": "shorter", "description": "用「砍」表达缩短，动词不在白名单里", "turns": [{"request": {"city": "xian", "date": "2026-10-04", "hours": 6, "budget_cny": 1500, "styles": ["tang"], "preferences": []}}, {"say": "时间砍一点吧，4 个小时够了"}], "expect": {"hours": 4, "budget_cny": 1500, "city": "xian"}, "expect_recognized": true}
+
+{"id": "M02", "kind": "cheaper_amount", "description": "带金额的降价，应该算出新预算而不是只记一条偏好", "turns": [{"request": {"city": "xian", "date": "2026-10-04", "hours": 6, "budget_cny": 1500, "styles": ["tang"], "preferences": []}}, {"say": "能不能便宜 300"}], "expect": {"budget_cny": 1200}, "expect_recognized": true}
+
+{"id": "M03", "kind": "city_switch", "description": "换城市时其余条件必须原样继承，不能重置", "turns": [{"request": {"city": "xian", "date": "2026-10-04", "hours": 6, "budget_cny": 1500, "styles": ["tang"], "preferences": ["傍晚光线"]}}, {"say": "换到苏州吧"}], "expect": {"city": "suzhou", "hours": 6, "budget_cny": 1500, "styles": ["tang"]}, "expect_recognized": true}
+
+{"id": "M04", "kind": "style_replace", "description": "否定并替换风格，styles 要真的换掉", "turns": [{"request": {"city": "xian", "date": "2026-10-04", "hours": 6, "budget_cny": 1500, "styles": ["tang"], "preferences": []}}, {"say": "不要唐制了，换宋制"}], "expect": {"styles": ["song"]}, "expect_recognized": true}
+
+{"id": "M05", "kind": "compound", "description": "两件事一起调，对照组：白名单本来就能过", "turns": [{"request": {"city": "xian", "date": "2026-10-04", "hours": 6, "budget_cny": 1500, "styles": ["tang"], "preferences": []}}, {"say": "预算多一点，时间也松一点"}], "expect": {"budget_cny": 1800, "hours": 7}, "expect_recognized": true}
+
+{"id": "M06", "kind": "absolute_budget", "description": "直接给数字，没有「多/加」这类动词", "turns": [{"request": {"city": "xian", "date": "2026-10-04", "hours": 6, "budget_cny": 1500, "styles": ["tang"], "preferences": []}}, {"say": "预算两千吧"}], "expect": {"budget_cny": 2000}, "expect_recognized": true}
+
+{"id": "M07", "kind": "implicit_deadline", "description": "赶车是隐含的结束时间约束，不是一句闲聊", "turns": [{"request": {"city": "xian", "date": "2026-10-04", "hours": 6, "budget_cny": 1500, "styles": ["tang"], "preferences": []}}, {"say": "我得赶下午五点的高铁"}], "expect": {"preferences_contains": "17:00前结束"}, "expect_recognized": true}
+
+{"id": "M08", "kind": "cheaper_vague", "description": "模糊降价，没有给金额", "turns": [{"request": {"city": "xian", "date": "2026-10-04", "hours": 6, "budget_cny": 1500, "styles": ["tang"], "preferences": []}}, {"say": "太贵了，预算降一点"}], "expect": {"budget_cny": 1200}, "expect_recognized": true}
+
+{"id": "M09", "kind": "unrecognised", "description": "守门用例：说不清的话不能被瞎猜成某个字段", "turns": [{"request": {"city": "xian", "date": "2026-10-04", "hours": 6, "budget_cny": 1500, "styles": ["tang"], "preferences": []}}, {"say": "我想要那种很有氛围感的感觉"}], "expect": {"hours": 6, "budget_cny": 1500}, "expect_recognized": false}
+
+{"id": "M10", "kind": "inherit", "description": "先降价再放松，第一轮的预算必须留在第二轮里", "turns": [{"request": {"city": "xian", "date": "2026-10-04", "hours": 6, "budget_cny": 1500, "styles": ["tang"], "preferences": []}}, {"say": "预算降到 800"}, {"say": "再松一点"}], "expect": {"budget_cny": 800, "preferences_contains": "轻松"}, "expect_recognized": true}
+
+{"id": "M11", "kind": "revert", "description": "改了又改回去，最后一轮的城市说了算", "turns": [{"request": {"city": "xian", "date": "2026-10-04", "hours": 6, "budget_cny": 1500, "styles": ["tang"], "preferences": []}}, {"say": "换到北京"}, {"say": "还是回西安吧"}], "expect": {"city": "xian"}, "expect_recognized": true}
+
+{"id": "M12", "kind": "ceiling", "description": "已经到 12 小时上限，再说「再多」不能突破也不能报错", "turns": [{"request": {"city": "xian", "date": "2026-10-04", "hours": 12, "budget_cny": 3000, "styles": ["tang"], "preferences": []}}, {"say": "时间再多一点"}], "expect": {"hours": 12}, "expect_recognized": false}
