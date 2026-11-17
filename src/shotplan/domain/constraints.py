@@ -45,8 +45,12 @@ REQUIRED_ACTIVITIES = ("makeup", "shoot")
 # present, an empty golden-light window is the CORRECT outcome, not a defect:
 # the user asked for a morning session. Both the validator (which used to flag
 # every such plan with LIGHT_MISUSE) and the light aligner must agree on this.
+# Deliberately explicit: a bare "上午" can mean "morning light is nice", not
+# "finish before noon". Treating it as a finish request would skip the light
+# alignment for a plan that actually wants the golden hour.
 MORNING_FINISH_WORDS = (
-    "上午", "中午前", "中午之前", "收工早", "早点拍完", "早上拍",
+    "上午收工", "上午结束", "中午前", "中午之前", "收工早",
+    "早点拍完", "上午拍完", "早上拍完",
 )
 
 

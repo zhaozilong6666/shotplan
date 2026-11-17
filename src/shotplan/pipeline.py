@@ -77,25 +77,27 @@ def _validate_with_light(
 
 def _validate_and_repair(
     plan: Plan, req: PlanRequest, kb: KnowledgeTools
-) -> tuple[Plan, ValidationReport, bool]:
+) -> tuple[Plan, ValidationReport, bool, int]:
     """Validate, then apply the two repairs code can do better than a prompt.
 
     Both are kept only when the plan does not get worse: a nicer block length is
-    not worth a time or budget violation.
+    not worth a time or budget violation. Dropped citations are returned too:
+    silently deleting a model's source list is itself a data change, so the
+    caller records the count in the trace instead of hiding it.
     """
     # Fabricated citations are dropped before anything else: one invented
     # pointer should not fail an otherwise deliverable plan.
     plan, dropped_refs = sanitize_source_refs(plan, kb)
     plan, report, light_aligned = _validate_with_light(plan, req, kb)
     if not any(issue.code == "SHOOT_TOO_SHORT" for issue in report.issues):
-        return plan, report, light_aligned
+        return plan, report, light_aligned, dropped_refs
     fixed = repair_short_shoots(plan, req)
     if fixed is None:
-        return plan, report, light_aligned
+        return plan, report, light_aligned, dropped_refs
     fixed_report = validate(fixed, req, kb)
     if (fixed_report.hard_pass, fixed_report.score) < (report.hard_pass, report.score):
-        return plan, report, light_aligned
-    return fixed, fixed_report, light_aligned
+        return plan, report, light_aligned, dropped_refs
+    return fixed, fixed_report, light_aligned, dropped_refs
 
 logger = logging.getLogger(__name__)
 
@@ -540,13 +542,14 @@ def _run_plan(
     # 4. Validation --------------------------------------------------------------
     # The golden-hour placement is decided here, by code, not by the prompt.
     tick = time.perf_counter()
-    plan, report, light_aligned = _validate_and_repair(plan, req, kb)
+    plan, report, light_aligned, dropped_refs = _validate_and_repair(plan, req, kb)
     collector.record(
         "validate", tick,
         score=round(report.score, 3),
         hard_issues=len(report.hard_issues),
         soft_issues=len(report.soft_issues),
         light_aligned=light_aligned,
+        dropped_source_refs=dropped_refs,
     )
 
     # 5. Repair loop -------------------------------------------------------------
@@ -578,7 +581,9 @@ def _run_plan(
         try:
             fixed = call_generate(hint)
             candidate = parse_plan(fixed.payload, req, agent.name, effective_prompt)
-            candidate, candidate_report, _ = _validate_and_repair(candidate, req, kb)
+            candidate, candidate_report, _, candidate_dropped = _validate_and_repair(
+                candidate, req, kb
+            )
         except ShotplanError as exc:
             collector.record(f"repair_{repairs}", tick, outcome="error", reason=str(exc)[:120])
             # Previously this broke silently with status='ok': the caller saw a
@@ -610,6 +615,7 @@ def _run_plan(
             # nothing about whether it can fix a budget overrun or only a typo.
             before_codes=[issue.code for issue in report.hard_issues][:6],
             after_codes=[issue.code for issue in candidate_report.hard_issues][:6],
+            dropped_source_refs=candidate_dropped,
             accepted=accepted,
         )
         if accepted:

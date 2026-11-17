@@ -5,6 +5,12 @@ and constraint comprehension were fine. The model does not reason about where
 the sun will be -- so the golden window stops being a prompt suggestion and
 becomes a post-generation alignment step.
 
+The window itself is a month-level seasonal approximation shared by every city:
+latitude/longitude are deliberately not used yet. It is precise enough to move
+an obviously wrong 11:00 shoot out of the midday sun, but it is not an
+astronomical almanac. Beijing and Chengdu currently get the same window, which
+is a known limitation rather than a claim about the sun.
+
 Two rules keep this honest:
 
 * A brief that asks to finish by noon is never aligned. An empty golden window

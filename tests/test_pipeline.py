@@ -86,6 +86,29 @@ def test_request_id_is_recorded_only_when_supplied():
     assert tagged.trace.config["request_id"] == "trace-42"
 
 
+def test_dropped_fabricated_refs_are_recorded_in_the_trace():
+    """Dropping a model's citations is a data change; it must not be silent."""
+    import copy
+
+    class FabricatedRefs:
+        name = "fabricated"
+        prompt_version = "test"
+
+        def generate(self, request, context, repair_hint=None):
+            base = MockProvider("good").generate(request, context, repair_hint)
+            payload = copy.deepcopy(base.payload)
+            payload["source_refs"] = ["locations.json#city_wall", "locations.json#atlantis"]
+            payload["slots"][0]["source_refs"] = ["styles.json#tang", "locations.json#nowhere"]
+            return GenerationResult(payload=payload)
+
+    result = run_plan(PlanRequest(), provider=FabricatedRefs(), max_repairs=0)
+    assert result.validation.hard_pass is True
+    assert result.plan.source_refs == ["locations.json#city_wall"]
+    assert result.plan.slots[0].source_refs == ["styles.json#tang"]
+    stage = next(e for e in result.trace.events if e.name == "validate")
+    assert stage.detail["dropped_source_refs"] == 2
+
+
 def test_persistence_failure_does_not_veto_a_valid_plan():
     class BrokenStore:
         def save(self, result):

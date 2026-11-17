@@ -581,8 +581,8 @@ def build_report(
         "这个数字比平均分更能说明结构化输出的稳定性：修复循环会把一次失败掩盖成一个还不错的分数。"
         + (
             f" 软问题涉及 {snapshot['soft_issue_rate'] * 100:.1f}% 的用例"
-            f"（{sum(1 for case in snapshot.get('per_case', []) if case.get('mean_soft_issues', 0) > 0)}"
-            f"/{planned}）——硬约束通过不等于拍得好看。"
+            f"（{round(snapshot['soft_issue_rate'] * planned)}/{planned}）"
+            "——硬约束通过不等于拍得好看。"
             if snapshot.get("soft_issue_rate")
             else ""
         )

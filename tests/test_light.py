@@ -60,6 +60,12 @@ def test_a_morning_finish_brief_is_never_pushed_into_the_evening():
     assert align_light_window(plan, req, KB) is None
 
 
+def test_morning_light_is_not_a_morning_finish():
+    """A bare "上午" can describe the light, not a noon deadline."""
+    req = _req(preferences=["上午光线好"])
+    assert align_light_window(_morning_plan(req), req, KB) is not None
+
+
 def test_already_aligned_plans_are_left_alone():
     req = _req()
     plan = _morning_plan(req)
