@@ -3,7 +3,7 @@
 > 把一句模糊的「想去西安拍汉服」，变成一份**能执行、能核对、能追溯**的小时级方案。
 > 这是一个可评测的 Agent 系统，不是又一个聊天框。
 
-[English README](README.en.md) · [在线展示](https://zhaozilong6666.github.io/shotplan/) · ![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![CI](https://github.com/zhaozilong6666/shotplan/actions/workflows/ci.yml/badge.svg) ![coverage](https://img.shields.io/badge/coverage-93.02%25-brightgreen)
+[English README](README.en.md) · [在线展示](https://zhaozilong6666.github.io/shotplan/) · ![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![CI](https://github.com/zhaozilong6666/shotplan/actions/workflows/ci.yml/badge.svg) ![coverage](https://img.shields.io/badge/coverage-93.13%25-brightgreen)
 
 ---
 
