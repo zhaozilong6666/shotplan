@@ -14,6 +14,10 @@
 所以当前位置：把追问从「字段微调器」做成「能收敛的对话」。验收标准先立好——
 同一套 12 例通过率往上走，且每条失败都能指到一个明确的规则缺口，而不是「模型没懂」。
 
+每一轮改动的预期与实测记在 [experiments.md](experiments.md)（数据源 `evals/experiments.jsonl`，
+第 30 道门禁）。判定只有「确认 / 推翻 / 部分 / 待结」四种，且证据字段必须指向真实文件。
+台账现在只有 11 条、散在 10 个方向——**没有一条线累积到 3 次**，这是下一阶段要改的。
+
 发布 Demo 与公网流量不在此列：没有真实用户时，它增加的是维护面，不是信息量。
 
 ## 阶段 1 · 把「可执行」定义清楚 ✅
@@ -55,7 +59,7 @@
 - [x] **持久化对照实验**：`SHOTPLAN_PERSIST_RUNS` 开关在同一份产品代码上做开/关对照，验证 v0.8.0 的写锁归因；判定允许输出「不确定」，结论随数据动态生成（见 [worker-bottleneck.md](worker-bottleneck.md)、[ADR 0011](adr/0011-controlled-experiment-over-inference.md)）
 - [x] **写入异步化**：`off/sync/async` 三组同批对照，异步相对同步 1 worker 2.96×、4 worker 1.95×，拿回约 47% 写库开销，三组 0 丢写；默认仍为 `sync`，硬杀丢失窗口用 `os._exit` 实测（见 [persistence.md](persistence.md)、[ADR 0012](adr/0012-write-behind-persistence.md)）
 - [x] **流水线契约与墙钟预算**：6 个节点写成状态表，图与逐节点 I/O 由代码生成、CI 比对漂移；超预算时降级返回最优草稿（见 [pipeline-contract.md](pipeline-contract.md)、[ADR 0013](adr/0013-explicit-stage-table-and-budget.md)）
-- [x] GitHub Actions：测试 + lint + **29 道质量门禁**（单元测试跑 3.10–3.13 矩阵，重门禁在 3.12 执行一次）
+- [x] GitHub Actions：测试 + lint + **30 道质量门禁**（单元测试跑 3.10–3.13 矩阵，重门禁在 3.12 执行一次）
 
 验收：`python -m evals.run_eval --write-report` 退出码 0；实测 80/80 通过、均分 0.9796、对照组 0.2974；`python -m evals.mutation_lab --check` 退出码 0 且 0 处变异存活；`python -m evals.case_miner --check` 退出码 0 且 320 个盲测 brief 全部与主集不重复；`python -m evals.http_load --check` 退出码 0 且真实 HTTP 请求 0 错误、0 丢写；`python -m evals.worker_lab --check` 退出码 0 且持久化开关语义正确（开 = 全落库、关 = 0 落库）；`python -m evals.persist_lab --check` 退出码 0 且三组各自满足落库契约；`python scripts/build_pipeline_doc.py --check` 退出码 0 且契约文档与代码一致。
 
@@ -170,4 +174,4 @@
 - [publish-status.md](publish-status.md) —— 发布相关状态；公网 Demo 已判定不做，判断见阶段 5
 
 报告之间是否重复、哪些链接已失效、哪些没人链接，由
-[report-audit.md](report-audit.md) 自动生成（`scripts/audit_reports.py`，第 29 道门禁）。
+[report-audit.md](report-audit.md) 自动生成（`scripts/audit_reports.py`，第 30 道门禁）。

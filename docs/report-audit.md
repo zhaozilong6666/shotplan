@@ -8,18 +8,18 @@
 
 | 指标 | 值 |
 | --- | --- |
-| 扫描报告 | 61 份（353 KB） |
-| 脚本生成 | 27 份，来自 19 个生成器 |
+| 扫描报告 | 62 份（359 KB） |
+| 脚本生成 | 28 份，来自 20 个生成器 |
 | 人写报告 | 34 份 |
 | 人写报告冗余对（≥ 0.55） | 3 对 |
 | 同名前缀家族（≥ 3 份） | 3 个 |
 | 失效引用 | 0 处 |
 | 孤儿报告（无入链） | 5 份 |
-| 人写报告平均边际信息量 | 0.746 |
+| 人写报告平均边际信息量 | 0.747 |
 
 ## 1. 同源实例：报告为什么会堆积
 
-`evals.real_model_lab` 一个脚本产出 **9 份**，占全部脚本生成报告的 33%。
+`evals.real_model_lab` 一个脚本产出 **9 份**，占全部脚本生成报告的 32%。
 
 - `real-model-full-2026-11-16.md`
 - `real-model-repeat3.md`
@@ -35,7 +35,7 @@
 
 **命名即契约**：`X.md` 是默认输出路径，每次覆盖，代表当前结论；`X-<日期>.md` 是一次快照，代表当时的状态。同源实例超过 2 份时，新增的一份要能回答「这次与上次的假设有什么不同」，否则它只是又一个需要归档的文件。
 
-其余 18 个生成器各产出 1 份，属正常。
+其余 19 个生成器各产出 1 份，属正常。
 
 ## 2. 人写报告的冗余对：每一行是一次决定
 
@@ -43,9 +43,9 @@
 
 | 报告 A | 报告 B | 相似度 | 建议 |
 | --- | --- | ---: | --- |
+| `real-model-baseline-2026-11-16.md` | `real-model-light-fix-2026-11-16.md` | 0.654 | 部分重叠：只核对数字是否互相矛盾 |
 | `real-model-light-fix-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.653 | 部分重叠：只核对数字是否互相矛盾 |
-| `real-model-baseline-2026-11-16.md` | `real-model-light-fix-2026-11-16.md` | 0.652 | 部分重叠：只核对数字是否互相矛盾 |
-| `real-model-baseline-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.574 | 部分重叠：只核对数字是否互相矛盾 |
+| `real-model-baseline-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.576 | 部分重叠：只核对数字是否互相矛盾 |
 
 **不要直接删**：这些文件记录的是「当时为什么那么判断」。保留边际信息量最高的一份作为当前结论，其余在首行加一行`> 已被 <新文件> 取代（<日期>）；本文保留为历史记录`。
 
@@ -67,22 +67,22 @@
 | --- | ---: | --- | ---: |
 | `ingest.md` | 0.897 | `knowledge-contract.md` | 0.103 |
 | `repair-experiment.md` | 0.884 | `evaluation.md` | 0.116 |
-| `generality.md` | 0.884 | `problem-and-metrics.md` | 0.116 |
-| `cost-latency-simulation.md` | 0.878 | `real-model-light-fix-2026-11-16.md` | 0.122 |
-| `knowledge-contract.md` | 0.869 | `architecture.md` | 0.131 |
-| `budget-vs-concurrency.md` | 0.853 | `real-model-baseline-2026-11-16.md` | 0.147 |
-| `rule-map.md` | 0.842 | `problem-and-metrics.md` | 0.158 |
-| `cost.md` | 0.836 | `real-model-comparison.md` | 0.164 |
-| `styling-budget.md` | 0.828 | `problem-and-metrics.md` | 0.172 |
-| `failure-gallery.md` | 0.813 | `problem-and-metrics.md` | 0.187 |
+| `generality.md` | 0.881 | `ROADMAP.md` | 0.119 |
+| `cost-latency-simulation.md` | 0.879 | `real-model-light-fix-2026-11-16.md` | 0.121 |
+| `knowledge-contract.md` | 0.870 | `architecture.md` | 0.130 |
+| `budget-vs-concurrency.md` | 0.852 | `real-model-baseline-2026-11-16.md` | 0.148 |
+| `rule-map.md` | 0.843 | `problem-and-metrics.md` | 0.157 |
+| `cost.md` | 0.837 | `real-model-comparison.md` | 0.163 |
+| `styling-budget.md` | 0.831 | `problem-and-metrics.md` | 0.169 |
+| `failure-gallery.md` | 0.814 | `problem-and-metrics.md` | 0.186 |
 
 末位（信息量最低）：
 
-- `evaluation.md` — 0.666，最近邻 `ROADMAP.md`（0.334）
-- `ROADMAP.md` — 0.666，最近邻 `evaluation.md`（0.334）
-- `real-model-baseline-2026-11-16.md` — 0.348，最近邻 `real-model-light-fix-2026-11-16.md`（0.652）
-- `real-model-light-fix-2026-11-16.md` — 0.347，最近邻 `real-model-smoke-2026-11-16.md`（0.653）
+- `evaluation.md` — 0.668，最近邻 `ROADMAP.md`（0.332）
+- `ROADMAP.md` — 0.668，最近邻 `evaluation.md`（0.332）
 - `real-model-smoke-2026-11-16.md` — 0.347，最近邻 `real-model-light-fix-2026-11-16.md`（0.653）
+- `real-model-baseline-2026-11-16.md` — 0.346，最近邻 `real-model-light-fix-2026-11-16.md`（0.654）
+- `real-model-light-fix-2026-11-16.md` — 0.346，最近邻 `real-model-baseline-2026-11-16.md`（0.654）
 
 ## 5. 失效引用：读者点开就是 404
 
@@ -110,4 +110,4 @@
 - **不纳入 ADR**（`docs/adr/`）：决策记录刻意共用模板，相似度不构成冗余信号。
 - **本文件自身不参与**审计，否则每次运行都会把自己报成 100% 重复。
 
-_语料指纹：`be5615119f8c8765`（内容变化时此值必变）_
+_语料指纹：`450a8fe7ff499df5`（内容变化时此值必变）_
