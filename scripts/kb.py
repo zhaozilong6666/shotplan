@@ -115,7 +115,7 @@ KIND_LABELS = {
 
 @dataclass(frozen=True)
 class Facts:
-    """What one document cites, and what kind of document it is."""
+    """What one document cites, and what cites it back."""
 
     path: str  # repo-relative, POSIX separators
     kind: str
@@ -123,6 +123,7 @@ class Facts:
     calls: tuple[str, ...] = ()
     experiments: tuple[str, ...] = ()
     links: tuple[str, ...] = ()  # resolved repo-relative md targets
+    cited_by: tuple[str, ...] = ()  # experiment ids using this document as evidence
 
 
 @dataclass(frozen=True)
@@ -270,11 +271,16 @@ def cite_issues(facts: list[Facts], names: set[str], experiment_ids: set[str]) -
 def evidence_grade(doc: Facts, verdicts: dict[str, str]) -> str:
     """How much of this document can be re-checked without reading it.
 
-    `empirical` means it leans on a decided experiment. `referential` means it
-    points at code or files that exist. `narrative` means neither -- which is
-    not an accusation, only a statement that nothing mechanical can confirm it.
+    `empirical` means a decided experiment is attached to it -- in either
+    direction. A report that cites `E01` and a report that `E01` names as its
+    evidence are the same relationship seen from two ends; scoring only the
+    first made five measured reports look unsupported.
+
+    `referential` means it points at code or files that exist. `narrative` means
+    neither -- not an accusation, only that nothing mechanical can confirm it.
     """
-    if any(verdicts.get(item) in {"confirmed", "refuted", "partial"} for item in doc.experiments):
+    decided = {key for key, value in verdicts.items() if value in {"confirmed", "refuted", "partial"}}
+    if any(item in decided for item in (*doc.experiments, *doc.cited_by)):
         return "empirical"
     if doc.paths or doc.calls:
         return "referential"
@@ -352,21 +358,32 @@ def refuted_dependencies(
     ]
 
 
-def enrich_with_decisions(facts: list[Facts], decisions: list[dict[str, Any]]) -> list[Facts]:
-    """Fold the decision index's evidence into the ADR it points at.
+def enrich(facts: list[Facts], decisions: list[dict[str, Any]], ledger: list[dict[str, Any]]) -> list[Facts]:
+    """Attach the evidence relationships that live outside the prose.
 
-    The ADR's own prose may not name an experiment even when the decision index
-    does. Without this, an ADR whose support is recorded one layer up counts as
-    "no evidence" -- and the queue tells the reader to go write the evidence it
-    already has.
+    Two of them, and both were missing at first:
+
+    1. The decision index may name the experiments behind an ADR whose own text
+       does not. Without it, an ADR supported one layer up counts as "no
+       evidence" and the queue says to go write what already exists.
+    2. An experiment may name a document as its evidence. That is the same
+       relation as the document citing the experiment, read from the other end;
+       scoring only one direction made five measured reports look unsupported.
     """
     by_adr = {str(row.get("adr")): row for row in decisions}
+    by_document: dict[str, list[str]] = {}
+    for row in ledger:
+        evidence = row.get("evidence")
+        if evidence:
+            by_document.setdefault(str(evidence), []).append(str(row.get("id")))
     enriched: list[Facts] = []
     for doc in facts:
         row = by_adr.get(doc.path)
         extra = tuple(str(item) for item in (row.get("evidence") or [])) if row else ()
-        if extra:
-            doc = replace(doc, experiments=tuple(sorted(set(doc.experiments) | set(extra))))
+        experiments = tuple(sorted(set(doc.experiments) | set(extra)))
+        cited_by = tuple(sorted(by_document.get(doc.path, ())))
+        if experiments != doc.experiments or cited_by:
+            doc = replace(doc, experiments=experiments, cited_by=cited_by)
         enriched.append(doc)
     return enriched
 
@@ -683,11 +700,14 @@ def render_next(
             body = texts.get(doc.path, "")
             hint = ""
             # An ADR quoting a measurement is normal; a guide quoting one and
-            # citing nothing is the case worth flagging.
+            # citing nothing is the case worth flagging. Stated as an
+            # observation, not a diagnosis: measurement.md is about method and
+            # uses the same words, so the marker can only say "this text talks
+            # about results", not "someone forgot to log an experiment".
             if doc.kind in {"guide", "snapshot"} and any(
                 marker in body for marker in ("实测", "通过率", "P50", "P95", "均分", "样本")
             ):
-                hint = " —— 像是测量报告，可能只是没登记编号"
+                hint = " —— 正文含实测数字，但没有编号或数据锚点"
             lines.append(f"- [ ] `{doc.path}` 被 {linked[doc.path]} 份文档引用{hint}")
         if len(important) > 8:
             lines.append(f"- 其余 {len(important) - 8} 份见 `docs/kb-health.md`")
@@ -822,8 +842,8 @@ def main(argv: list[str] | None = None) -> int:
     # as "documents without evidence" would be measuring the ruler.
     facts = [fact for fact in all_facts if fact.kind != "generated"]
     decisions = load_jsonl(DECISIONS) if DECISIONS.exists() else []
-    facts = enrich_with_decisions(facts, decisions)
     ledger = load_jsonl(LEDGER)
+    facts = enrich(facts, decisions, ledger)
     verdicts = {str(row["id"]): str(row["verdict"]) for row in ledger}
     experiment_ids = set(verdicts)
     names = defined_names()

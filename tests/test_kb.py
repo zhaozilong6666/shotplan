@@ -62,6 +62,28 @@ def test_missing_targets_produce_one_issue_each(tmp_path, monkeypatch):
     assert len(issues) == 3
 
 
+def test_an_experiment_naming_a_document_counts_as_evidence():
+    """The relation runs both ways: `E01 -> docs/x.md` supports that document.
+
+    Scoring only "document cites experiment id" made five measured reports look
+    unsupported and put them in a queue telling the reader to go write evidence
+    that already existed.
+    """
+    doc = kb.Facts(path="docs/a.md", kind="guide")
+    verdicts = {"E01": "confirmed"}
+    assert kb.evidence_grade(doc, verdicts) == "narrative"
+    enriched = kb.enrich([doc], [], [{"id": "E01", "verdict": "confirmed", "evidence": "docs/a.md"}])
+    assert enriched[0].cited_by == ("E01",)
+    assert kb.evidence_grade(enriched[0], verdicts) == "empirical"
+
+
+def test_a_decision_index_supplies_evidence_an_adr_omits():
+    adr = kb.Facts(path="docs/adr/0002-x.md", kind="adr")
+    decisions = [{"id": "D2", "adr": "docs/adr/0002-x.md", "evidence": ["E01"]}]
+    enriched = kb.enrich([adr], decisions, [{"id": "E01", "verdict": "confirmed"}])
+    assert enriched[0].experiments == ("E01",)
+
+
 def test_evidence_grade_prefers_a_decided_experiment():
     decided = kb.Facts(path="docs/a.md", kind="guide", experiments=("E01",))
     referential = kb.Facts(path="docs/b.md", kind="guide", paths=("src/shotplan/timeline.py",))

@@ -11,21 +11,21 @@
 
 ## P1 · 依据被自己推翻
 
-没有。
+- [ ] 决策 `D08` 引用的 `E03` 已被推翻：改决策，或写清为什么仍然成立
 
 ## P2 · 重要但没有证据锚点
 
-被引用最多的一批（共 18 份）。ADR 缺的是失效条件，报告缺的是代码或数据锚点——两类欠账的补法不同。
+被引用最多的一批（共 12 份）。ADR 缺的是失效条件，报告缺的是代码或数据锚点——两类欠账的补法不同。
 
-- [ ] `docs/measurement.md` 被 6 份文档引用 —— 像是测量报告，可能只是没登记编号
+- [ ] `docs/measurement.md` 被 6 份文档引用 —— 正文含实测数字，但没有编号或数据锚点
 - [ ] `docs/adr/0003-exact-retrieval-over-vectors.md` 被 5 份文档引用
-- [ ] `docs/prompt-ab.md` 被 5 份文档引用 —— 像是测量报告，可能只是没登记编号
-- [ ] `docs/repair-experiment.md` 被 5 份文档引用 —— 像是测量报告，可能只是没登记编号
-- [ ] `docs/adr/0014-request-constraints-are-hard-rules.md` 被 4 份文档引用，但没写「什么情况下该推翻」（`docs/decisions.jsonl`）
-- [ ] `docs/adr/0015-reproducible-run-trace.md` 被 4 份文档引用，但没写「什么情况下该推翻」（`docs/decisions.jsonl`）
+- [ ] `docs/repair-experiment.md` 被 5 份文档引用 —— 正文含实测数字，但没有编号或数据锚点
+- [ ] `docs/adr/0014-request-constraints-are-hard-rules.md` 被 4 份文档引用
+- [ ] `docs/adr/0015-reproducible-run-trace.md` 被 4 份文档引用
 - [ ] `docs/adr/0001-core-zero-dependency.md` 被 3 份文档引用
-- [ ] `docs/adr/0004-versioned-prompts.md` 被 3 份文档引用，但没写「什么情况下该推翻」（`docs/decisions.jsonl`）
-- 其余 10 份见 `docs/kb-health.md`
+- [ ] `docs/adr/0005-no-frontend-framework.md` 被 3 份文档引用
+- [ ] `docs/real-model-smoke-2026-11-16.md` 被 3 份文档引用 —— 正文含实测数字，但没有编号或数据锚点
+- 其余 4 份见 `docs/kb-health.md`
 
 ## P3 · 文字里缺的规则
 
