@@ -257,6 +257,18 @@
     });
     html += "</div>";
 
+    if (r.explanations && r.explanations.length) {
+      html += '<div class="alternatives"><h4>为什么这样排</h4><ul>';
+      r.explanations.forEach(function (e) {
+        html += "<li><b>" + esc(e.start) + "–" + esc(e.end) + " " + esc(e.label) + "</b>";
+        e.reasons.forEach(function (reason) {
+          html += "<br>· " + esc(reason);
+        });
+        html += "</li>";
+      });
+      html += "</ul></div>";
+    }
+
     if (plan.alternatives && plan.alternatives.length) {
       html += '<div class="alternatives"><h4>备选方案</h4><ul>';
       plan.alternatives.forEach(function (a) {

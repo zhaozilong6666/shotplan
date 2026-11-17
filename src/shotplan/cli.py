@@ -63,6 +63,15 @@ def _print_plan(result: Any) -> None:
         print("  备选:")
         for alt in plan.alternatives:
             print(f"    - ({alt.get('trigger')}) {alt.get('description')}")
+    if result.explanations:
+        print("  为什么这样排:")
+        for entry in result.explanations:
+            print(
+                f"    {entry['start']}-{entry['end']}  {entry['label']} "
+                f"({entry['location_id']})"
+            )
+            for reason in entry["reasons"]:
+                print(f"      - {reason}")
     print()
     print(trace_to_markdown(result.trace))
 

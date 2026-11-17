@@ -44,6 +44,7 @@ from .domain.models import (
     ValidationIssue,
     ValidationReport,
 )
+from .explain import explain_plan
 from .grounding import sanitize_source_refs
 from .knowledge.tools import KnowledgeTools, get_tools
 from .light import align_light_window
@@ -626,7 +627,13 @@ def _run_plan(
             break
 
     trace = collector.finish(success=report.hard_pass, repair_count=repairs)
-    result = PlanResult(request=req, plan=plan, validation=report, trace=trace)
+    result = PlanResult(
+        request=req,
+        plan=plan,
+        validation=report,
+        trace=trace,
+        explanations=explain_plan(plan, req, kb),
+    )
     _safe_save(store, result)
     return result
 

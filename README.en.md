@@ -25,6 +25,7 @@ Hanfu travel photography was chosen because its constraints are real: golden-hou
 | Gate validity | "CI is green" | 8 injected mutations must all be caught by the real gate |
 | Unseen inputs | One hand-written suite | 320 mined holdout briefs, kept separate so baselines stay comparable |
 | Grounding | None | Every location id must exist in the knowledge base |
+| Why this slot | Model narration or nothing | Each shoot block reads back style tags, the solar window, crowd and weather risk from the knowledge base |
 | Run records | None | Full trace, latency, tokens and estimated cost per run |
 | Barrier to entry | Needs an API key | Core is standard-library only; runs right after `git clone` |
 

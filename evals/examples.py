@@ -128,6 +128,19 @@ def _infeasible_block(result: PlanResult) -> str:
     return "\n".join(lines)
 
 
+def _explanation_block(result: PlanResult) -> str:
+    if not result.explanations:
+        return ""
+    lines = ["**为什么这样排**（证据来自知识库，不是模型自述）", ""]
+    for entry in result.explanations:
+        lines.append(
+            f"- `{entry['start']}–{entry['end']}` {entry['label']}"
+            f"（`{entry['location_id']}`）："
+        )
+        lines += [f"  - {reason}" for reason in entry["reasons"]]
+    return "\n".join(lines)
+
+
 def render_case(name: str, title: str, result: PlanResult) -> str:
     lines = [f"## {title}", "", "**输入 brief**", "", _brief_block(result.request), ""]
     if result.status == "infeasible":
@@ -159,6 +172,9 @@ def render_case(name: str, title: str, result: PlanResult) -> str:
         if result.plan.assumptions:
             lines += ["", "假设："]
             lines += [f"- {item}" for item in result.plan.assumptions]
+        explanation = _explanation_block(result)
+        if explanation:
+            lines += ["", explanation]
         lines += ["", "**校验结论**", "", _validation_block(result), ""]
     lines += ["<details><summary>运行轨迹（步骤顺序，不含耗时）</summary>", ""]
     lines += [f"{index}. `{event.name}`" for index, event in enumerate(result.trace.events, 1)]
