@@ -59,6 +59,12 @@ def test_plan_endpoint_good(client):
     assert data["validation"]["hard_pass"] is True
     assert data["plan"]["slots"]
     assert data["trace"]["events"]
+    assert data["explanations"]
+    assert any(
+        "风格匹配" in reason or "黄金窗口" in reason
+        for entry in data["explanations"]
+        for reason in entry["reasons"]
+    )
 
 
 def test_plan_endpoint_naive_exposes_failures(client):
