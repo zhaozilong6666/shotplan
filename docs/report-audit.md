@@ -78,8 +78,8 @@
 
 末位（信息量最低）：
 
-- `evaluation.md` — 0.667，最近邻 `ROADMAP.md`（0.333）
 - `ROADMAP.md` — 0.667，最近邻 `evaluation.md`（0.333）
+- `evaluation.md` — 0.667，最近邻 `ROADMAP.md`（0.333）
 - `real-model-baseline-2026-11-16.md` — 0.366，最近邻 `real-model-light-fix-2026-11-16.md`（0.634）
 - `real-model-light-fix-2026-11-16.md` — 0.347，最近邻 `real-model-smoke-2026-11-16.md`（0.653）
 - `real-model-smoke-2026-11-16.md` — 0.347，最近邻 `real-model-light-fix-2026-11-16.md`（0.653）

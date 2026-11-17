@@ -77,6 +77,16 @@ def test_the_audit_excludes_itself():
     assert ar.DEFAULT_REPORT.name not in text_by_name
 
 
+def test_corpus_order_does_not_depend_on_the_filesystem():
+    """Windows sorts paths case-insensitively, Linux does not.
+
+    Two documents with equal marginal information swapped places between local
+    and CI because of it, which broke `--check` on CI only.
+    """
+    text_by_name, _ = ar.collect()
+    assert list(text_by_name) == sorted(text_by_name)
+
+
 def test_untracked_drafts_are_not_part_of_the_corpus():
     """An untracked file in docs/ made --check pass locally and fail on CI.
 

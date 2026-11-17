@@ -224,7 +224,10 @@ def render(
                 nearest[a] = (sim, b)
 
     redundant = [(sim, a, b) for sim, a, b in pairs if sim >= SIM_THRESHOLD]
-    unique = sorted(comparable, key=lambda n: 1.0 - nearest[n][0], reverse=True)
+    # Explicit tiebreak on the name: two documents can carry exactly the same
+    # marginal information (a symmetric pair shares one similarity value), and
+    # without it the order would depend on how the corpus was built.
+    unique = sorted(comparable, key=lambda n: (-(1.0 - nearest[n][0]), n))
     groups = families(sorted(files))
 
     index = path_index()
@@ -479,7 +482,11 @@ def tracked_only(corpus: dict[str, str]) -> dict[str, str]:
 def collect() -> tuple[dict[str, str], dict[str, str]]:
     """The corpus under audit, plus the root-level files that link into it."""
     corpus = {}
-    for path in sorted(DOCS.glob("*.md")):
+    # Sort by name, not by Path: Windows compares paths case-insensitively while
+    # Linux does not, so `ROADMAP.md` lands before `evaluation.md` on one machine
+    # and after it on the other. Two documents with equal marginal information
+    # then swap places, and the generated report stops being reproducible.
+    for path in sorted(DOCS.glob("*.md"), key=lambda p: p.name):
         if path.name in SKIP:
             continue
         corpus[path.name] = path.read_text(encoding="utf-8")
