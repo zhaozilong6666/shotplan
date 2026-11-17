@@ -79,10 +79,10 @@ Running an eval only against a planner you wrote yourself makes it easy to build
 | Metric | Rule agent (`good`) | Control (`naive`) |
 | --- | ---: | ---: |
 | Hard-constraint pass rate | **100%** | 13.8% |
-| Average score | **0.9792** | 0.3014 |
+| Average score | **0.9796** | 0.2974 |
 | Cases passed | **80 / 80** | 11 / 80 |
 
-The **0.6778** gap is the point. `naive` deliberately ignores time, transfers, budget, sourcing and invents locations. The gate does more than compare two averages: it requires the control plan to still trigger **each of its known defects** (a rule-level coverage floor), plus a delta floor and control-group ceilings. Otherwise silently deleting one hard rule is invisible — the control plan is so broken that its `constraints` score is already clamped at 0. See [ADR 0009](docs/adr/0009-gate-sensitivity.md).
+The **0.6822** gap is the point. `naive` deliberately ignores time, transfers, budget, sourcing and invents locations. The gate does more than compare two averages: it requires the control plan to still trigger **each of its known defects** (a rule-level coverage floor), plus a delta floor and control-group ceilings. Otherwise silently deleting one hard rule is invisible — the control plan is so broken that its `constraints` score is already clamped at 0. See [ADR 0009](docs/adr/0009-gate-sensitivity.md).
 
 Cases: `normal` 30, `conflict` 23, `edge` 16, `infeasible` 11. The last group describes briefs that are **mathematically unsatisfiable**; the correct behaviour is a structured refusal, not a fabricated plan. Since feasibility is checked before generation and is provider-independent, both providers share that verdict — differentiation comes from the other 69 cases.
 

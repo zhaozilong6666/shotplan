@@ -5,11 +5,13 @@ and constraint comprehension were fine. The model does not reason about where
 the sun will be -- so the golden window stops being a prompt suggestion and
 becomes a post-generation alignment step.
 
-The window itself is a month-level seasonal approximation shared by every city:
-latitude/longitude are deliberately not used yet. It is precise enough to move
-an obviously wrong 11:00 shoot out of the midday sun, but it is not an
-astronomical almanac. Beijing and Chengdu currently get the same window, which
-is a known limitation rather than a claim about the sun.
+The window itself comes from ``solar.golden_window``: 120 minutes before the
+sunset computed with the NOAA approximation from each city's latitude and
+longitude (UTC+8). It is precise enough to separate Beijing from Chengdu and to
+move an obviously wrong 11:00 shoot out of the midday sun, but it is not an
+astronomical almanac: terrain, skyline and refraction beyond the standard
+90.833-degree zenith are not modelled. A city without coordinates falls back to
+the month-level seasonal table.
 
 Two rules keep this honest:
 

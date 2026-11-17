@@ -36,14 +36,14 @@
 - [x] 线程 vs 进程扩展性：线程约 1.04×、进程约 1.72×，证明瓶颈在 GIL（见 [scaling.md](scaling.md)）
 - [x] 真实输出示例：四份由代码生成、可 `--check` 比对的结果（见 [examples.md](examples.md)）
 - [x] **门禁有效性**：8 处受控变异注入 + 回滚比对，旧门禁只拦住 4/8，补齐对照组规则覆盖后 8/8（见 [mutation-report.md](mutation-report.md)、[ADR 0009](adr/0009-gate-sensitivity.md)）
-- [x] **盲测挑战集**：从 527 条失败记录聚类出 225 个候选、纳入 200 个未见 brief，城市 × 风格覆盖 19/25 → 25/25；独立存放不污染 v1–v6 基线（见 [case-mining.md](case-mining.md)、[ADR 0010](adr/0010-holdout-challenge-set.md)）
+- [x] **盲测挑战集**：从 527 条失败记录聚类出 360 个候选、纳入 320 个未见 brief，城市 × 风格覆盖 19/40 → 40/40；独立存放不污染 v1–v6 基线（见 [case-mining.md](case-mining.md)、[ADR 0010](adr/0010-holdout-challenge-set.md)）
 - [x] **真实 HTTP 服务压测**：启动 1/2/4 个 uvicorn worker 走 loopback 发真实请求，1000 次请求 0 错误 0 丢写；发现多 worker 抢共享 SQLite 写锁反而变慢（见 [http-load.md](http-load.md)）
 - [x] **持久化对照实验**：`SHOTPLAN_PERSIST_RUNS` 开关在同一份产品代码上做开/关对照，验证 v0.8.0 的写锁归因；判定允许输出「不确定」，结论随数据动态生成（见 [worker-bottleneck.md](worker-bottleneck.md)、[ADR 0011](adr/0011-controlled-experiment-over-inference.md)）
 - [x] **写入异步化**：`off/sync/async` 三组同批对照，异步相对同步 1 worker 2.96×、4 worker 1.95×，拿回约 47% 写库开销，三组 0 丢写；默认仍为 `sync`，硬杀丢失窗口用 `os._exit` 实测（见 [persistence.md](persistence.md)、[ADR 0012](adr/0012-write-behind-persistence.md)）
 - [x] **流水线契约与墙钟预算**：6 个节点写成状态表，图与逐节点 I/O 由代码生成、CI 比对漂移；超预算时降级返回最优草稿（见 [pipeline-contract.md](pipeline-contract.md)、[ADR 0013](adr/0013-explicit-stage-table-and-budget.md)）
 - [x] GitHub Actions：测试 + lint + **27 道质量门禁**（单元测试跑 3.10–3.13 矩阵，重门禁在 3.12 执行一次）
 
-验收：`python -m evals.run_eval --write-report` 退出码 0；实测 80/80 通过、均分 0.9792（初版 0.9778）、对照组 0.3014；`python -m evals.mutation_lab --check` 退出码 0 且 0 处变异存活；`python -m evals.case_miner --check` 退出码 0 且 200 个盲测 brief 全部与主集不重复；`python -m evals.http_load --check` 退出码 0 且真实 HTTP 请求 0 错误、0 丢写；`python -m evals.worker_lab --check` 退出码 0 且持久化开关语义正确（开 = 全落库、关 = 0 落库）；`python -m evals.persist_lab --check` 退出码 0 且三组各自满足落库契约；`python scripts/build_pipeline_doc.py --check` 退出码 0 且契约文档与代码一致。
+验收：`python -m evals.run_eval --write-report` 退出码 0；实测 80/80 通过、均分 0.9796、对照组 0.2974；`python -m evals.mutation_lab --check` 退出码 0 且 0 处变异存活；`python -m evals.case_miner --check` 退出码 0 且 320 个盲测 brief 全部与主集不重复；`python -m evals.http_load --check` 退出码 0 且真实 HTTP 请求 0 错误、0 丢写；`python -m evals.worker_lab --check` 退出码 0 且持久化开关语义正确（开 = 全落库、关 = 0 落库）；`python -m evals.persist_lab --check` 退出码 0 且三组各自满足落库契约；`python scripts/build_pipeline_doc.py --check` 退出码 0 且契约文档与代码一致。
 
 ## 阶段 4 · 接真实模型，让评测真正承压 ⏳
 

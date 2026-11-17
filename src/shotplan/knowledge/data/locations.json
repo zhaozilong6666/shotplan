@@ -1,13 +1,14 @@
 {
-  "version": "1.3",
+  "version": "1.4",
   "updated_at": "2026-11-17",
   "note": "Small curated knowledge base. Exact facts matter more than coverage here; see docs/adr/0003.",
   "provenance_note": "source/last_verified_at record curation provenance inside this repository: which dataset an entry came from and when it was last reviewed for internal consistency. They are not live opening-hours or price confirmations.",
-  "light_model_note": "Golden windows are month-level seasonal approximations. Per-city correction uses longitude only (4 minutes per degree from Xi'an); latitude and day length are not modelled.",
+  "light_model_note": "Golden windows are 120 minutes before local sunset, computed with a zero-dependency NOAA approximation from each city's latitude/longitude (UTC+8). Terrain and skyline are not modelled; a seasonal table is the fallback when coordinates are missing.",
   "cities": {
     "xian": {
       "name": "西安",
       "longitude": 108.94,
+      "latitude": 34.34,
       "center": "钟楼",
       "locations": [
         {
@@ -203,6 +204,7 @@
     "luoyang": {
       "name": "洛阳",
       "longitude": 112.45,
+      "latitude": 34.62,
       "center": "丽景门",
       "locations": [
         {
@@ -398,6 +400,7 @@
     "hangzhou": {
       "name": "杭州",
       "longitude": 120.16,
+      "latitude": 30.27,
       "center": "武林广场",
       "locations": [
         {
@@ -596,6 +599,7 @@
     "suzhou": {
       "name": "苏州",
       "longitude": 120.58,
+      "latitude": 31.30,
       "center": "观前街",
       "locations": [
         {
@@ -792,6 +796,7 @@
     "nanjing": {
       "name": "南京",
       "longitude": 118.80,
+      "latitude": 32.06,
       "center": "新街口",
       "locations": [
         {
@@ -990,6 +995,7 @@
     "chengdu": {
       "name": "成都",
       "longitude": 104.07,
+      "latitude": 30.57,
       "center": "天府广场",
       "locations": [
         {
@@ -1215,6 +1221,7 @@
     "beijing": {
       "name": "北京",
       "longitude": 116.40,
+      "latitude": 39.90,
       "center": "天安门",
       "locations": [
         {
@@ -1438,6 +1445,7 @@
     "kaifeng": {
       "name": "开封",
       "longitude": 114.31,
+      "latitude": 34.80,
       "center": "鼓楼广场",
       "locations": [
         {

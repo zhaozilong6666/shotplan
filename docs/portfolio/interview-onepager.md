@@ -10,17 +10,17 @@
 
 | 数字 | 出处 |
 | --- | --- |
-| good **0.9792** / naive **0.3014** | 评测对照，`docs/eval-report.md` |
-| 80 主集 + **200** 盲测 brief + **527** 条失败记录聚类 | `evals/cases/`、`evals/challenge/` |
+| good **0.9796** / naive **0.2974** | 评测对照，`docs/eval-report.md` |
+| 80 主集 + **320** 盲测 brief + **527** 条失败记录聚类 | `evals/cases/`、`evals/challenge/` |
 | 变异门禁 **8/8** 拦截（旧门禁只 **4/8**，漏的全是校验端削弱） | `docs/mutation-report.md` |
-| **466** 单测 / 92.95% 覆盖 / **26** 道 CI 门禁 / Python 3.10–3.13 | `.github/workflows/ci.yml` |
+| **470** 单测 / 93.02% 覆盖 / **27** 道 CI 门禁 / Python 3.10–3.13 | `.github/workflows/ci.yml` |
 | 真实 uvicorn 压测 **1000** 请求 **0 错误 0 丢写** | `docs/http-load.md` |
 | 写入异步化：vs 同步 **2.96×**（另一批 5.5×）、P95 **186→93ms**、**0 丢写** | `docs/persistence.md` |
 | 硬杀丢失窗口：`os._exit` 实测，先 flush→N 条全在，不 flush→N−pending | `tests/test_write_behind.py` |
-| 最坏墙钟 **183s** → 墙钟预算 **60s** 兜底，超时降级返回最优草稿 | `docs/pipeline-contract.md` |
+| 最坏墙钟 **183s** → 墙钟预算 **120s** 兜底，超时降级返回最优草稿 | `docs/pipeline-contract.md` |
 | 模糊测试 **1000** 变异输入 **0** 崩溃，种子可复现 | `docs/fuzz-report.md` |
 
-**一句话串联数字**：尺子有效（naive 只有 0.30）→ 尺子本身被验证过（变异 8/8）→ 没过拟合（200 个没见过的 brief）→ 服务真的能跑（1000 请求 0 丢写）→ 瓶颈被实验定位并被修复（写库异步化，收益和代价都量了）。
+**一句话串联数字**：尺子有效（naive 只有 0.30）→ 尺子本身被验证过（变异 8/8）→ 没过拟合（320 个没见过的 brief）→ 服务真的能跑（1000 请求 0 丢写）→ 瓶颈被实验定位并被修复（写库异步化，收益和代价都量了）。
 
 ## 五个必考问题（30 秒版答案）
 

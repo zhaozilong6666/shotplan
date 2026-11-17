@@ -21,6 +21,7 @@
 | `indoor` 是布尔 | 决定雨天备选与光线规则是否适用 |
 | `min_minutes > 0`，`travel_min_from_center >= 0`，`cost_cny >= 0` | 时间轴与预算算术的输入 |
 | `crowd` / `weather_risk` ∈ low/medium/high | 排序与备选方案的枚举值 |
+| 城市 `latitude` / `longitude`（可选）在合法范围内 | NOAA 日落近似的输入；缺失时 `light_window()` 回退到月级季节表 |
 | 风格 `price_cny = [min, max]` 且 min ≤ max | 预检用它算最低可执行成本 |
 
 ## 扩城流程（需要真人核验）
@@ -32,7 +33,8 @@
 4. 扩展后必须重跑：`evals/run_eval`（80 用例）、`evals/case_miner`（盲测集覆盖）、
    `evals/slo_baseline`（延迟/成本基线可能变化）。
 5. 新城市不能只加进 `locations.json` 就算完成：风格标签、候选检索、
-   转场时间估算、`light_window()` 的季节表都要一起复核。
+   转场时间估算都要一起复核；若要参与光线排程，还必须补 `latitude` / `longitude`，
+   否则 `light_window()` 会对该城市回退到月级季节表（见 `light_model_note`）。
 
 ## 为什么这一项仍不能勾掉
 

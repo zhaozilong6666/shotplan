@@ -33,14 +33,16 @@ def _morning_plan(req: PlanRequest) -> Plan:
     )
 
 
-def test_golden_window_is_where_the_knowledge_base_says_it_is():
+def test_seasonal_table_is_only_a_fallback_without_coordinates():
     assert KB.light_window("2026-10-04") == ("16:00", "18:00")
     assert KB.light_window("2026-01-10") == ("15:00", "17:00")
-    # Same clock, different longitude: Beijing sees the sun ~30 min earlier
-    # than Xi'an, Chengdu ~19 min later. This is a longitude correction, not a
-    # full solar calculation (latitude/day length are still not modelled).
-    assert KB.light_window("2026-10-04", "beijing") == ("15:30", "17:30")
-    assert KB.light_window("2026-10-04", "chengdu") == ("16:19", "18:19")
+
+
+def test_solar_window_uses_latitude_and_longitude():
+    # 120 minutes before NOAA sunset: Xi'an 18:26, Beijing 17:54, Chengdu 18:47.
+    assert KB.light_window("2026-10-04", "xian") == ("16:26", "18:26")
+    assert KB.light_window("2026-10-04", "beijing") == ("15:54", "17:54")
+    assert KB.light_window("2026-10-04", "chengdu") == ("16:47", "18:47")
 
 
 def test_alignment_moves_the_trailing_shoot_into_the_window():

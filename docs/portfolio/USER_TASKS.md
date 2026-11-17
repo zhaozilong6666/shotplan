@@ -59,11 +59,11 @@ git ls-files | grep -E "\.env$|\.db$|evals/out/" || echo "没有敏感文件被�
 
 | 检查 | 结果 |
 | --- | --- |
-| `pytest` | 466 passed（本机 Python 3.13），覆盖率 92.95% |
+| `pytest` | 470 passed（Python 3.12），覆盖率 93.02% |
 | `ruff check src tests evals scripts` | All checks passed |
-| `evals.run_eval --compare v6` | 80/80，均分 0.9792，对照组 0.3014，差值 0.6778，退出码 0 |
+| `evals.run_eval --compare v6` | 80/80，均分 0.9796，对照组 0.2974，差值 0.6822，退出码 0 |
 | `evals.mutation_lab --check` | 8/8 受控变异被门禁拦截、0 存活、8/8 回滚后与基线一致（旧门禁仅 4/8） |
-| `evals.case_miner --check` | 225 候选 → 200 个未见 brief 纳入、25 个矛盾输入被可行性判定筛掉，覆盖 19/25 → 25/25 |
+| `evals.case_miner --check` | 360 候选 → 320 个未见 brief 纳入、40 个矛盾输入被可行性判定筛掉，覆盖 19/40 → 40/40 |
 | `evals.http_load --check` | 真实 uvicorn 服务：40 次 loopback POST /api/plan，0 错误、40/40 落库 |
 | `evals.worker_lab --check` | 持久化开/关对照：开 20/20 落库、关 0/20 落库，0 错误 |
 | 不可满足需求 | 11/11 正确结构化拒绝 |

@@ -42,7 +42,7 @@ def test_scores_are_fixed_precision_and_use_exact_summation(valid_plan, brief, t
 
 def test_time_overlap_is_hard(valid_plan, brief, tools):
     plan = copy.deepcopy(valid_plan)
-    plan.slots[0].end = "15:30"
+    plan.slots[0].end = "16:50"  # overlaps the 15:26-15:46 travel block
     report = validate(plan, brief, tools)
     assert "TIME_OVERLAP" in codes(plan, brief, tools)
     assert report.hard_pass is False

@@ -7,15 +7,14 @@ and every retrieved item has to be citable in the final plan. See docs/adr/0003.
 
 from __future__ import annotations
 
+import datetime as dt
 from typing import Any
 
-from ..domain.constraints import (
-    MIN_TRANSFER_COST_CNY,
-    MIN_TRANSFER_MINUTES,
-    golden_window,
-)
+from ..domain.constraints import MIN_TRANSFER_COST_CNY, MIN_TRANSFER_MINUTES
+from ..domain.constraints import golden_window as seasonal_golden_window
 from ..domain.errors import KnowledgeError
 from ..domain.models import PlanRequest, fmt_minutes
+from ..solar import golden_window as solar_golden_window
 from .loader import load_locations, load_styles
 
 
@@ -99,29 +98,26 @@ class KnowledgeTools:
         return max(MIN_TRANSFER_MINUTES, base)
 
     def light_window(self, date_str: str, city: str | None = None) -> tuple[str, str]:
-        """Month-level golden window, corrected by the city's longitude.
+        """Golden window: 120 minutes before local sunset.
 
-        China uses one clock (UTC+8), so a city east of Xi'an sees the same sun
-        earlier on the clock and a city west of it sees it later. The 4-minute
-        per-degree correction fixes the most visible error (Beijing vs Chengdu
-        sharing a window). Latitude and day length are not modelled; see the
-        ``light_model_note`` in locations.json.
+        Cities carry latitude/longitude, so this uses the NOAA sunset
+        approximation rather than a month-level table. A city without
+        coordinates falls back to the seasonal table; see ``light_model_note``
+        in locations.json for what is and is not modelled.
         """
         try:
-            month = int(date_str.split("-")[1])
-        except (IndexError, ValueError) as exc:
-            raise KnowledgeError(f"cannot parse month from date {date_str!r}") from exc
-        start, end = golden_window(month)
-        start_minutes, end_minutes = start * 60, end * 60
+            day = dt.date.fromisoformat(date_str)
+        except (TypeError, ValueError) as exc:
+            raise KnowledgeError(f"cannot parse date {date_str!r}") from exc
         if city:
             city_data = self.city(city) or {}
+            latitude = city_data.get("latitude")
             longitude = city_data.get("longitude")
-            reference = (self.city("xian") or {}).get("longitude", 108.94)
-            if isinstance(longitude, (int, float)) and isinstance(reference, (int, float)):
-                offset = round((float(reference) - float(longitude)) * 4)
-                start_minutes += offset
-                end_minutes += offset
-        return fmt_minutes(start_minutes), fmt_minutes(end_minutes)
+            if isinstance(latitude, (int, float)) and isinstance(longitude, (int, float)):
+                start, end = solar_golden_window(day, float(latitude), float(longitude))
+                return fmt_minutes(start), fmt_minutes(end)
+        start, end = seasonal_golden_window(day.month)
+        return fmt_minutes(start * 60), fmt_minutes(end * 60)
 
     def best_style_for(self, requested: list[str], budget_cny: int) -> dict[str, Any]:
         # Reserve the transfer fee first: a styling package that consumes the

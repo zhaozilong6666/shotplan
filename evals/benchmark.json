@@ -1,14 +1,14 @@
 {
   "single": {
-    "iterations": 300,
-    "p50_ms": 0.22,
-    "p95_ms": 0.367,
-    "p99_ms": 0.475,
-    "mean_ms": 0.242,
-    "max_ms": 0.706,
-    "throughput_rps": 4106.38,
-    "peak_kb": 22.7,
-    "wall_s": 0.073
+    "iterations": 200,
+    "p50_ms": 0.736,
+    "p95_ms": 1.769,
+    "p99_ms": 2.029,
+    "mean_ms": 0.89,
+    "max_ms": 2.069,
+    "throughput_rps": 1121.21,
+    "peak_kb": 36.4,
+    "wall_s": 0.178
   },
   "corpus": {
     "cases": 80,
@@ -16,21 +16,21 @@
       "infeasible": 11,
       "ok": 69
     },
-    "p50_ms": 0.221,
-    "p95_ms": 0.296,
-    "mean_ms": 0.212,
-    "max_ms": 0.383,
-    "wall_s": 0.018
+    "p50_ms": 0.679,
+    "p95_ms": 1.608,
+    "mean_ms": 0.799,
+    "max_ms": 2.165,
+    "wall_s": 0.065
   },
   "steps_ms_total": {
-    "preflight": 6.99,
-    "retrieve": 6.94,
-    "generate": 8.53,
-    "parse": 7.13,
-    "validate": 11.4
+    "preflight": 7.55,
+    "retrieve": 7.79,
+    "generate": 37.6,
+    "parse": 7.21,
+    "validate": 16.22
   },
   "environment": {
-    "python": "3.13.14",
+    "python": "3.12.4",
     "system": "Windows",
     "release": "11",
     "machine": "AMD64"

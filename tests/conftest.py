@@ -56,11 +56,13 @@ def valid_plan():
         city="xian",
         date="2026-10-04",
         slots=[
-            TimeSlot("13:00", "15:00", "makeup", "indoor_studio", "唐制妆造", 400,
+            # Xi'an on 2026-10-04: golden window is 16:26-18:26. Keep the
+            # fixture perfect against the real solar window, not a stale table.
+            TimeSlot("13:26", "15:26", "makeup", "indoor_studio", "唐制妆造", 400,
                      [style_ref], "含发型与着装"),
-            TimeSlot("15:00", "15:20", "travel", "city_wall", "转场", 50,
+            TimeSlot("15:26", "15:46", "travel", "city_wall", "转场", 50,
                      [wall_ref], "含补妆与器材搬运"),
-            TimeSlot("15:20", "18:00", "shoot", "city_wall", "城墙拍摄", 120,
+            TimeSlot("16:26", "18:26", "shoot", "city_wall", "城墙拍摄", 120,
                      [wall_ref], "傍晚黄金光线"),
         ],
         styling={"style_id": "tang", "name": "唐制"},
