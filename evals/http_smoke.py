@@ -104,6 +104,15 @@ def walk(base_url: str) -> list[Check]:
                        and p.get("feasibility", {}).get("feasible") is True,
                        str(p)[:160]))
 
+    post("/api/followup", "previous brief + more budget -> 700, no model call",
+         {"previous": {"city": "xian", "date": "2026-10-04", "hours": 2,
+                       "budget_cny": 400, "styles": ["tang"]},
+          "text": "预算多一点"},
+         lambda r, p: (r.status_code == 200 and isinstance(p, dict)
+                       and p.get("recognized") is True
+                       and p.get("request", {}).get("budget_cny") == 700
+                       and bool(p.get("changes")), str(p)[:160]))
+
     post("/api/compare", "three strategies, all executable under the same brief",
          {"request": {"city": "xian", "date": "2026-10-04", "hours": 6,
                       "budget_cny": 1500, "styles": ["tang"]}},

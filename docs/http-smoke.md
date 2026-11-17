@@ -15,11 +15,12 @@
 | `/api/stats` | GET | 200 | dashboard agrees with summary | PASS |
 | `/api/catalog` | GET | 200 | catalog is generated from the knowledge base | PASS |
 | `/api/understand` | POST | 200 | one sentence -> request + assumptions | PASS |
+| `/api/followup` | POST | 200 | previous brief + more budget -> 700, no model call | PASS |
 | `/api/compare` | POST | 200 | three strategies, all executable under the same brief | PASS |
 | `/metrics` | GET | 200 | Prometheus text with status-aware gauges | PASS |
 | `/` | GET | 200 | built-in web UI served | PASS |
 
-**13/13 通过。**
+**14/14 通过。**
 
 ## 为什么需要这一层
 
