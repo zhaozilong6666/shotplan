@@ -203,7 +203,7 @@
       var response = await fetch("/api/followup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ previous: state.lastRequest, text: text })
+        body: JSON.stringify({ previous: buildBody(), text: text })
       });
       if (!response.ok) throw new Error("HTTP " + response.status);
       var data = await response.json();
