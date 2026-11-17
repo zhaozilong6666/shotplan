@@ -45,6 +45,7 @@ from .domain.errors import (
 )
 from .domain.feasibility import check_feasibility
 from .domain.models import PlanRequest
+from .followup import apply_followup
 from .knowledge.loader import knowledge_version
 from .knowledge.tools import get_tools
 from .negotiation import headroom, negotiate
@@ -346,6 +347,24 @@ def understand_brief(payload: dict[str, Any]) -> dict[str, Any]:
         if verdict.feasible else []
     )
     return result
+
+
+@app.post("/api/followup", dependencies=[Depends(enforce_body_limit)])
+def followup_brief(payload: dict[str, Any]) -> dict[str, Any]:
+    """Adjust the previous brief with a small, deterministic vocabulary.
+
+    This is intentionally not a chat endpoint: it returns the fields it changed,
+    and ``recognized=False`` when it would have to guess. No model call.
+    """
+    text = payload.get("text") or ""
+    if not isinstance(text, str) or not text.strip():
+        raise HTTPException(status_code=422, detail="text must be a non-empty string")
+    previous = payload.get("previous")
+    if not isinstance(previous, dict):
+        raise HTTPException(status_code=422, detail="previous must be a request object")
+    return apply_followup(
+        PlanRequest.from_dict(previous), text[:500], tools=get_tools()
+    ).to_dict()
 
 
 @app.get("/api/catalog")

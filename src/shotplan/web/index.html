@@ -30,6 +30,14 @@
     </label>
     <button id="understand" class="secondary">理解这句话</button>
     <div id="brief-result" class="brief-result"></div>
+    <div id="followup-box" class="followup" hidden>
+      <p class="hint small">在上次条件上继续调整</p>
+      <div class="row">
+        <input id="followup" placeholder="再松一点 / 预算多一点 / 换到杭州">
+        <button id="apply-followup" class="secondary">应用调整</button>
+      </div>
+      <div id="followup-result" class="brief-result"></div>
+    </div>
     <hr class="divider">
     <label>城市
       <select id="city"><option value="xian">西安</option></select>

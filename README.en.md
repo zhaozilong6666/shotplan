@@ -3,7 +3,7 @@
 > Turn a vague "I want a Hanfu photoshoot in Xi'an" into an **executable, checkable, traceable** hour-by-hour plan.
 > An evaluable agent system, not another chat box.
 
-[中文 README](README.md) · ![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![CI](https://github.com/zhaozilong6666/shotplan/actions/workflows/ci.yml/badge.svg) ![coverage](https://img.shields.io/badge/coverage-93.18%25-brightgreen)
+[中文 README](README.md) · ![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![CI](https://github.com/zhaozilong6666/shotplan/actions/workflows/ci.yml/badge.svg) ![coverage](https://img.shields.io/badge/coverage-93.28%25-brightgreen)
 
 ---
 
@@ -26,6 +26,7 @@ Hanfu travel photography was chosen because its constraints are real: golden-hou
 | Unseen inputs | One hand-written suite | 320 mined holdout briefs, kept separate so baselines stay comparable |
 | Grounding | None | Every location id must exist in the knowledge base |
 | Why this slot | Model narration or nothing | Each shoot block reads back style tags, the solar window, crowd and weather risk from the knowledge base |
+| Follow-up | Re-enter the form | Remembers the last brief and applies deterministic changes like "more budget", "relax it" or "switch to Hangzhou", listing what changed |
 | Run records | None | Full trace, latency, tokens and estimated cost per run |
 | Barrier to entry | Needs an API key | Core is standard-library only; runs right after `git clone` |
 

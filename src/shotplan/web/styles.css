@@ -167,6 +167,9 @@ button.secondary {
 button.secondary:hover { background: #d6e9fa; }
 hr.divider { border: 0; border-top: 1px solid var(--line); margin: 18px 0 14px; }
 .brief-result { margin-top: 12px; }
+.followup { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
+.followup .row { align-items: start; }
+.followup button { margin-top: 6px; }
 .brief-result h4 { margin: 14px 0 8px; font-size: 12px; color: var(--muted); }
 .assumption {
   display: flex; gap: 8px; align-items: flex-start; padding: 7px 9px;

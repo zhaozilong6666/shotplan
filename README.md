@@ -3,7 +3,7 @@
 > 把一句模糊的「想去西安拍汉服」，变成一份**能执行、能核对、能追溯**的小时级方案。
 > 这是一个可评测的 Agent 系统，不是又一个聊天框。
 
-[English README](README.en.md) · [在线展示](https://zhaozilong6666.github.io/shotplan/) · ![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![CI](https://github.com/zhaozilong6666/shotplan/actions/workflows/ci.yml/badge.svg) ![coverage](https://img.shields.io/badge/coverage-93.18%25-brightgreen)
+[English README](README.en.md) · [在线展示](https://zhaozilong6666.github.io/shotplan/) · ![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![CI](https://github.com/zhaozilong6666/shotplan/actions/workflows/ci.yml/badge.svg) ![coverage](https://img.shields.io/badge/coverage-93.28%25-brightgreen)
 
 ---
 
@@ -34,6 +34,7 @@
 | 没见过的题 | 只有一套手写用例 | 失败案例库聚类出 320 个盲测 brief，独立存放不污染基线 |
 | 溯源 | 无 | 每个时间块引用知识库条目，编造地点会被拦截 |
 | 为什么这样排 | 模型自述或没有 | 从知识库回读风格标签、黄金窗口、人流与天气风险，逐块给出可核对理由 |
+| 继续调整 | 每次重填表单 | 记住最近一次 brief，支持「预算多一点」「再松一点」「换到杭州」，并列出实际改动 |
 | 运行记录 | 无 | 每次运行保存完整 trace、耗时、token 与估算成本 |
 | 运行门槛 | 需要 API key | 核心零依赖，`git clone` 后直接可跑 |
 

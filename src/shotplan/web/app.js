@@ -5,7 +5,7 @@
   var state = {
     result: null, tab: "plan", stats: null, config: null,
     statsLoading: false, catalog: null, understanding: null,
-    compare: null, compareLoading: false
+    compare: null, compareLoading: false, lastRequest: null
   };
   var el = function (id) { return document.getElementById(id); };
   var esc = function (value) {
@@ -132,6 +132,12 @@
     updateCityNote();
   }
 
+  function rememberRequest(request) {
+    if (!request) return;
+    state.lastRequest = request;
+    if (el("followup-box")) el("followup-box").hidden = false;
+  }
+
   function renderUnderstanding(data) {
     state.understanding = data;
     var html = "<h4>我做了这些假设 · 明说 " + data.stated_count +
@@ -175,6 +181,50 @@
 
     el("brief-result").innerHTML = html;
     fillForm(data.request);
+    rememberRequest(data.request);
+  }
+
+  async function applyFollowup() {
+    var text = el("followup").value.trim();
+    if (!text) {
+      el("followup-result").innerHTML =
+        '<div class="clarify"><b>还没输入</b>例如「再松一点」「预算多一点」「换到杭州」。</div>';
+      return;
+    }
+    if (!state.lastRequest) {
+      el("followup-result").innerHTML =
+        '<div class="clarify"><b>没有上一轮条件</b>先用一句话或表单生成一次方案。</div>';
+      return;
+    }
+    var button = el("apply-followup");
+    button.disabled = true;
+    button.textContent = "正在调整…";
+    try {
+      var response = await fetch("/api/followup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ previous: state.lastRequest, text: text })
+      });
+      if (!response.ok) throw new Error("HTTP " + response.status);
+      var data = await response.json();
+      if (!data.recognized) {
+        el("followup-result").innerHTML = '<div class="clarify"><b>没听懂这次调整</b>' +
+          esc(data.message) + '</div>';
+        return;
+      }
+      state.lastRequest = data.request;
+      fillForm(data.request);
+      el("followup").value = "";
+      el("followup-result").innerHTML = '<div class="clarify"><b>已调整</b>' +
+        esc(data.changes.join("；")) + '</div>';
+      setStatus("已在上次条件上调整，可重新生成", true);
+    } catch (error) {
+      el("followup-result").innerHTML = '<div class="issue hard"><code>调整失败</code><p>' +
+        esc(error.message) + '</p></div>';
+    } finally {
+      button.disabled = false;
+      button.textContent = "应用调整";
+    }
   }
 
   async function understandBrief() {
@@ -550,6 +600,7 @@
         throw new Error("HTTP " + response.status + " " + detail.slice(0, 200));
       }
       state.result = await response.json();
+      rememberRequest(state.result.request);
       el("badge-provider").textContent = "provider: " + state.result.trace.provider;
       if (state.result.status === "infeasible") {
         setStatus("需求不可满足", false);
@@ -571,6 +622,13 @@
   el("run").addEventListener("click", generate);
   el("city").addEventListener("change", updateCityNote);
   el("understand").addEventListener("click", understandBrief);
+  el("apply-followup").addEventListener("click", applyFollowup);
+  el("followup").addEventListener("keydown", function (event) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      applyFollowup();
+    }
+  });
   el("brief").addEventListener("keydown", function (event) {
     if ((event.ctrlKey || event.metaKey) && event.key === "Enter") understandBrief();
   });
