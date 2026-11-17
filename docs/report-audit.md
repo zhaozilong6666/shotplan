@@ -43,9 +43,9 @@
 
 | 报告 A | 报告 B | 相似度 | 建议 |
 | --- | --- | ---: | --- |
-| `real-model-baseline-2026-11-16.md` | `real-model-light-fix-2026-11-16.md` | 0.654 | 部分重叠：只核对数字是否互相矛盾 |
-| `real-model-light-fix-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.653 | 部分重叠：只核对数字是否互相矛盾 |
-| `real-model-baseline-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.576 | 部分重叠：只核对数字是否互相矛盾 |
+| `real-model-light-fix-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.654 | 部分重叠：只核对数字是否互相矛盾 |
+| `real-model-baseline-2026-11-16.md` | `real-model-light-fix-2026-11-16.md` | 0.636 | 部分重叠：只核对数字是否互相矛盾 |
+| `real-model-baseline-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.559 | 部分重叠：只核对数字是否互相矛盾 |
 
 **不要直接删**：这些文件记录的是「当时为什么那么判断」。保留边际信息量最高的一份作为当前结论，其余在首行加一行`> 已被 <新文件> 取代（<日期>）；本文保留为历史记录`。
 
@@ -70,7 +70,7 @@
 | `generality.md` | 0.881 | `ROADMAP.md` | 0.119 |
 | `cost-latency-simulation.md` | 0.879 | `real-model-light-fix-2026-11-16.md` | 0.121 |
 | `knowledge-contract.md` | 0.870 | `architecture.md` | 0.130 |
-| `budget-vs-concurrency.md` | 0.852 | `real-model-baseline-2026-11-16.md` | 0.148 |
+| `budget-vs-concurrency.md` | 0.849 | `real-model-baseline-2026-11-16.md` | 0.151 |
 | `rule-map.md` | 0.843 | `problem-and-metrics.md` | 0.157 |
 | `cost.md` | 0.837 | `real-model-comparison.md` | 0.163 |
 | `styling-budget.md` | 0.831 | `problem-and-metrics.md` | 0.169 |
@@ -80,9 +80,9 @@
 
 - `evaluation.md` — 0.668，最近邻 `ROADMAP.md`（0.332）
 - `ROADMAP.md` — 0.668，最近邻 `evaluation.md`（0.332）
-- `real-model-smoke-2026-11-16.md` — 0.347，最近邻 `real-model-light-fix-2026-11-16.md`（0.653）
-- `real-model-baseline-2026-11-16.md` — 0.346，最近邻 `real-model-light-fix-2026-11-16.md`（0.654）
-- `real-model-light-fix-2026-11-16.md` — 0.346，最近邻 `real-model-baseline-2026-11-16.md`（0.654）
+- `real-model-baseline-2026-11-16.md` — 0.364，最近邻 `real-model-light-fix-2026-11-16.md`（0.636）
+- `real-model-light-fix-2026-11-16.md` — 0.346，最近邻 `real-model-smoke-2026-11-16.md`（0.654）
+- `real-model-smoke-2026-11-16.md` — 0.346，最近邻 `real-model-light-fix-2026-11-16.md`（0.654）
 
 ## 5. 失效引用：读者点开就是 404
 
@@ -108,6 +108,7 @@
 - **路径解析**：只检查 `docs/`、`src/`、`scripts/`、`tests/`、`evals/` 开头的显式路径。裸文件名（`rooms.json`）多为假设或叙述，`evals/out/` 是被清理的产物，含 `..` 或 `*` 的写法是简写——这三类报出来只会训练读者忽略本节。可点击的 Markdown 链接由 `tests/test_docs_links.py` 负责，本节查的是正文提到的路径。
 - **入链统计**：`README.md` 与 `CHANGELOG.md` 也算链接来源，否则它们提到的报告会全部被误判为孤儿。
 - **不纳入 ADR**（`docs/adr/`）：决策记录刻意共用模板，相似度不构成冗余信号。
+- **交叉引用会推高相似度**：为了让读者不困惑而补的导航句（「同日还有两份更小的采样」）本身增加了共同词汇——实测中一份报告补完导航后，与另外两份的相似度反而从 0.60 升到 0.64。所以 0.55–0.70 更像「同一批实验的不同切面」，而不是「两篇在讲同一件事」：先核对数字，再决定是否合并。
 - **本文件自身不参与**审计，否则每次运行都会把自己报成 100% 重复。
 
-_语料指纹：`450a8fe7ff499df5`（内容变化时此值必变）_
+_语料指纹：`f9190f1c5fe1284f`（内容变化时此值必变）_
