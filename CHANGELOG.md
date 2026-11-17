@@ -37,6 +37,14 @@
 
 ### Changed
 
+- **默认墙钟预算 120s → 180s（2026-11-17）**：一次全量评测里 2 例精确卡在 120.4s，
+  被记成「模型失败」。三次对照（同两例）拆开归因：并发 6 / 120s 两例都失败，
+  并发 1 / 120s 两例都通过（≈57s/例），并发 2 / 180s 两例都通过。
+  结论是 per-request 预算必须覆盖**中转站排队**，而不只是模型时间；120s 是按低并发 P99 定的。
+  - 180s 与 SLO 的 P95 ≤ 180s 一致，也覆盖默认推理那套实测（P95 119.8s、个别 ~160s）。
+  - 改后全量重跑：80/80、0 异常、均分 0.9346。详见 [budget-vs-concurrency.md](docs/budget-vs-concurrency.md)。
+  - `docs/pipeline-contract.md` 由代码重新生成。
+
 - **GitHub Actions 升级到 v7（2026-11-17）**：`checkout` 4→7、`setup-python` 5→7、
   `upload-artifact` 4→7，覆盖 ci / weekly-eval / kb-freshness 三个 workflow。
   `setup-python@v7` 已移除未使用的 `pip-install` 输入，本仓库没有依赖它。
@@ -47,6 +55,25 @@
   没有拍摄块的拒绝方案直接记 0，不会因为非法日期在对比里抛 `KnowledgeError`。
 
 ### Fixed
+
+- **短预约被排成「85 分钟妆造 + 5 分钟拍摄」（2026-11-17）**：模型照着知识库的标准妆造时长
+  填表，发现总时长装不下就把缺口全压给拍摄，还在 notes 里写「仅能安排 5 分钟快拍」。
+  校验器只软报一句，方案照样交付。
+  - 修法：`constraints.styling_minutes_for()` 把「妆造能占多少」变成单一定义
+    （`min(标准, max(60, 35% × 总时长))`，离线 mock 与线上共用）；新增
+    `timeline.compress_styling_for_shoots()`，按连续妆造段把差额还给紧邻的拍摄块，
+    拍摄块结束时间不动、只有开始时间前移，校验不劣化才采纳。
+  - 诚实性两件：改时长必须改文案（把标签里等于旧时长的数字改掉，notes 追加「已由 5 分钟补足为 30 分钟」），
+    `styling.makeup_minutes` 同步扣减，避免抬头与时间轴互相矛盾。
+  - 实测：`SHOOT_TOO_SHORT` **4 例 → 0 例**；上一轮点名的 C22/C43/C46/C53 这轮都没有再触发。
+    均分 0.9346 → 0.9280 属采样波动（区间重叠），不作为退步证据。详见 [styling-budget.md](docs/styling-budget.md)。
+
+- **评测报告的通过率把上游超时算成品质量失败（2026-11-17）**：`hard_pass_rate` 的分子分母
+  包含 `status=error` 的用例——一次 502 或超时同时污染「可用率」和「方案质量」两个结论，
+  与产品侧 `tests/test_storage.py` 立下的「断供不污染分母」相反。
+  - 修法：新增 `delivered_cases` / `hard_pass_rate_delivered`（只统计成功产出方案的用例），
+    报告在存在异常用例时同时给出两个分母，并写明哪个是「用户拿到什么」、哪个是「方案有多好」。
+  - 只加字段不改旧字段，历史快照的比较不受影响；补 1 个单测锁定口径。
 
 - **CI 因 workflow YAML 语法错误连续红（2026-11-17）**：`.github/workflows/ci.yml`
   第 68 行的步骤名 `name: All quality gates (single source of truth: Makefile)`
