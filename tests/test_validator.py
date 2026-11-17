@@ -168,3 +168,33 @@ def test_score_degrades_with_each_hard_issue(valid_plan, brief, tools):
     two = copy.deepcopy(one)
     two.slots[2].location_id = "invented_palace"
     assert validate(two, brief, tools).score < validate(one, brief, tools).score < clean.score
+
+
+def test_a_stated_departure_time_is_checked_not_just_recorded(valid_plan, brief, tools):
+    """「赶17:00的高铁」 must do something: the plan ends at 18:26."""
+    brief = copy.deepcopy(brief)
+    brief.preferences = ["17:00前结束"]
+    report = validate(valid_plan, brief, tools)
+    found = [i for i in report.issues if i.code == "END_AFTER_DEADLINE"]
+    assert len(found) == 1
+    assert found[0].severity == "soft", "late by an hour is bad, but not undeliverable"
+    assert found[0].expected == "<= 17:00"
+
+
+def test_a_deadline_the_plan_already_meets_raises_nothing(valid_plan, brief, tools):
+    brief = copy.deepcopy(brief)
+    brief.preferences = ["19:00前结束"]
+    assert "END_AFTER_DEADLINE" not in codes(valid_plan, brief, tools)
+
+
+def test_the_deadline_is_opt_in(valid_plan, brief, tools):
+    assert "END_AFTER_DEADLINE" not in codes(valid_plan, brief, tools)
+
+
+def test_deadline_parsing_ignores_text_that_only_looks_like_one():
+    from shotplan.domain.constraints import deadline_minutes
+
+    assert deadline_minutes(["17:00前结束"]) == 17 * 60
+    assert deadline_minutes(["喜欢 17:00 的光线"]) is None
+    assert deadline_minutes(["25:00前结束"]) is None
+    assert deadline_minutes([]) is None

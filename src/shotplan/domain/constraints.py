@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 
 # A plan may not run longer than the booked time plus this grace period.
 MAX_OVERRUN_MINUTES = 15
@@ -76,6 +77,25 @@ MORNING_FINISH_WORDS = (
 def wants_morning_finish(preferences: list[str]) -> bool:
     text = " ".join(preferences)
     return any(word in text for word in MORNING_FINISH_WORDS)
+
+
+# "17:00前结束" -- written by the follow-up parser when the client mentions a
+# train or a flight. Keeping the format in one place means the writer and the
+# reader cannot drift apart.
+DEADLINE_PREFERENCE = re.compile(r"(\d{1,2}):(\d{2})\s*前结束")
+
+
+def deadline_minutes(preferences: list[str]) -> int | None:
+    """The clock time the client must be done by, as minutes since midnight."""
+    for preference in preferences:
+        match = DEADLINE_PREFERENCE.search(str(preference))
+        if not match:
+            continue
+        hour, minute = int(match.group(1)), int(match.group(2))
+        if 0 <= hour <= 23 and 0 <= minute <= 59:
+            return hour * 60 + minute
+    return None
+
 
 # Hard ceiling: no plan may exceed the stated budget.
 BUDGET_TOLERANCE_CNY = 0
@@ -212,6 +232,12 @@ RULES: list[dict[str, str]] = [
         "severity": "soft",
         "rule": "所选风格应适配至少一个拍摄地点",
         "why": "唐制配现代极简场景会显得违和",
+    },
+    {
+        "code": "END_AFTER_DEADLINE",
+        "severity": "soft",
+        "rule": "方案结束时间不得晚于用户承诺的离开时刻（如「17:00前结束」）",
+        "why": "赶高铁/飞机是真实硬约束；识别到却不校验，等于没识别",
     },
 ]
 

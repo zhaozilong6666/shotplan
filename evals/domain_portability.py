@@ -49,6 +49,7 @@ LOGIC_PORTABLE = {
     "SHOOT_TOO_SHORT": "主活动最小块长，阈值随预约时长缩放",
     "LIGHT_MISUSE": "资源配置的可用窗口内应有主活动（换域即「可用时段」）",
     "NO_ALTERNATIVE": "需要给出备选方案",
+    "END_AFTER_DEADLINE": "结束时间不晚于承诺的离开时刻，任何有时间窗的调度都成立",
 }
 DOMAIN_LOGIC = {"STYLE_MISMATCH": "风格与场景的匹配是旅拍特有语义"}
 

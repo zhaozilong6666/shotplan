@@ -90,3 +90,81 @@ def test_api_followup_contract():
         assert bad.status_code == 422
         no_previous = client.post("/api/followup", json={"text": "预算多一点"})
         assert no_previous.status_code == 422
+
+
+# --- amounts: the layer that used to be able to add only one fixed step --------
+
+
+def test_a_stated_amount_is_arithmetic_not_a_preference():
+    result = apply_followup(_previous(), "能不能便宜 300")
+    assert result.recognized is True
+    assert result.request.budget_cny == 100
+    # The change names the arithmetic, so the client can check it.
+    assert "减 300" in result.changes[0]
+
+
+def test_an_absolute_budget_replaces_instead_of_stepping():
+    result = apply_followup(_previous(), "预算两千吧")
+    assert result.request.budget_cny == 2000
+    assert result.request.hours == 2
+
+
+def test_a_target_word_makes_the_number_absolute():
+    result = apply_followup(_previous(budget_cny=1500), "预算砍到 1000")
+    assert result.request.budget_cny == 1000
+
+
+def test_an_explicit_unit_wins_over_the_lowering_verb():
+    """「时间砍一点吧，4 个小时够了」 is four hours, not six minus four."""
+    result = apply_followup(_previous(hours=6), "时间砍一点吧，4 个小时够了")
+    assert result.request.hours == 4
+    # The vague half of the sentence must not be applied a second time.
+    assert len(result.changes) == 1
+
+
+def test_hours_are_clamped_and_a_no_op_is_not_reported_as_a_change():
+    result = apply_followup(_previous(hours=12), "时间再多一点")
+    assert result.recognized is False
+    assert result.request.hours == 12
+
+
+# --- styles: negation is positional -------------------------------------------
+
+
+def test_negating_one_style_and_naming_another_swaps_them():
+    result = apply_followup(_previous(styles=["tang"]), "不要唐制了，换宋制")
+    assert result.request.styles == ["song"]
+    assert "去掉 唐制" in result.changes[0]
+
+
+def test_removing_the_only_style_is_refused_rather_than_applied():
+    """An empty style list is not a plan; refusing is the honest answer."""
+    result = apply_followup(_previous(styles=["tang"]), "别要唐制了")
+    assert result.recognized is False
+    assert result.request.styles == ["tang"]
+    assert "至少保留一个" in result.message
+
+
+# --- commitment time ----------------------------------------------------------
+
+
+def test_a_train_to_catch_becomes_a_deadline_preference():
+    result = apply_followup(_previous(), "我得赶下午五点的高铁")
+    assert result.recognized is True
+    assert "17:00前结束" in result.request.preferences
+
+
+def test_a_bare_hour_with_no_period_is_not_turned_into_a_deadline():
+    """06:00 and 18:00 are both plausible; guessing one would be a lie."""
+    result = apply_followup(_previous(), "我六点要坐飞机")
+    assert result.recognized is False
+    assert result.request.preferences == ["人少"]
+
+
+def test_the_deadline_preference_replaces_an_older_one():
+    first = apply_followup(_previous(), "得赶下午五点的高铁")
+    second = apply_followup(first.request, "还是赶下午六点的高铁吧")
+    deadlines = [
+        p for p in second.request.preferences if p.endswith("前结束")
+    ]
+    assert deadlines == ["18:00前结束"]

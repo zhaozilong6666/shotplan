@@ -18,6 +18,7 @@ from ..domain.constraints import (
     MIN_TRANSFER_MINUTES,
     REQUIRED_ACTIVITIES,
     SCORE_WEIGHTS,
+    deadline_minutes,
     min_shoot_block_minutes,
     wants_morning_finish,
 )
@@ -26,6 +27,7 @@ from ..domain.models import (
     PlanRequest,
     ValidationIssue,
     ValidationReport,
+    fmt_minutes,
     to_minutes,
 )
 from ..knowledge.tools import KnowledgeTools, get_tools
@@ -309,7 +311,23 @@ def validate(
                 suggestion="更换地点或改选更适配的妆造风格",
             )
 
-    # --- 8. Scores --------------------------------------------------------------
+    # --- 8. Commitment time -----------------------------------------------------
+    # "赶五点的高铁" is a real deadline, not a preference to be admired. If the
+    # parser recognised it, the plan has to be checked against it -- otherwise
+    # the recognition only changed the wording of the brief.
+    deadline = deadline_minutes(request.preferences)
+    if deadline is not None and slots:
+        last_end = max(end for _, end in parsed)
+        if last_end > deadline:
+            add(
+                "END_AFTER_DEADLINE", "soft",
+                f"方案 {fmt_minutes(last_end)} 结束，晚于承诺的 {fmt_minutes(deadline)} 前结束",
+                actual=f"{fmt_minutes(last_end)} 结束",
+                expected=f"<= {fmt_minutes(deadline)}",
+                suggestion="前移开场时间，或删减一个拍摄点、缩短妆造",
+            )
+
+    # --- 9. Scores --------------------------------------------------------------
     hard_issues = [i for i in issues if i.severity == "hard"]
     soft_issues = [i for i in issues if i.severity == "soft"]
     hard_pass = not hard_issues
