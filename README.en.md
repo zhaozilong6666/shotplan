@@ -157,9 +157,9 @@ shotplan/
 │   ├── api.py         # Optional FastAPI layer
 │   ├── web/           # Dependency-free single-page UI (shipped in the package)
 │   └── cli.py         # CLI entry point
-├── evals/             # 80 cases + 200 holdout briefs, mutation/mining/HTTP/AB labs
+├── evals/             # 80 cases + 320 holdout briefs, mutation/mining/HTTP/AB labs
 ├── tests/             # unit tests (count: pytest --collect-only)
-└── docs/              # Architecture, metrics, 16 ADRs, ops; personal material in docs/portfolio/
+└── docs/              # Architecture, metrics, 18 ADRs, ops; personal material in docs/portfolio/
 ```
 
 The core uses only the Python standard library; FastAPI / pytest / ruff are optional layers. This makes "runs with no credentials" a design decision, not a compromise.
@@ -184,6 +184,8 @@ The core uses only the Python standard library; FastAPI / pytest / ruff are opti
 | [0014](docs/adr/0014-request-constraints-are-hard-rules.md) | `must_include` / `avoid` are hard rules | A retrieval hint cannot stop a model from ignoring an explicit condition |
 | [0015](docs/adr/0015-reproducible-run-trace.md) | Trace records KB and rule fingerprints | Historical scores must remain explainable after data or rules change |
 | [0016](docs/adr/0016-source-refs-must-resolve.md) | Citations must resolve in the KB | A fabricated citation is worse than no citation |
+| [0017](docs/adr/0017-one-settings-object-per-run.md) | One Settings object per request | Two config objects make the trace unable to explain the actual request |
+| [0018](docs/adr/0018-derived-explanations.md) | Explanations are derived from the KB, not narrated by the model | Model narration is uncheckable, costs tokens and drifts between samples |
 
 ## Optional: real model, UI, deployment
 

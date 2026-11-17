@@ -178,7 +178,7 @@ shotplan/
 │   └── cli.py         # 命令行入口
 ├── evals/             # 80 用例 + 320 盲测 brief、变异/挖掘/HTTP/对照实验、基准、基线
 ├── tests/             # 单元测试（数量用 pytest --collect-only 查，不在文档里写死）
-└── docs/              # 架构、指标、17 份 ADR、运维；个人材料在 docs/portfolio/
+└── docs/              # 架构、指标、18 份 ADR、运维；个人材料在 docs/portfolio/
 ```
 
 核心引擎只用 Python 标准库；FastAPI / pytest / ruff 都是可选层。这个分层让「没有 key 也能完整跑通」成为设计，而不是妥协。
@@ -204,6 +204,7 @@ shotplan/
 | [0015](docs/adr/0015-reproducible-run-trace.md) | trace 记录知识库与规则指纹 | 改了数据或规则后，历史分数必须仍能解释 |
 | [0016](docs/adr/0016-source-refs-must-resolve.md) | 引用必须指向真实知识库条目 | 伪造溯源比没有溯源更糟 |
 | [0017](docs/adr/0017-one-settings-object-per-run.md) | 一个请求只有一个 Settings 对象 | 两个配置对象会让 trace 解释不了实际发出的请求，评测结论无法迁移 |
+| [0018](docs/adr/0018-derived-explanations.md) | 排期理由由知识库推导，不由模型自述 | 模型自述不可核对、增加 token，还会让同一方案的解释随采样漂移 |
 
 ## 可选：接真实模型、启动界面、部署
 
