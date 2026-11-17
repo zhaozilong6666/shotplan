@@ -1,0 +1,27 @@
+# 留出集：写于实现完成之后、不参与调试的措辞。
+# 用途是检验 cases.jsonl 的 12/12 是不是过拟合——同一个词表，换一种说法还认不认。
+# 第一次运行的结果必须原样记录进 docs/multi-turn.md，之后改代码再看变化。
+
+{"id": "H01", "kind": "shorter", "description": "中文数字 + 小时单位，没有动词", "turns": [{"request": {"city": "xian", "date": "2026-10-04", "hours": 6, "budget_cny": 1500, "styles": ["tang"], "preferences": []}}, {"say": "五个小时就行"}], "expect": {"hours": 5}, "expect_recognized": true}
+
+{"id": "H02", "kind": "cheaper_amount", "description": "「少 200」而不是「便宜 300」", "turns": [{"request": {"city": "xian", "date": "2026-10-04", "hours": 6, "budget_cny": 1500, "styles": ["tang"], "preferences": []}}, {"say": "有点贵，能少 200 吗"}], "expect": {"budget_cny": 1300}, "expect_recognized": true}
+
+{"id": "H03", "kind": "absolute_budget", "description": "「砍到」+ 阿拉伯数字", "turns": [{"request": {"city": "xian", "date": "2026-10-04", "hours": 6, "budget_cny": 1500, "styles": ["tang"], "preferences": []}}, {"say": "预算砍到 1000"}], "expect": {"budget_cny": 1000}, "expect_recognized": true}
+
+{"id": "H04", "kind": "style_replace", "description": "否定明制、点名魏晋风", "turns": [{"request": {"city": "xian", "date": "2026-10-04", "hours": 6, "budget_cny": 1500, "styles": ["ming"], "preferences": []}}, {"say": "不要明制，魏晋风吧"}], "expect": {"styles": ["weijin"]}, "expect_recognized": true}
+
+{"id": "H05", "kind": "shorter", "description": "「缩到」是降向词，且带单位", "turns": [{"request": {"city": "xian", "date": "2026-10-04", "hours": 6, "budget_cny": 1500, "styles": ["tang"], "preferences": []}}, {"say": "时间缩到 3 个小时"}], "expect": {"hours": 3}, "expect_recognized": true}
+
+{"id": "H06", "kind": "absolute_budget", "description": "加钱 + 口语省略「两千五」", "turns": [{"request": {"city": "xian", "date": "2026-10-04", "hours": 6, "budget_cny": 1500, "styles": ["tang"], "preferences": []}}, {"say": "预算加到两千五"}], "expect": {"budget_cny": 2500}, "expect_recognized": true}
+
+{"id": "H07", "kind": "guard", "description": "守门：只说了六点，没说上午还是下午，不能猜", "turns": [{"request": {"city": "xian", "date": "2026-10-04", "hours": 6, "budget_cny": 1500, "styles": ["tang"], "preferences": []}}, {"say": "我六点要坐飞机"}], "expect": {"hours": 6, "budget_cny": 1500}, "expect_recognized": false}
+
+{"id": "H08", "kind": "implicit_deadline", "description": "「得走」也是赶时间，且带半点", "turns": [{"request": {"city": "xian", "date": "2026-10-04", "hours": 6, "budget_cny": 1500, "styles": ["tang"], "preferences": []}}, {"say": "下午四点半得走"}], "expect": {"preferences_contains": "16:30前结束"}, "expect_recognized": true}
+
+{"id": "H09", "kind": "cheaper_vague", "description": "「便宜一点」没有金额，按一步收", "turns": [{"request": {"city": "xian", "date": "2026-10-04", "hours": 6, "budget_cny": 1500, "styles": ["tang"], "preferences": []}}, {"say": "便宜一点就行"}], "expect": {"budget_cny": 1200}, "expect_recognized": true}
+
+{"id": "H10", "kind": "compound", "description": "一句话两个绝对量", "turns": [{"request": {"city": "xian", "date": "2026-10-04", "hours": 6, "budget_cny": 1500, "styles": ["tang"], "preferences": []}}, {"say": "预算三千，时间也加到八小时"}], "expect": {"budget_cny": 3000, "hours": 8}, "expect_recognized": true}
+
+{"id": "H11", "kind": "guard", "description": "守门：说换城市但没说是哪个", "turns": [{"request": {"city": "xian", "date": "2026-10-04", "hours": 6, "budget_cny": 1500, "styles": ["tang"], "preferences": []}}, {"say": "换个城市吧"}], "expect": {"city": "xian"}, "expect_recognized": false}
+
+{"id": "H12", "kind": "guard", "description": "守门：去掉唯一风格不应变成空风格", "turns": [{"request": {"city": "xian", "date": "2026-10-04", "hours": 6, "budget_cny": 1500, "styles": ["tang"], "preferences": []}}, {"say": "别要唐制了"}], "expect": {"styles": ["tang"]}, "expect_recognized": false}

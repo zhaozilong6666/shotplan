@@ -37,9 +37,9 @@
 规则的划分不靠感觉，靠 `python -m evals.domain_portability` 实测：
 
 ```
-15 rules
-  wording without domain words : 4/15 = 27%
-  logic reusable in another domain: 14/15 = 93%
+16 rules
+  wording without domain words : 5/16 = 31%
+  logic reusable in another domain: 15/16 = 94%
 -> STYLE_MISMATCH (soft) logic=domain-specific
 ```
 

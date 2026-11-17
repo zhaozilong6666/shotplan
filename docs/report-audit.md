@@ -66,13 +66,13 @@
 | 报告 | 边际信息量 | 最近邻 | 相似度 |
 | --- | ---: | --- | ---: |
 | `ingest.md` | 0.893 | `knowledge-contract.md` | 0.107 |
-| `repair-experiment.md` | 0.884 | `evaluation.md` | 0.116 |
-| `generality.md` | 0.880 | `ROADMAP.md` | 0.120 |
+| `repair-experiment.md` | 0.885 | `evaluation.md` | 0.115 |
+| `generality.md` | 0.881 | `ROADMAP.md` | 0.119 |
 | `cost-latency-simulation.md` | 0.879 | `real-model-light-fix-2026-11-16.md` | 0.121 |
 | `intelligence-roadmap.md` | 0.875 | `architecture.md` | 0.125 |
-| `knowledge-contract.md` | 0.868 | `architecture.md` | 0.132 |
-| `budget-vs-concurrency.md` | 0.848 | `real-model-baseline-2026-11-16.md` | 0.152 |
-| `rule-map.md` | 0.844 | `problem-and-metrics.md` | 0.156 |
+| `knowledge-contract.md` | 0.869 | `architecture.md` | 0.131 |
+| `budget-vs-concurrency.md` | 0.849 | `real-model-baseline-2026-11-16.md` | 0.151 |
+| `rule-map.md` | 0.849 | `problem-and-metrics.md` | 0.151 |
 | `cost.md` | 0.837 | `real-model-comparison.md` | 0.163 |
 | `styling-budget.md` | 0.830 | `problem-and-metrics.md` | 0.170 |
 
@@ -111,4 +111,4 @@
 - **交叉引用会推高相似度**：为了让读者不困惑而补的导航句（「同日还有两份更小的采样」）本身增加了共同词汇——实测中一份报告补完导航后，与另外两份的相似度反而从 0.60 升到 0.64。所以 0.55–0.70 更像「同一批实验的不同切面」，而不是「两篇在讲同一件事」：先核对数字，再决定是否合并。
 - **本文件自身不参与**审计，否则每次运行都会把自己报成 100% 重复。
 
-_语料指纹：`a4b477f643791308`（内容变化时此值必变）_
+_语料指纹：`42469f41e3f825c1`（内容变化时此值必变）_

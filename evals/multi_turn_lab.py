@@ -31,6 +31,8 @@ from shotplan.domain.models import PlanRequest  # noqa: E402
 from shotplan.followup import apply_followup  # noqa: E402
 
 DEFAULT_CASES = REPO_ROOT / "evals" / "multi_turn" / "cases.jsonl"
+DEFAULT_HOLDOUT = REPO_ROOT / "evals" / "multi_turn" / "holdout.jsonl"
+HOLDOUT_BASELINE = REPO_ROOT / "evals" / "multi_turn" / "holdout_baseline.json"
 DEFAULT_REPORT = REPO_ROOT / "docs" / "multi-turn.md"
 
 
@@ -108,14 +110,23 @@ def run_case(case: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def render(results: list[dict[str, Any]], *, silent: bool) -> str:
+def render(
+    results: list[dict[str, Any]],
+    *,
+    silent: bool,
+    holdout: list[dict[str, Any]] | None = None,
+    baseline: dict[str, Any] | None = None,
+) -> str:
     total = len(results)
     passed = sum(1 for r in results if r["pass"])
     lines = [
         "# 多轮追问能力实测",
         "",
-        f"用例 **{total}** 条，一次通过 **{passed}** 条"
+        f"用例 **{total}** 条，当前通过 **{passed}** 条"
         f"（**{passed / total * 100:.0f}%**）。",
+        "",
+        "这是规则**当前的状态**，不是首次运行的记录。首次跑是 5/12，"
+        "每个修复各补上几条见 [multi-turn-attribution.md](multi-turn-attribution.md)。",
         "",
         "本页由 `evals/multi_turn_lab.py` 生成。被测对象是 `followup.py` 的"
         "确定性规则，不调用任何模型，因此结果可复现、可归因：失败即规则缺口。",
@@ -149,6 +160,50 @@ def render(results: list[dict[str, Any]], *, silent: bool) -> str:
             )
             lines.append("")
 
+    if holdout:
+        hold_passed = sum(1 for r in holdout if r["pass"])
+        lines += [
+            "",
+            "## 留出集：换了说法的同一件事",
+            "",
+            "上面 12 条是边写边调的，全过说明不了泛化。这批句子写在实现完成之后、"
+            "不参与调试，专门用来打自己的脸。",
+            "",
+        ]
+        if baseline:
+            failed = "、".join(baseline.get("failed") or []) or "无"
+            lines += [
+                f"**首跑（{baseline.get('date', '')}，改代码之前）："
+                f"{baseline.get('passed')}/{baseline.get('total')}**，"
+                f"失败 {failed}。",
+                "",
+            ]
+            lines += [
+                f"现在 {hold_passed}/{len(holdout)}。"
+                "**这个数字不再构成泛化证据**——首跑之后，修的就是这三条，"
+                "用的是同一批句子。它现在的用途只有一个：防止以后改坏。",
+                "",
+                "| 用例 | 类型 | 结果 | 说明 |",
+                "| --- | --- | --- | --- |",
+            ]
+        else:
+            lines += [
+                f"当前 {hold_passed}/{len(holdout)}。",
+                "",
+                "| 用例 | 类型 | 结果 | 说明 |",
+                "| --- | --- | --- | --- |",
+            ]
+        for item in holdout:
+            mark = "通过" if item["pass"] else "**失败**"
+            lines.append(
+                f"| {item['id']} | {item['kind']} | {mark} | {item['description']} |"
+            )
+        for item in holdout:
+            if item["pass"]:
+                continue
+            lines += ["", f"**{item['id']}** 未过：" + "；".join(item["mismatches"])]
+        lines.append("")
+
     lines += [
         "",
         "## 口径",
@@ -156,6 +211,7 @@ def render(results: list[dict[str, Any]], *, silent: bool) -> str:
         "- 一条用例通过 = `expect` 里每个字段都对，且最后一轮的「识别/拒答」符合预期。",
         "- 中间轮次不单独计分，只要求最终状态正确：多轮的价值在于收敛，不在于每句都改对。",
         "- 拒答也是正确答案之一：说不清的需求被硬塞进某个字段，比让用户改表单更糟。",
+        "- 每个修复各值多少条，见 [multi-turn-attribution.md](multi-turn-attribution.md)。",
         "",
     ]
     body = "\n".join(lines)
@@ -167,6 +223,12 @@ def render(results: list[dict[str, Any]], *, silent: bool) -> str:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="多轮追问能力实测（不调模型）")
     parser.add_argument("--cases", type=Path, default=DEFAULT_CASES)
+    parser.add_argument(
+        "--holdout",
+        type=Path,
+        default=DEFAULT_HOLDOUT,
+        help="留出集；存在时在报告里单列一节，不存在则跳过",
+    )
     parser.add_argument("--report-path", type=Path, default=DEFAULT_REPORT)
     parser.add_argument("--write", action="store_true", help="把报告写入磁盘")
     parser.add_argument("--json", action="store_true", help="输出逐例 JSON")
@@ -179,7 +241,21 @@ def main(argv: list[str] | None = None) -> int:
 
     cases = load_cases(args.cases)
     results = [run_case(case) for case in cases]
-    body = render(results, silent=args.json or args.check)
+
+    holdout_results: list[dict[str, Any]] = []
+    baseline: dict[str, Any] = {}
+    same_file = args.holdout and args.holdout.resolve() == args.cases.resolve()
+    if args.holdout and args.holdout.exists() and not same_file:
+        holdout_results = [run_case(case) for case in load_cases(args.holdout)]
+        if HOLDOUT_BASELINE.exists():
+            baseline = json.loads(HOLDOUT_BASELINE.read_text(encoding="utf-8"))
+
+    body = render(
+        results,
+        silent=args.json or args.check,
+        holdout=holdout_results,
+        baseline=baseline,
+    )
 
     if args.check:
         if not args.report_path.exists():
