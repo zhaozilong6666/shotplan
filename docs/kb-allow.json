@@ -1,0 +1,22 @@
+[
+  {
+    "doc": "docs/optimization-report.md",
+    "token": "_source_ref_exists()",
+    "reason": "2026-11-13 的历史交接报告，记录当时新增的函数；该函数后来被并入别处。改写历史报告会篡改它作为证据的内容。"
+  },
+  {
+    "doc": "docs/optimization-report.md",
+    "token": "_flatten()",
+    "reason": "同上：这条写的是当时「删除 _flatten()」的动作本身，不是当前代码的引用。"
+  },
+  {
+    "doc": "docs/kb.md",
+    "token": "_source_ref_exists()",
+    "reason": "反例：这份文档正是在讲「这个函数已不存在，而检查器应该抓到它」，属于提及而非引用。"
+  },
+  {
+    "doc": "docs/kb.md",
+    "token": "_flatten()",
+    "reason": "同上，作为已删除函数的反例被提及。"
+  }
+]

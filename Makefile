@@ -1,4 +1,4 @@
-.PHONY: help install test lint typecheck eval mutation mine report fuzz bench load httpload workerlab persistlab pipelinedoc scale examples gates showcase serve plan smoke clean
+.PHONY: help install test lint typecheck eval mutation mine report fuzz bench load httpload workerlab persistlab pipelinedoc scale examples gates kb showcase serve plan smoke clean
 
 PYTHON ?= python
 
@@ -23,6 +23,7 @@ help:
 	@echo "  scale     线程 vs 进程扩展性对比"
 	@echo "  examples  重新生成 docs/examples.md 真实输出示例"
 	@echo "  gates     本地跑一遍 CI 的全部质量门禁"
+	@echo "  kb        重新生成知识库健康度 / 下一步队列 / 交接页"
 	@echo "  showcase  重新生成展示页数据块"
 	@echo "  plan      用离线 mock 生成一份示例方案"
 	@echo "  serve     启动 Web / API (需要 install)"
@@ -102,11 +103,16 @@ gates:
 	$(PYTHON) scripts/check_doc_claims.py
 	$(PYTHON) -m evals.experiment_log --check
 	$(PYTHON) scripts/audit_reports.py --check
+	$(PYTHON) scripts/kb.py --check
 	$(PYTHON) -m evals.annotation_kit --check
 	$(PYTHON) scripts/validate_knowledge.py --check
 	$(PYTHON) scripts/check_gate_count.py
 	$(PYTHON) -m evals.scaling --check --requests 300
 	$(PYTHON) -m evals.examples --check
+
+kb:
+	$(PYTHON) scripts/kb.py --write
+	$(PYTHON) scripts/kb.py --check
 
 showcase:
 	$(PYTHON) -m evals.cost_latency --write-report

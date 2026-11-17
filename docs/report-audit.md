@@ -8,18 +8,18 @@
 
 | 指标 | 值 |
 | --- | --- |
-| 扫描报告 | 62 份（357 KB） |
-| 脚本生成 | 28 份，来自 20 个生成器 |
-| 人写报告 | 34 份 |
+| 扫描报告 | 67 份（372 KB） |
+| 脚本生成 | 31 份，来自 21 个生成器 |
+| 人写报告 | 36 份 |
 | 人写报告冗余对（≥ 0.55） | 3 对 |
 | 同名前缀家族（≥ 3 份） | 3 个 |
 | 失效引用 | 0 处 |
 | 孤儿报告（无入链） | 5 份 |
-| 人写报告平均边际信息量 | 0.752 |
+| 人写报告平均边际信息量 | 0.757 |
 
 ## 1. 同源实例：报告为什么会堆积
 
-`evals.real_model_lab` 一个脚本产出 **9 份**，占全部脚本生成报告的 32%。
+`evals.real_model_lab` 一个脚本产出 **9 份**，占全部脚本生成报告的 29%。
 
 - `real-model-full-2026-11-16.md`
 - `real-model-repeat3.md`
@@ -30,6 +30,12 @@
 - `redteam.md`
 - `router-holdout-off.md`
 - `router-holdout-on.md`
+
+`scripts/kb.py` 一个脚本产出 **3 份**，占全部脚本生成报告的 10%。
+
+- `HANDOFF.md`
+- `kb-health.md`
+- `next.md`
 
 这些文件的高相似度是模板的必然结果，**不是冗余**——它们记录了不同的数字。真正的问题是读者无法从文件名判断哪份是当前结论。
 
@@ -43,9 +49,9 @@
 
 | 报告 A | 报告 B | 相似度 | 建议 |
 | --- | --- | ---: | --- |
-| `real-model-light-fix-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.655 | 部分重叠：只核对数字是否互相矛盾 |
-| `real-model-baseline-2026-11-16.md` | `real-model-light-fix-2026-11-16.md` | 0.636 | 部分重叠：只核对数字是否互相矛盾 |
-| `real-model-baseline-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.558 | 部分重叠：只核对数字是否互相矛盾 |
+| `real-model-light-fix-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.661 | 部分重叠：只核对数字是否互相矛盾 |
+| `real-model-baseline-2026-11-16.md` | `real-model-light-fix-2026-11-16.md` | 0.643 | 部分重叠：只核对数字是否互相矛盾 |
+| `real-model-baseline-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.564 | 部分重叠：只核对数字是否互相矛盾 |
 
 **不要直接删**：这些文件记录的是「当时为什么那么判断」。保留边际信息量最高的一份作为当前结论，其余在首行加一行`> 已被 <新文件> 取代（<日期>）；本文保留为历史记录`。
 
@@ -61,28 +67,28 @@
 
 ## 4. 边际信息量排序：人写报告里谁值得先读
 
-`1 - 最近邻相似度`，只在 34 份人写报告内比较（< 120 token 的 0 份只查引用）。接近 1 表示这份讲的东西别处没有；接近 0 表示它是别人的复述。
+`1 - 最近邻相似度`，只在 36 份人写报告内比较（< 120 token 的 0 份只查引用）。接近 1 表示这份讲的东西别处没有；接近 0 表示它是别人的复述。
 
 | 报告 | 边际信息量 | 最近邻 | 相似度 |
 | --- | ---: | --- | ---: |
-| `multi-turn-attribution.md` | 0.905 | `ROADMAP.md` | 0.095 |
+| `multi-turn-attribution.md` | 0.904 | `ROADMAP.md` | 0.096 |
 | `ingest.md` | 0.893 | `knowledge-contract.md` | 0.107 |
-| `repair-experiment.md` | 0.885 | `evaluation.md` | 0.115 |
-| `generality.md` | 0.881 | `ROADMAP.md` | 0.119 |
-| `cost-latency-simulation.md` | 0.879 | `real-model-light-fix-2026-11-16.md` | 0.121 |
-| `intelligence-roadmap.md` | 0.875 | `architecture.md` | 0.125 |
-| `knowledge-contract.md` | 0.869 | `architecture.md` | 0.131 |
-| `budget-vs-concurrency.md` | 0.849 | `real-model-baseline-2026-11-16.md` | 0.151 |
-| `rule-map.md` | 0.849 | `problem-and-metrics.md` | 0.151 |
-| `cost.md` | 0.837 | `real-model-comparison.md` | 0.163 |
+| `city-coverage.md` | 0.890 | `evaluation.md` | 0.110 |
+| `repair-experiment.md` | 0.883 | `failure-taxonomy.md` | 0.117 |
+| `generality.md` | 0.880 | `ROADMAP.md` | 0.120 |
+| `cost-latency-simulation.md` | 0.876 | `real-model-light-fix-2026-11-16.md` | 0.124 |
+| `intelligence-roadmap.md` | 0.874 | `architecture.md` | 0.126 |
+| `knowledge-contract.md` | 0.868 | `architecture.md` | 0.132 |
+| `rule-map.md` | 0.848 | `problem-and-metrics.md` | 0.152 |
+| `budget-vs-concurrency.md` | 0.846 | `real-model-baseline-2026-11-16.md` | 0.154 |
 
 末位（信息量最低）：
 
 - `ROADMAP.md` — 0.667，最近邻 `evaluation.md`（0.333）
 - `evaluation.md` — 0.667，最近邻 `ROADMAP.md`（0.333）
-- `real-model-baseline-2026-11-16.md` — 0.364，最近邻 `real-model-light-fix-2026-11-16.md`（0.636）
-- `real-model-light-fix-2026-11-16.md` — 0.345，最近邻 `real-model-smoke-2026-11-16.md`（0.655）
-- `real-model-smoke-2026-11-16.md` — 0.345，最近邻 `real-model-light-fix-2026-11-16.md`（0.655）
+- `real-model-baseline-2026-11-16.md` — 0.357，最近邻 `real-model-light-fix-2026-11-16.md`（0.643）
+- `real-model-light-fix-2026-11-16.md` — 0.339，最近邻 `real-model-smoke-2026-11-16.md`（0.661）
+- `real-model-smoke-2026-11-16.md` — 0.339，最近邻 `real-model-light-fix-2026-11-16.md`（0.661）
 
 ## 5. 失效引用：读者点开就是 404
 
@@ -112,4 +118,4 @@
 - **本文件自身不参与**审计，否则每次运行都会把自己报成 100% 重复。
 - **提交动作会改变语料**：语料取的是 git 索引，`git add` 一份新文档就会让统计数 +1。新增文档后要**先 add、再 `--write`**，否则本地算的是旧份数，CI 算的是新份数——这个陷阱已经踩过两次（一次是未跟踪的草稿被算进来，一次是刚 add 的新文档没重新生成）。
 
-_语料指纹：`55ccc94d75473684`（内容变化时此值必变）_
+_语料指纹：`9dd3cbf1e8b010f1`（内容变化时此值必变）_

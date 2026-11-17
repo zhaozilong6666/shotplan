@@ -33,13 +33,32 @@ def test_evidence_must_resolve():
             assert (ROOT / row["evidence"]).exists(), row["id"]
 
 
-def test_open_entries_are_allowed_to_have_no_evidence():
-    """E08 records a belief that was never tested; that is the point of it."""
-    rows = el.load(el.DEFAULT_LEDGER)
-    open_rows = [row for row in rows if row["verdict"] == "open"]
-    assert open_rows, "the ledger should carry at least one untested belief"
-    for row in open_rows:
-        assert not row.get("evidence")
+def test_open_entries_are_allowed_to_have_no_evidence(tmp_path: Path):
+    """An untested belief is legal; a confirmed one without evidence is not.
+
+    This used to assert that the real ledger contained an open entry. That
+    turned a data state into a requirement, and it failed the day the last
+    open item (E08) was closed. The rule belongs on a fixture, where it tests
+    the loader rather than today's ledger.
+    """
+    ledger = tmp_path / "open.jsonl"
+    ledger.write_text(
+        json.dumps(
+            {
+                "id": "E99",
+                "date": "2026-11-17",
+                "area": "docs",
+                "question": "q",
+                "expect": "e",
+                "verdict": "open",
+                "evidence": None,
+            }
+        ),
+        encoding="utf-8",
+    )
+    rows = el.load(ledger)
+    assert rows[0]["verdict"] == "open"
+    assert not rows[0].get("evidence")
 
 
 def test_a_missing_evidence_file_is_rejected(tmp_path: Path):
