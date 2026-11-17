@@ -136,6 +136,12 @@
 
 ### Fixed
 
+- **提交动作本身改变了审计语料，四个 Python 版本同时红（2026-11-17）**：语料读的是 git 索引，
+  `git add docs/multi-turn-attribution.md` 把份数从 61 变成 62，而审计页是 add **之前**生成的。
+  本地门禁在 add 前跑、通过；CI 在 add 后跑、差那一行。
+  这是同一个陷阱的第二次（第一次是未跟踪的草稿被算进本地语料）。
+  规则已写进 `report-audit.md` 的口径：**先 add，再 `--write`**。
+
 - **跨平台排序差异让同一份报告在本地与 CI 不同（2026-11-17）**：`sorted(Path)` 在
   Windows 上按大小写不敏感比较、在 Linux 上区分大小写，于是 `ROADMAP.md` 与
   `evaluation.md` 的顺序在两台机器上相反。这两份文档互为最近邻、边际信息量完全相同，
