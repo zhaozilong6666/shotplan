@@ -58,6 +58,34 @@ def test_excluding_every_location_is_refused(tools):
     assert "ALL_LOCATIONS_EXCLUDED" in reason_codes(report)
 
 
+def test_required_places_that_do_not_fit_are_refused(tools):
+    """Two 90-minute places plus styling and transfers exceed a three-hour booking.
+
+    The planner used to generate a plan that silently dropped the second
+    required place and then failed MISSING_REQUIRED_LOCATION: a plausible plan
+    that did not do what the client asked. Arithmetic belongs before generation.
+    """
+    brief = PlanRequest(
+        city="chengdu",
+        hours=3,
+        styles=["tang"],
+        must_include=["wuhouci", "dongjiao_memory"],
+    )
+    report = check_feasibility(brief, tools)
+    assert report.feasible is False
+    assert "TIME_BELOW_REQUIRED_LOCATIONS" in reason_codes(report)
+
+
+def test_the_same_places_fit_when_the_booking_is_longer(tools):
+    brief = PlanRequest(
+        city="chengdu",
+        hours=6,
+        styles=["tang"],
+        must_include=["wuhouci", "dongjiao_memory"],
+    )
+    assert check_feasibility(brief, tools).feasible is True
+
+
 def test_all_reasons_are_reported_at_once(tools):
     report = check_feasibility(PlanRequest(hours=1.0, budget_cny=0), tools)
     assert {"BUDGET_BELOW_MINIMUM", "TIME_BELOW_MINIMUM"} <= reason_codes(report)

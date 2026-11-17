@@ -13,7 +13,13 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Any
 
-from .constraints import MIN_FEASIBLE_HOURS, MIN_TRANSFER_COST_CNY
+from .constraints import (
+    MIN_FEASIBLE_HOURS,
+    MIN_SHOOT_BLOCK_MINUTES,
+    MIN_TRANSFER_COST_CNY,
+    MIN_TRANSFER_MINUTES,
+    STYLING_FLOOR_MINUTES,
+)
 from .models import PlanRequest
 
 
@@ -142,6 +148,44 @@ def check_feasibility(request: PlanRequest, tools: Any) -> FeasibilityReport:
                 suggestion="从 avoid 里移除至少一个地点，或换一座城市",
             )
         )
+
+    # Arithmetic the other checks do not cover: the required places each carry
+    # their own dwell time, and two of them can add up to more than the booking
+    # once styling and transfers are counted. The planner used to discover this
+    # only after generation, by dropping one required place -- producing a
+    # plausible plan that then failed MISSING_REQUIRED_LOCATION. A brief no plan
+    # can satisfy should be refused, not half-executed.
+    #
+    # The estimate is deliberately optimistic, because the question is "does any
+    # plan exist", not "does the ideal plan fit". Two details decide whether this
+    # refuses impossible briefs or merely annoying ones:
+    #
+    # - dwell time uses the minimum shoot block, not the location's suggested
+    #   duration. `min_minutes` is how long a place deserves, not the least that
+    #   can be shot there; treating it as a floor rejected a two-hour booking of
+    #   a ninety-minute wall that the planner can cover in sixty.
+    # - styling uses the floor rather than the style's standard duration, and one
+    #   transfer sits between places rather than one per place.
+    required_places = [item for item in locations if item["id"] in set(req.must_include)]
+    if required_places:
+        shoot_minutes = MIN_SHOOT_BLOCK_MINUTES * len(required_places)
+        styling = STYLING_FLOOR_MINUTES
+        transfer = MIN_TRANSFER_MINUTES * max(0, len(required_places) - 1)
+        needed = shoot_minutes + styling + transfer
+        available = int(req.hours * 60)
+        if available < needed:
+            reasons.append(
+                FeasibilityIssue(
+                    code="TIME_BELOW_REQUIRED_LOCATIONS",
+                    message=(
+                        f"{len(required_places)} 个必去地点至少需 {shoot_minutes} 分钟拍摄，"
+                        f"加最少妆造 {styling} 分钟、转场 {transfer} 分钟，共 {needed} 分钟，"
+                        f"超过预约的 {available} 分钟"
+                    ),
+                    shortfall=f"还差 {needed - available} 分钟",
+                    suggestion="延长预约，或从 must_include 里去掉一个地点",
+                )
+            )
 
     minimums = {
         "min_budget_cny": min_budget,
