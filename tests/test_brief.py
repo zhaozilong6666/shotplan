@@ -11,7 +11,7 @@ from shotplan.brief import understand
 from shotplan.domain.feasibility import check_feasibility
 from shotplan.domain.models import PlanRequest
 from shotplan.knowledge.tools import get_tools
-from shotplan.negotiation import negotiate
+from shotplan.negotiation import headroom, negotiate
 
 TODAY = dt.date(2026, 11, 15)
 
@@ -79,6 +79,31 @@ def test_negotiate_returns_nothing_when_the_brief_is_already_feasible():
     assert negotiate(PlanRequest()) == []
 
 
+def test_tight_but_feasible_brief_gets_verified_headroom():
+    """Feasible is not the same as comfortable; say so before generation."""
+    request = PlanRequest(
+        city="xian", date="2026-10-04", hours=2, budget_cny=400, styles=["tang"]
+    )
+    assert check_feasibility(request, get_tools()).feasible
+    options = headroom(request)
+    assert options
+    assert {key for option in options for key in option.changes} == {
+        "budget_cny", "hours",
+    }
+    for option in options:
+        assert option.verified
+        assert check_feasibility(option.request, get_tools()).feasible, option.label
+        assert "具体方案以生成结果为准" in option.tradeoff
+
+
+def test_comfortable_brief_gets_no_headroom():
+    assert headroom(PlanRequest()) == []
+
+
+def test_infeasible_brief_gets_no_headroom():
+    assert headroom(PlanRequest(city="xian", hours=1, budget_cny=100)) == []
+
+
 def test_api_understand_endpoint_contract():
     with TestClient(app) as client:
         response = client.post("/api/understand", json={
@@ -89,7 +114,18 @@ def test_api_understand_endpoint_contract():
         assert data["feasibility"]["feasible"] is False
         assert data["negotiations"]
         assert all(o["verified"] for o in data["negotiations"])
+        assert data["headroom"] == []
         assert data["assumptions"] and data["raw_text"]
+
+        tight = client.post("/api/understand", json={
+            "text": "去西安，2小时，预算400元，唐风", "today": "2026-11-15",
+        })
+        assert tight.status_code == 200
+        tight_data = tight.json()
+        assert tight_data["feasibility"]["feasible"] is True
+        assert tight_data["negotiations"] == []
+        assert tight_data["headroom"]
+        assert all(o["verified"] for o in tight_data["headroom"])
 
         bad = client.post("/api/understand", json={"text": "  "})
         assert bad.status_code == 422

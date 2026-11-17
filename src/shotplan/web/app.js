@@ -164,6 +164,15 @@
       });
     }
 
+    if (data.headroom && data.headroom.length) {
+      html += "<h4>当前条件可行，但离下限很近（每项都已实跑预检）</h4>";
+      data.headroom.forEach(function (option, index) {
+        html += '<div class="negotiation"><span class="label">' + esc(option.label) +
+          '<span class="tradeoff">' + esc(option.tradeoff) + '</span></span>' +
+          '<button data-headroom="' + index + '">采用</button></div>';
+      });
+    }
+
     el("brief-result").innerHTML = html;
     fillForm(data.request);
   }
@@ -573,6 +582,14 @@
       if (option) {
         fillForm(option.request);
         setStatus("已采用调整，可重新生成", true);
+      }
+    }
+    if (target && target.dataset && target.dataset.headroom !== undefined &&
+        state.understanding) {
+      var headroom = state.understanding.headroom[Number(target.dataset.headroom)];
+      if (headroom) {
+        fillForm(headroom.request);
+        setStatus("已采纳余量建议，可重新生成", true);
       }
     }
   });

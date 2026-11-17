@@ -47,7 +47,7 @@ from .domain.feasibility import check_feasibility
 from .domain.models import PlanRequest
 from .knowledge.loader import knowledge_version
 from .knowledge.tools import get_tools
-from .negotiation import negotiate
+from .negotiation import headroom, negotiate
 from .pipeline import run_plan
 from .storage import RunSink, RunStore, close_all_writers, get_writer
 
@@ -340,6 +340,10 @@ def understand_brief(payload: dict[str, Any]) -> dict[str, Any]:
     result["negotiations"] = (
         [option.to_dict() for option in negotiate(parsed.request, tools=get_tools())]
         if not verdict.feasible else []
+    )
+    result["headroom"] = (
+        [option.to_dict() for option in headroom(parsed.request, tools=get_tools())]
+        if verdict.feasible else []
     )
     return result
 

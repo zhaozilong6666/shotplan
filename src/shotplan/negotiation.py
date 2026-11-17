@@ -18,6 +18,12 @@ from .domain.feasibility import check_feasibility
 from .domain.models import PlanRequest
 from .knowledge.tools import KnowledgeTools, get_tools
 
+# How much above the theoretical minimum still counts as "tight". These are
+# presentation thresholds, not feasibility rules: they decide when to *offer*
+# a choice, never whether a brief can run.
+HEADROOM_BUDGET_CNY = 300
+HEADROOM_HOURS = 1.0
+
 
 @dataclass
 class Negotiation:
@@ -141,3 +147,53 @@ def negotiate(
     # Fewer changed fields first: the smallest repair should be the default.
     verified.sort(key=lambda o: (len(o.changes), sum(len(str(v)) for v in o.changes.values())))
     return verified[:limit]
+
+
+def headroom(
+    request: PlanRequest, *, tools: KnowledgeTools | None = None
+) -> list[Negotiation]:
+    """For a feasible but tight brief, show what a little more room would cost.
+
+    This is not a repair: the request already passes the preflight. It is the
+    other half of negotiation -- before generating, tell the user how close the
+    brief sits to the theoretical floor, and let them decide whether to buy
+    margin. No claim is made about what the extra room will produce; that
+    depends on the planner and is measured after generation.
+    """
+    tools = tools or get_tools()
+    req = request.normalized()
+    report = check_feasibility(req, tools)
+    if not report.feasible:
+        return []
+
+    minimums = report.minimums
+    options: list[Negotiation] = []
+    min_budget = int(minimums.get("min_budget_cny", 0))
+    if min_budget <= req.budget_cny < min_budget + HEADROOM_BUDGET_CNY:
+        target = min_budget + HEADROOM_BUDGET_CNY
+        options.append(Negotiation(
+            label=f"预算提高到 {target} 元（比最低成本多 {HEADROOM_BUDGET_CNY} 元）",
+            changes={"budget_cny": target},
+            request=replace(req, budget_cny=target),
+            tradeoff=(
+                f"多花 {target - req.budget_cny} 元留出余量；可用于升级妆造或给选点留空间，"
+                "具体方案以生成结果为准"
+            ),
+        ))
+
+    min_hours = float(minimums.get("min_hours", 0))
+    if min_hours <= req.hours < min_hours + HEADROOM_HOURS and req.hours < 12:
+        target_hours = min(12.0, min_hours + HEADROOM_HOURS)
+        options.append(Negotiation(
+            label=f"时长延长到 {target_hours:g} 小时（比最低时长多 {HEADROOM_HOURS:g} 小时）",
+            changes={"hours": target_hours},
+            request=replace(req, hours=target_hours),
+            tradeoff=(
+                f"多留 {target_hours - req.hours:g} 小时；可用于妆造或转场缓冲，"
+                "具体方案以生成结果为准"
+            ),
+        ))
+
+    verified = [o for o in options if check_feasibility(o.request, tools).feasible]
+    return verified
+
