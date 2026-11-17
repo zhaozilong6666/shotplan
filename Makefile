@@ -100,6 +100,7 @@ gates:
 	$(PYTHON) -m evals.slo_baseline --check
 	$(PYTHON) -m evals.http_smoke --check
 	$(PYTHON) scripts/check_doc_claims.py
+	$(PYTHON) scripts/audit_reports.py --check
 	$(PYTHON) -m evals.annotation_kit --check
 	$(PYTHON) scripts/validate_knowledge.py --check
 	$(PYTHON) scripts/check_gate_count.py

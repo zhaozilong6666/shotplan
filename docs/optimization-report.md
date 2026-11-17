@@ -196,7 +196,7 @@
   - `docs/adr/0015-reproducible-run-trace.md`
   - `docs/adr/0016-source-refs-must-resolve.md`
 - `CHANGELOG.md`：新增 Unreleased Changed/Fixed，删除 0.10.1 的重复条目。
-- 同步更新：`README.md`、`README.en.md`、`docs/architecture.md`、`docs/evaluation.md`、`docs/problem-and-metrics.md`、`docs/observability.md`、`docs/ROADMAP.md`、`docs/runbook.md`、`docs/interview-notes.md`、`docs/interview-onepager.md`、`docs/resume.md`、`docs/USER_TASKS.md`、`CONTRIBUTING.md`（line-length 100 → 120，ruff 范围加 `scripts`）。
+- 同步更新：`README.md`、`README.en.md`、`docs/architecture.md`、`docs/evaluation.md`、`docs/problem-and-metrics.md`、`docs/observability.md`、`docs/ROADMAP.md`、`docs/runbook.md`、`docs/portfolio/interview-notes.md`、`docs/portfolio/interview-onepager.md`、`docs/portfolio/resume.md`、`docs/portfolio/USER_TASKS.md`、`CONTRIBUTING.md`（line-length 100 → 120，ruff 范围加 `scripts`）。
 
 ### 3.10 测试
 

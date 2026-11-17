@@ -55,7 +55,7 @@
 - [x] **持久化对照实验**：`SHOTPLAN_PERSIST_RUNS` 开关在同一份产品代码上做开/关对照，验证 v0.8.0 的写锁归因；判定允许输出「不确定」，结论随数据动态生成（见 [worker-bottleneck.md](worker-bottleneck.md)、[ADR 0011](adr/0011-controlled-experiment-over-inference.md)）
 - [x] **写入异步化**：`off/sync/async` 三组同批对照，异步相对同步 1 worker 2.96×、4 worker 1.95×，拿回约 47% 写库开销，三组 0 丢写；默认仍为 `sync`，硬杀丢失窗口用 `os._exit` 实测（见 [persistence.md](persistence.md)、[ADR 0012](adr/0012-write-behind-persistence.md)）
 - [x] **流水线契约与墙钟预算**：6 个节点写成状态表，图与逐节点 I/O 由代码生成、CI 比对漂移；超预算时降级返回最优草稿（见 [pipeline-contract.md](pipeline-contract.md)、[ADR 0013](adr/0013-explicit-stage-table-and-budget.md)）
-- [x] GitHub Actions：测试 + lint + **28 道质量门禁**（单元测试跑 3.10–3.13 矩阵，重门禁在 3.12 执行一次）
+- [x] GitHub Actions：测试 + lint + **29 道质量门禁**（单元测试跑 3.10–3.13 矩阵，重门禁在 3.12 执行一次）
 
 验收：`python -m evals.run_eval --write-report` 退出码 0；实测 80/80 通过、均分 0.9796、对照组 0.2974；`python -m evals.mutation_lab --check` 退出码 0 且 0 处变异存活；`python -m evals.case_miner --check` 退出码 0 且 320 个盲测 brief 全部与主集不重复；`python -m evals.http_load --check` 退出码 0 且真实 HTTP 请求 0 错误、0 丢写；`python -m evals.worker_lab --check` 退出码 0 且持久化开关语义正确（开 = 全落库、关 = 0 落库）；`python -m evals.persist_lab --check` 退出码 0 且三组各自满足落库契约；`python scripts/build_pipeline_doc.py --check` 退出码 0 且契约文档与代码一致。
 
@@ -158,3 +158,16 @@
 | 阶段 9 | 真实流量与降级路径 | 能讲出上线后才发现的坑 |
 
 **时间不是靠排期堆出来的**：这四阶段合计约 40–60 个工作日，但真正让它像「几个月的项目」的，是每一阶段都留下「假设 → 实验 → 反证 → 改设计」的记录。目前仓库里已经有一次这样的完整闭环（`docs/failure-taxonomy.md` 第四节：先判断解析是缺陷，复跑三个用例后发现是采样长尾，于是撤回结论）。
+
+## 过程记录：读的时候请当成历史
+
+以下文档记录的是当时的过程与判断，**不是当前结论**。保留它们是因为「为什么那样决定」
+比「最后是什么」更难重建；但引用其中的数字前，先看有没有更新的一份。
+
+- [optimization-report.md](optimization-report.md) —— 一次完整优化的逐项记录，含被推翻的方案
+- [review-2026-11-13.md](review-2026-11-13.md) —— 外部视角对未提交改动的审核与整改
+- [real-model-baseline-2026-11-16.md](real-model-baseline-2026-11-16.md) —— 换通道 + low 推理后的第一份全量（已被 `real-model.md` 取代）
+- [publish-status.md](publish-status.md) —— 发布相关状态；公网 Demo 已判定不做，判断见阶段 5
+
+报告之间是否重复、哪些链接已失效、哪些没人链接，由
+[report-audit.md](report-audit.md) 自动生成（`scripts/audit_reports.py`，第 29 道门禁）。
