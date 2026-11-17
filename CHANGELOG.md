@@ -17,6 +17,9 @@
 
 ### Changed
 
+- **GitHub Actions 升级到 v7（2026-11-17）**：`checkout` 4→7、`setup-python` 5→7、
+  `upload-artifact` 4→7，覆盖 ci / weekly-eval / kb-freshness 三个 workflow。
+  `setup-python@v7` 已移除未使用的 `pip-install` 输入，本仓库没有依赖它。
 - **三策略对比新增「黄金窗口内拍摄分钟数」（2026-11-17）**：每份方案的实际差异里增加
   `light_minutes`（拍摄块与 NOAA 黄金窗口的重叠分钟数），界面直接显示，
   差异文案会写「黄金窗口内拍摄多/少 N 分钟」。这样「出片优先」不再只是一个标签：
