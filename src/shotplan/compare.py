@@ -22,7 +22,7 @@ from typing import Any
 from .agents import build_provider
 from .config import Settings, get_settings
 from .domain.errors import ShotplanError
-from .domain.models import PlanRequest
+from .domain.models import PlanRequest, to_minutes
 from .knowledge.tools import KnowledgeTools, get_tools
 
 STRATEGIES: tuple[dict[str, str], ...] = (
@@ -143,6 +143,17 @@ def _measure(result: Any, tools: KnowledgeTools) -> dict[str, Any]:
         location = tools.location(plan.city, slot.location_id)
         if location:
             scene_travel += int(location.get("travel_min_from_center", 0))
+    light_start, light_end = tools.light_window(
+        plan.date or result.request.date, plan.city
+    )
+    window_start, window_end = to_minutes(light_start), to_minutes(light_end)
+    light_minutes = sum(
+        max(
+            0,
+            min(to_minutes(s.end), window_end) - max(to_minutes(s.start), window_start),
+        )
+        for s in shoot
+    )
     return {
         "status": result.status,
         "hard_pass": report.hard_pass,
@@ -155,6 +166,8 @@ def _measure(result: Any, tools: KnowledgeTools) -> dict[str, Any]:
         "shoot_count": len(shoot),
         "travel_count": len(travel),
         "shoot_minutes": sum(s.minutes() for s in shoot),
+        # Minutes of shooting that actually fall inside the solar golden window.
+        "light_minutes": light_minutes,
         # Sum of the scenes' own distance from the city centre: this is what
         # "less running around" actually means, not the fixed transfer block.
         "scene_travel_minutes": scene_travel,
@@ -178,6 +191,7 @@ def _tradeoffs(metrics: dict[str, Any], baseline: dict[str, Any]) -> list[str]:
     delta_cost = metrics["total_cost_cny"] - baseline["total_cost_cny"]
     delta_shoot = metrics["shoot_count"] - baseline["shoot_count"]
     delta_minutes = metrics["shoot_minutes"] - baseline["shoot_minutes"]
+    delta_light = metrics.get("light_minutes", 0) - baseline.get("light_minutes", 0)
     delta_score = round(metrics["score"] - baseline["score"], 4)
     if delta_cost:
         out.append(f"{'多花' if delta_cost > 0 else '少花'} {abs(delta_cost)} 元")
@@ -185,6 +199,10 @@ def _tradeoffs(metrics: dict[str, Any], baseline: dict[str, Any]) -> list[str]:
         out.append(f"{'多' if delta_shoot > 0 else '少'} {abs(delta_shoot)} 个拍摄点")
     if delta_minutes:
         out.append(f"拍摄时长{'多' if delta_minutes > 0 else '少'} {abs(delta_minutes)} 分钟")
+    if delta_light:
+        out.append(
+            f"黄金窗口内拍摄{'多' if delta_light > 0 else '少'} {abs(delta_light)} 分钟"
+        )
     if delta_score:
         out.append(f"综合得分{'高' if delta_score > 0 else '低'} {abs(delta_score)}")
     if not out:

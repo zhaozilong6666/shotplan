@@ -463,6 +463,7 @@
           '<div><b>' + esc(m.shoot_count) + ' 处</b><span>拍摄点</span></div>' +
           '<div><b>' + esc(m.travel_count) + ' 次</b><span>转场</span></div>' +
           '<div><b>' + esc(m.shoot_minutes) + ' 分</b><span>有效拍摄</span></div>' +
+          '<div><b>' + esc(m.light_minutes) + ' 分</b><span>黄金窗口内</span></div>' +
         '</div>' +
         '<h5>放弃了什么</h5><ul>' +
         s.tradeoffs.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join("") +

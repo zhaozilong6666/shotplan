@@ -53,6 +53,7 @@ def test_every_strategy_runs_the_real_pipeline_and_is_measured():
         assert 0 < m["score"] <= 1
         assert set(m["scores"]) >= {"constraints", "budget", "light"}
         assert m["slots"] and m["shoot_count"] > 0
+        assert m["light_minutes"] >= 0
         assert m["plan_id"]
         assert isinstance(s["tradeoffs"], list) and s["tradeoffs"]
         assert "identical_to" in s
@@ -122,6 +123,19 @@ def test_tradeoffs_are_computed_differences_not_marketing():
             assert s["tradeoffs"] == ["与出片优先版在可量化指标上持平"]
         else:
             assert any(any(ch.isdigit() for ch in t) for t in s["tradeoffs"]), s["tradeoffs"]
+
+
+def test_tradeoffs_name_the_golden_window_difference():
+    from shotplan.compare import _tradeoffs
+
+    base = {
+        "total_cost_cny": 1000, "shoot_count": 2, "shoot_minutes": 180,
+        "light_minutes": 60, "score": 0.9,
+    }
+    better_light = {**base, "light_minutes": 100}
+    assert "黄金窗口内拍摄多 40 分钟" in _tradeoffs(better_light, base)
+    worse_light = {**base, "light_minutes": 20}
+    assert "黄金窗口内拍摄少 40 分钟" in _tradeoffs(worse_light, base)
 
 
 def test_api_compare_endpoint_contract():
