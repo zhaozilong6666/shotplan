@@ -26,6 +26,8 @@
   - 修法：给步骤名加引号；新增 `tests/test_workflows.py`，用 PyYAML 解析全部
     workflow 并断言 `jobs` 与 `runs-on` 存在，把这类错误提前到单测。
   - `pyyaml` 加入 dev 依赖（核心运行时仍是零依赖）。
+  - 验证：修复后的 Run #64 真正启动了 5 个 job（quality gates + Python
+    3.10/3.11/3.12/3.13 测试矩阵），全部通过，无 error annotation。
 
 - **黄金窗口改用 NOAA 日落近似（2026-11-17，取代此前的「仅经度校正」）**：新增零依赖 `src/shotplan/solar.py`，
   按城市 `latitude` / `longitude` 用 NOAA 公式算当地日落，取日落前 120 分钟为黄金窗口（固定 UTC+8）。
