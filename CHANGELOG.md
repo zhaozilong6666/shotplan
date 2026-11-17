@@ -17,6 +17,16 @@
 
 ### Fixed
 
+- **CI 因 workflow YAML 语法错误连续红（2026-11-17）**：`.github/workflows/ci.yml`
+  第 68 行的步骤名 `name: All quality gates (single source of truth: Makefile)`
+  含未加引号的冒号，GitHub 在启动阶段直接拒绝整个 workflow：页面只有一条
+  `Invalid workflow file ... You have an error in your yaml syntax on line 68`，
+  API 返回 `jobs=[]`，所以看起来像「运行失败」而不是「配置写错」。
+  本地 27 道门禁全绿也发现不了——它们没有 YAML 解析器。
+  - 修法：给步骤名加引号；新增 `tests/test_workflows.py`，用 PyYAML 解析全部
+    workflow 并断言 `jobs` 与 `runs-on` 存在，把这类错误提前到单测。
+  - `pyyaml` 加入 dev 依赖（核心运行时仍是零依赖）。
+
 - **黄金窗口改用 NOAA 日落近似（2026-11-17，取代此前的「仅经度校正」）**：新增零依赖 `src/shotplan/solar.py`，
   按城市 `latitude` / `longitude` 用 NOAA 公式算当地日落，取日落前 120 分钟为黄金窗口（固定 UTC+8）。
   与旧实现的差别都是可验证的：

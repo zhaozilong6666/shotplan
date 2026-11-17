@@ -65,7 +65,7 @@ jobs:
       # The gate list lives in exactly one place: the Makefile. Keeping a
       # hand-copied list here is how CI drifted to 17 gates while the Makefile
       # ran 25 and README claimed 25 -- three numbers, none of them equal.
-      - name: All quality gates (single source of truth: Makefile)
+      - name: "All quality gates (single source of truth: Makefile)"
         run: make gates
 
       - name: No generated artifact is stale
