@@ -1,11 +1,13 @@
 {
-  "version": "1.2",
-  "updated_at": "2026-11-13",
+  "version": "1.3",
+  "updated_at": "2026-11-17",
   "note": "Small curated knowledge base. Exact facts matter more than coverage here; see docs/adr/0003.",
   "provenance_note": "source/last_verified_at record curation provenance inside this repository: which dataset an entry came from and when it was last reviewed for internal consistency. They are not live opening-hours or price confirmations.",
+  "light_model_note": "Golden windows are month-level seasonal approximations. Per-city correction uses longitude only (4 minutes per degree from Xi'an); latitude and day length are not modelled.",
   "cities": {
     "xian": {
       "name": "西安",
+      "longitude": 108.94,
       "center": "钟楼",
       "locations": [
         {
@@ -200,6 +202,7 @@
     },
     "luoyang": {
       "name": "洛阳",
+      "longitude": 112.45,
       "center": "丽景门",
       "locations": [
         {
@@ -394,6 +397,7 @@
     },
     "hangzhou": {
       "name": "杭州",
+      "longitude": 120.16,
       "center": "武林广场",
       "locations": [
         {
@@ -591,6 +595,7 @@
     },
     "suzhou": {
       "name": "苏州",
+      "longitude": 120.58,
       "center": "观前街",
       "locations": [
         {
@@ -786,6 +791,7 @@
     },
     "nanjing": {
       "name": "南京",
+      "longitude": 118.80,
       "center": "新街口",
       "locations": [
         {
@@ -983,6 +989,7 @@
     },
     "chengdu": {
       "name": "成都",
+      "longitude": 104.07,
       "center": "天府广场",
       "locations": [
         {
@@ -1207,6 +1214,7 @@
     },
     "beijing": {
       "name": "北京",
+      "longitude": 116.40,
       "center": "天安门",
       "locations": [
         {
@@ -1429,6 +1437,7 @@
     },
     "kaifeng": {
       "name": "开封",
+      "longitude": 114.31,
       "center": "鼓楼广场",
       "locations": [
         {

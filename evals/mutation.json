@@ -1,8 +1,8 @@
 {
   "baseline": {
     "cases_failed": 0,
-    "delta": 0.6781,
-    "good_avg": 0.9795,
+    "delta": 0.6778,
+    "good_avg": 0.9792,
     "good_hard_pass_rate": 1.0,
     "naive_avg": 0.3014,
     "naive_hard_pass_rate": 0.1375,
@@ -33,7 +33,7 @@
       "good_hard_pass_rate": 0.1375,
       "key": "planner/no-transfer",
       "naive_avg": 0.3014,
-      "score_delta": -0.842,
+      "score_delta": -0.8417,
       "side": "planner",
       "signals": [
         "avg_score 0.1375 is below threshold 0.8",
@@ -47,30 +47,30 @@
       "cases_failed": 69,
       "caught": true,
       "caught_by_legacy_gate": true,
-      "delta": 0.4252,
+      "delta": 0.4249,
       "description": "转场费从 50 元抬到 5000 元",
       "disabled_rules": [],
-      "good_avg": 0.7266,
+      "good_avg": 0.7263,
       "good_hard_pass_rate": 0.1375,
       "key": "planner/transfer-cost-5000",
       "naive_avg": 0.3014,
       "score_delta": -0.2529,
       "side": "planner",
       "signals": [
-        "avg_score 0.7266 is below threshold 0.8",
+        "avg_score 0.7263 is below threshold 0.8",
         "hard_pass_rate 0.1375 is below 0.9",
         "69 case(s) failed their expectation",
-        "control delta 0.4252 is below 0.45: good and bad outputs are no longer distinguishable"
+        "control delta 0.4249 is below 0.45: good and bad outputs are no longer distinguishable"
       ]
     },
     {
       "cases_failed": 69,
       "caught": true,
       "caught_by_legacy_gate": true,
-      "delta": 0.5891,
+      "delta": 0.5888,
       "description": "生成端删掉必需的妆造时间块",
       "disabled_rules": [],
-      "good_avg": 0.8905,
+      "good_avg": 0.8902,
       "good_hard_pass_rate": 0.1375,
       "key": "planner/no-makeup",
       "naive_avg": 0.3014,
@@ -85,12 +85,12 @@
       "cases_failed": 0,
       "caught": true,
       "caught_by_legacy_gate": false,
-      "delta": 0.5051,
+      "delta": 0.5048,
       "description": "预算容差改成 10^9，BUDGET_EXCEEDED 永不触发",
       "disabled_rules": [
         "BUDGET_EXCEEDED"
       ],
-      "good_avg": 0.9795,
+      "good_avg": 0.9792,
       "good_hard_pass_rate": 1.0,
       "key": "validator/budget-tolerance",
       "naive_avg": 0.4744,
@@ -105,12 +105,12 @@
       "cases_failed": 0,
       "caught": true,
       "caught_by_legacy_gate": false,
-      "delta": 0.6639,
+      "delta": 0.6636,
       "description": "转场下限改成 0，TRANSFER_BUFFER 永不触发",
       "disabled_rules": [
         "TRANSFER_BUFFER"
       ],
-      "good_avg": 0.9795,
+      "good_avg": 0.9792,
       "good_hard_pass_rate": 1.0,
       "key": "validator/no-transfer-rule",
       "naive_avg": 0.3156,
@@ -124,12 +124,12 @@
       "cases_failed": 0,
       "caught": true,
       "caught_by_legacy_gate": false,
-      "delta": 0.6781,
+      "delta": 0.6778,
       "description": "时长宽限改成 10^6 分钟，TIME_OVERRUN 永不触发",
       "disabled_rules": [
         "TIME_OVERRUN"
       ],
-      "good_avg": 0.9795,
+      "good_avg": 0.9792,
       "good_hard_pass_rate": 1.0,
       "key": "validator/no-time-limit",
       "naive_avg": 0.3014,
@@ -143,12 +143,12 @@
       "cases_failed": 0,
       "caught": true,
       "caught_by_legacy_gate": false,
-      "delta": 0.6776,
+      "delta": 0.6773,
       "description": "所有地点 id 都视为存在，UNKNOWN_LOCATION 永不触发",
       "disabled_rules": [
         "UNKNOWN_LOCATION"
       ],
-      "good_avg": 0.9795,
+      "good_avg": 0.9792,
       "good_hard_pass_rate": 1.0,
       "key": "validator/no-grounding",
       "naive_avg": 0.3019,
@@ -177,7 +177,7 @@
       "good_hard_pass_rate": 1.0,
       "key": "validator/always-pass",
       "naive_avg": 1.0,
-      "score_delta": 0.0205,
+      "score_delta": 0.0208,
       "side": "validator",
       "signals": [
         "control group scored at or above the planner: measurement is broken",
@@ -195,7 +195,7 @@
     }
   ],
   "restored": true,
-  "restored_avg": 0.9795,
+  "restored_avg": 0.9792,
   "restored_cases_failed": 0,
   "restored_checks": 8,
   "restored_hard_pass_rate": 1.0,

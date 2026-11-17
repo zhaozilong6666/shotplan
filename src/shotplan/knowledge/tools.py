@@ -98,13 +98,30 @@ class KnowledgeTools:
             base = abs(a["travel_min_from_center"] - b["travel_min_from_center"]) + 20
         return max(MIN_TRANSFER_MINUTES, base)
 
-    def light_window(self, date_str: str) -> tuple[str, str]:
+    def light_window(self, date_str: str, city: str | None = None) -> tuple[str, str]:
+        """Month-level golden window, corrected by the city's longitude.
+
+        China uses one clock (UTC+8), so a city east of Xi'an sees the same sun
+        earlier on the clock and a city west of it sees it later. The 4-minute
+        per-degree correction fixes the most visible error (Beijing vs Chengdu
+        sharing a window). Latitude and day length are not modelled; see the
+        ``light_model_note`` in locations.json.
+        """
         try:
             month = int(date_str.split("-")[1])
         except (IndexError, ValueError) as exc:
             raise KnowledgeError(f"cannot parse month from date {date_str!r}") from exc
         start, end = golden_window(month)
-        return fmt_minutes(start * 60), fmt_minutes(end * 60)
+        start_minutes, end_minutes = start * 60, end * 60
+        if city:
+            city_data = self.city(city) or {}
+            longitude = city_data.get("longitude")
+            reference = (self.city("xian") or {}).get("longitude", 108.94)
+            if isinstance(longitude, (int, float)) and isinstance(reference, (int, float)):
+                offset = round((float(reference) - float(longitude)) * 4)
+                start_minutes += offset
+                end_minutes += offset
+        return fmt_minutes(start_minutes), fmt_minutes(end_minutes)
 
     def best_style_for(self, requested: list[str], budget_cny: int) -> dict[str, Any]:
         # Reserve the transfer fee first: a styling package that consumes the
@@ -138,7 +155,7 @@ class KnowledgeTools:
             limit=6,
         )
         fallback = self.search_locations(city_id, indoor=True, exclude=request.avoid, limit=1)
-        light_start, light_end = self.light_window(request.date)
+        light_start, light_end = self.light_window(request.date, request.city)
         return {
             "city": city_id,
             "city_name": self.city(city_id)["name"],

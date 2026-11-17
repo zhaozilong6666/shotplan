@@ -249,7 +249,7 @@ def validate(
             )
 
     try:
-        light_start, light_end = kb.light_window(plan.date)
+        light_start, light_end = kb.light_window(plan.date, plan.city)
         w_start, w_end = to_minutes(light_start), to_minutes(light_end)
         outdoor_shoot = any(
             s.activity == "shoot"

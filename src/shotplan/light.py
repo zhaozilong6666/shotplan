@@ -69,7 +69,7 @@ def align_light_window(
     if not shoots or not plan.slots:
         return None
 
-    light_start, light_end = kb.light_window(plan.date or req.date)
+    light_start, light_end = kb.light_window(plan.date or req.date, plan.city)
     window_start, window_end = to_minutes(light_start), to_minutes(light_end)
     if any(_overlap_minutes(slot, window_start, window_end) > 0 for slot in shoots):
         return None

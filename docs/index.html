@@ -100,7 +100,7 @@
     <h1>shotplan</h1>
     <p class="lede">把一句模糊的「想去西安拍汉服」，变成<strong>能执行、能核对、能追溯</strong>的小时级方案。</p>
     <p class="sub">
-      核心不是调模型，而是让质量可被测量：生成前先判定需求是否可满足，生成后用一层<strong>不经过模型</strong>的硬约束校验器判定，并以带<strong>对照组</strong>的 80 个用例守住回归；再用 8 处受控变异验证门禁本身有效，用 200 个盲测 brief 检验没见过的组合。
+      核心不是调模型，而是让质量可被测量：生成前先判定需求是否可满足，生成后用一层<strong>不经过模型</strong>的硬约束校验器判定，并以带<strong>对照组</strong>的 80 个用例守住回归；再用 8 处受控变异验证门禁本身有效，用 320 个盲测 brief 检验没见过的组合。
       技术栈 Python / FastAPI / SQLite；核心引擎仅标准库，无 API key 也能完整跑通。
     </p>
     <div class="links">
@@ -118,9 +118,9 @@
     </div>
     <div class="metrics">
       <div class="metric good"><b>80 / 80</b><span>评测用例通过</span></div>
-      <div class="metric good"><b>0.9778</b><span>规则 Agent 均分</span></div>
+      <div class="metric good"><b>0.9792</b><span>规则 Agent 均分</span></div>
       <div class="metric good"><b>100%</b><span>硬约束通过率</span></div>
-      <div class="metric bad"><b>0.6764</b><span>与对照组的差值</span></div>
+      <div class="metric bad"><b>0.6778</b><span>与对照组的差值</span></div>
     </div>
   </header>
 
@@ -156,15 +156,15 @@
         <tr><th>分组</th><th class="num">用例</th><th class="num">硬约束通过率</th><th class="num">平均分</th><th class="num">通过</th></tr>
       </thead>
       <tbody>
-        <tr><td>normal</td><td class="num">30</td><td class="num pass">100%</td><td class="num">0.9900</td><td class="num">30 / 30</td></tr>
-        <tr><td>conflict</td><td class="num">23</td><td class="num pass">100%</td><td class="num">0.9683</td><td class="num">23 / 23</td></tr>
-        <tr><td>edge</td><td class="num">16</td><td class="num pass">100%</td><td class="num">0.9531</td><td class="num">16 / 16</td></tr>
+        <tr><td>normal</td><td class="num">30</td><td class="num pass">100%</td><td class="num">0.9894</td><td class="num">30 / 30</td></tr>
+        <tr><td>conflict</td><td class="num">23</td><td class="num pass">100%</td><td class="num">0.9725</td><td class="num">23 / 23</td></tr>
+        <tr><td>edge</td><td class="num">16</td><td class="num pass">100%</td><td class="num">0.9556</td><td class="num">16 / 16</td></tr>
         <tr><td>infeasible</td><td class="num">11</td><td class="num pass">100%</td><td class="num">1.0000</td><td class="num">11 / 11</td></tr>
-        <tr><td><strong>合计</strong></td><td class="num"><strong>80</strong></td><td class="num pass"><strong>100%</strong></td><td class="num"><strong>0.9778</strong></td><td class="num"><strong>80 / 80</strong></td></tr>
+        <tr><td><strong>合计</strong></td><td class="num"><strong>80</strong></td><td class="num pass"><strong>100%</strong></td><td class="num"><strong>0.9792</strong></td><td class="num"><strong>80 / 80</strong></td></tr>
       </tbody>
     </table>
     <p class="section-note" style="margin-top:14px">
-      对照基线 <code>naive</code>：硬约束通过率 13.8%、均分 0.3014。差值 0.6764。
+      对照基线 <code>naive</code>：硬约束通过率 13.8%、均分 0.3014。差值 0.6778。
       11 个 infeasible 用例因共享生成前判定而两组同分，区分度由其余 69 个用例提供——这一点在报告里如实写明。
     </p>
   </section>
@@ -295,13 +295,13 @@
     <h2>盲测挑战集：没见过的题</h2>
     <p class="section-note">80 个回归用例是手写的主集；这一层从失败案例库与知识库交叉出全新组合，检验规则是不是只对着那 80 道题调出来的。挖掘过程不读取任何用例的期望输出，挑战集独立存放，不改动 v1–v6 基线的纵向可比性。</p>
     <div class="metrics challenge">
-      <div class="metric good"><b>200</b><span>与主集不重复的盲测 brief</span></div>
-      <div class="metric good"><b>19 → 25 / 25</b><span>城市 × 风格覆盖格子</span></div>
+      <div class="metric good"><b>320</b><span>与主集不重复的盲测 brief</span></div>
+      <div class="metric good"><b>19 → 40 / 40</b><span>城市 × 风格覆盖格子</span></div>
       <div class="metric good"><b>100%</b><span>盲测集 good 硬约束通过率</span></div>
       <div class="metric bad"><b>0%</b><span>盲测集 naive 硬约束通过率</span></div>
     </div>
     <p class="section-note challenge-note">
-      225 个候选中 25 个「同一地点既指定又排除」被生成前可行性判定挡下；其余全部与主集不重复。good 均分 0.9879、naive 0.19，最小差值 0.7625。挑战集独立存放，不影响 v1–v6 基线的可比性。
+      360 个候选中 40 个「同一地点既指定又排除」被生成前可行性判定挡下；其余全部与主集不重复。good 均分 0.9882、naive 0.1893，最小差值 0.7625。挑战集独立存放，不影响 v1–v6 基线的可比性。
     </p>
   </section>
 

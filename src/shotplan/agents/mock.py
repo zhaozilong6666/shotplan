@@ -222,7 +222,7 @@ class MockProvider:
         style_total = style["makeup_minutes"] + style["costume_minutes"]
         total_minutes = int(req.hours * 60)
 
-        light_start, light_end = kb.light_window(req.date)
+        light_start, light_end = kb.light_window(req.date, req.city)
         cursor = max(EARLIEST_START, _to_minutes(light_end) - total_minutes)
         end_limit = cursor + total_minutes
 
