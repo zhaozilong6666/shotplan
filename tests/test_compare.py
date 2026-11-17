@@ -138,6 +138,15 @@ def test_tradeoffs_name_the_golden_window_difference():
     assert "黄金窗口内拍摄少 40 分钟" in _tradeoffs(worse_light, base)
 
 
+def test_infeasible_comparison_does_not_crash_on_the_light_metric():
+    """A rejected brief has no slots and often an unparseable date."""
+    data = compare_strategies(_brief(date="2026-02-30"), settings=CFG)
+    assert data["strategies"]
+    for s in data["strategies"]:
+        assert s["metrics"]["status"] == "infeasible"
+        assert s["metrics"]["light_minutes"] == 0
+
+
 def test_api_compare_endpoint_contract():
     with TestClient(app) as client:
         response = client.post("/api/compare", json={

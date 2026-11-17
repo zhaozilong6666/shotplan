@@ -143,17 +143,19 @@ def _measure(result: Any, tools: KnowledgeTools) -> dict[str, Any]:
         location = tools.location(plan.city, slot.location_id)
         if location:
             scene_travel += int(location.get("travel_min_from_center", 0))
-    light_start, light_end = tools.light_window(
-        plan.date or result.request.date, plan.city
-    )
-    window_start, window_end = to_minutes(light_start), to_minutes(light_end)
-    light_minutes = sum(
-        max(
-            0,
-            min(to_minutes(s.end), window_end) - max(to_minutes(s.start), window_start),
+    light_minutes = 0
+    if shoot:
+        light_start, light_end = tools.light_window(
+            plan.date or result.request.date, plan.city
         )
-        for s in shoot
-    )
+        window_start, window_end = to_minutes(light_start), to_minutes(light_end)
+        light_minutes = sum(
+            max(
+                0,
+                min(to_minutes(s.end), window_end) - max(to_minutes(s.start), window_start),
+            )
+            for s in shoot
+        )
     return {
         "status": result.status,
         "hard_pass": report.hard_pass,
