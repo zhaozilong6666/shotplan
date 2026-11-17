@@ -99,9 +99,12 @@ def explain_plan(
                 "（NOAA 日落前 120 分钟），本段全程落在窗口内"
             )
         elif overlap > 0:
+            outside = (end - start) - overlap
+            lead = "只有" if overlap < 30 else "有"
             reasons.append(
-                f"光线：本段有 {overlap} 分钟落在黄金窗口 "
-                f"{fmt_minutes(window_start)}–{fmt_minutes(window_end)} 内"
+                f"光线：{lead} {overlap} 分钟落在黄金窗口 "
+                f"{fmt_minutes(window_start)}–{fmt_minutes(window_end)} 内，"
+                f"其余 {outside} 分钟在窗口外"
             )
 
         if location.get("indoor"):

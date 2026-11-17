@@ -48,8 +48,18 @@ def test_partial_overlap_is_reported_honestly(valid_plan, brief, tools):
     plan.slots[2].start = "17:30"
     plan.slots[2].end = "18:56"  # 56 minutes inside, 30 outside
     reasons = " ".join(explain_plan(plan, brief, tools)[0]["reasons"])
-    assert "56 分钟落在黄金窗口" in reasons
+    assert "有 56 分钟落在黄金窗口" in reasons
+    assert "其余 30 分钟在窗口外" in reasons
     assert "全程落在窗口内" not in reasons
+
+
+def test_small_overlap_is_not_dressed_up_as_a_good_reason(valid_plan, brief, tools):
+    plan = copy.deepcopy(valid_plan)
+    plan.slots[2].start = "16:24"
+    plan.slots[2].end = "16:28"  # 2 minutes inside, 2 outside
+    reasons = " ".join(explain_plan(plan, brief, tools)[0]["reasons"])
+    assert "只有 2 分钟落在黄金窗口" in reasons
+    assert "其余 2 分钟在窗口外" in reasons
 
 
 def test_unknown_location_is_flagged_instead_of_raising(valid_plan, brief, tools):
