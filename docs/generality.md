@@ -40,7 +40,7 @@
 15 rules
   wording without domain words : 4/15 = 27%
   logic reusable in another domain: 14/15 = 93%
--> STYLE_MISMATCH   soft   logic=domain-specific
+-> STYLE_MISMATCH (soft) logic=domain-specific
 ```
 
 两个口径差这么多，恰好说明了问题所在：**规则逻辑本身几乎都是通用的，领域词是「文案污染」**。
@@ -53,14 +53,14 @@
 | 要改 | 具体内容 | 规模 |
 | --- | --- | --- |
 | 知识库 schema | `locations.json` → `rooms.json`（容量、设备、楼层、可预约时段） | 1 个文件 |
-| 规则表 | 15 条里 **14 条逻辑可迁移**（`python -m evals.domain_portability` 实测）：7 条要改文案（「拍摄」→「会议」）、6 条逻辑直接成立、1 条真正领域特有（`STYLE_MISMATCH`：风格与场景的匹配）。**文案层面只有 4/15 完全不含领域词**——这正是要改的部分 | `constraints.py` 约 80 行 |
+| 规则表 | 15 条里 **14 条逻辑可迁移**（`python -m evals.domain_portability` 实测）：按关键词扫描 **11 条文案含领域词**（「拍摄」→「会议」）、4 条文案也完全通用；1 条真正领域特有（`STYLE_MISMATCH`：风格与场景的匹配）。**文案层面只有 4/15 完全不含领域词**——这正是要改的部分 | `constraints.py` 约 80 行 |
 | 校验器 | 规则文案与 `activity` 枚举（`makeup/shoot` → `setup/meeting`） | `validator.py` 约 60 行 |
 | prompt | 系统提示词换域，输出 schema 不变 | `prompts.py` 1 段 |
 | 离线规划器 | `mock.py` 的选点启发式 | 1 个文件 |
 
 **零改动复用**：`pipeline.py`（编排、墙钟预算、解析信任边界、修复循环单调性）、
 `evals/`（80 例回归 + 挖掘器 + 变异测试 + HTTP 压测 + 归因分析）、`tracing.py`、
-`storage.py`、API、前端、26 道 CI 门禁。
+`storage.py`、API、前端、27 道 CI 门禁。
 
 换句话说：**换领域是「换数据和阈值」，不是「重写系统」。**
 

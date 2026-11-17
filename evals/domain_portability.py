@@ -20,6 +20,9 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from shotplan.domain.constraints import RULES  # noqa: E402
 
+DOC = ROOT / "docs" / "generality.md"
+MARKER = "规则的划分不靠感觉，靠 `python -m evals.domain_portability` 实测："
+
 # Words that only make sense for a Hanfu photoshoot. If a rule's own text
 # contains one of these, the rule has to be re-expressed for another domain.
 DOMAIN_WORDS = (
@@ -56,7 +59,7 @@ def classify(rule: dict) -> tuple[str, list[str]]:
     return ("domain-specific" if hits else "portable"), hits
 
 
-def main() -> int:
+def _rows() -> list[dict]:
     rows = []
     for rule in RULES:
         wording, hits = classify(rule)
@@ -64,9 +67,67 @@ def main() -> int:
         logic = "domain-specific" if code in DOMAIN_LOGIC else "portable"
         rows.append({"code": code, "severity": rule["severity"],
                      "wording": wording, "domain_words": hits, "logic": logic})
+    return rows
+
+
+def summary_block(rows: list[dict]) -> str:
     total = len(rows)
     wording_ok = sum(1 for r in rows if r["wording"] == "portable")
     logic_ok = sum(1 for r in rows if r["logic"] == "portable")
+    lines = [
+        f"{total} rules",
+        f"  wording without domain words : {wording_ok}/{total} = {wording_ok / total:.0%}",
+        f"  logic reusable in another domain: {logic_ok}/{total} = {logic_ok / total:.0%}",
+    ]
+    for row in rows:
+        if row["logic"] == "domain-specific":
+            lines.append(f"-> {row['code']} ({row['severity']}) logic=domain-specific")
+    return "\n".join(lines)
+
+
+def _doc_block(text: str) -> tuple[int, int] | None:
+    marker = text.find(MARKER)
+    if marker < 0:
+        return None
+    start = text.find("```", marker)
+    if start < 0:
+        return None
+    body_start = text.find("\n", start) + 1
+    end = text.find("```", body_start)
+    if end < 0:
+        return None
+    return body_start, end
+
+
+def main() -> int:
+    rows = _rows()
+    total = len(rows)
+    wording_ok = sum(1 for r in rows if r["wording"] == "portable")
+    logic_ok = sum(1 for r in rows if r["logic"] == "portable")
+    block = summary_block(rows)
+
+    if "--check" in sys.argv or "--write" in sys.argv:
+        doc = DOC.read_text(encoding="utf-8")
+        span = _doc_block(doc)
+        if span is None:
+            print("domain-portability gate: FAIL (marker/fence missing)", file=sys.stderr)
+            return 1
+        body_start, end = span
+        current = doc[body_start:end].strip()
+        if "--write" in sys.argv:
+            DOC.write_text(
+                doc[:body_start] + block + "\n" + doc[end:],
+                encoding="utf-8",
+                newline="\n",
+            )
+            print(f"wrote {DOC}")
+            return 0
+        if current != block:
+            print("domain-portability gate: FAIL (docs/generality.md is stale)", file=sys.stderr)
+            return 1
+        print("domain-portability gate: OK")
+        return 0
+
     print(f"{total} rules\n"
           f"  wording without domain words : {wording_ok}/{total} = {wording_ok / total:.0%}\n"
           f"  logic reusable in another domain: {logic_ok}/{total} = {logic_ok / total:.0%}\n")

@@ -91,6 +91,7 @@ gates:
 	$(PYTHON) scripts/build_pipeline_doc.py --check
 	$(PYTHON) scripts/build_rule_map.py --check
 	$(PYTHON) -m evals.product_lab --check
+	$(PYTHON) -m evals.domain_portability --check
 	$(PYTHON) -m evals.repair_attribution --check
 	$(PYTHON) scripts/check_knowledge_freshness.py --max-age-days 180
 	$(PYTHON) scripts/check_snapshot_hygiene.py
