@@ -8,9 +8,9 @@
 
 | 指标 | 值 |
 | --- | --- |
-| 扫描报告 | 62 份（359 KB） |
+| 扫描报告 | 61 份（353 KB） |
 | 脚本生成 | 28 份，来自 20 个生成器 |
-| 人写报告 | 34 份 |
+| 人写报告 | 33 份 |
 | 人写报告冗余对（≥ 0.55） | 3 对 |
 | 同名前缀家族（≥ 3 份） | 3 个 |
 | 失效引用 | 0 处 |
@@ -43,9 +43,9 @@
 
 | 报告 A | 报告 B | 相似度 | 建议 |
 | --- | --- | ---: | --- |
-| `real-model-light-fix-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.654 | 部分重叠：只核对数字是否互相矛盾 |
-| `real-model-baseline-2026-11-16.md` | `real-model-light-fix-2026-11-16.md` | 0.636 | 部分重叠：只核对数字是否互相矛盾 |
-| `real-model-baseline-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.559 | 部分重叠：只核对数字是否互相矛盾 |
+| `real-model-light-fix-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.653 | 部分重叠：只核对数字是否互相矛盾 |
+| `real-model-baseline-2026-11-16.md` | `real-model-light-fix-2026-11-16.md` | 0.634 | 部分重叠：只核对数字是否互相矛盾 |
+| `real-model-baseline-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.557 | 部分重叠：只核对数字是否互相矛盾 |
 
 **不要直接删**：这些文件记录的是「当时为什么那么判断」。保留边际信息量最高的一份作为当前结论，其余在首行加一行`> 已被 <新文件> 取代（<日期>）；本文保留为历史记录`。
 
@@ -61,28 +61,28 @@
 
 ## 4. 边际信息量排序：人写报告里谁值得先读
 
-`1 - 最近邻相似度`，只在 34 份人写报告内比较（< 120 token 的 0 份只查引用）。接近 1 表示这份讲的东西别处没有；接近 0 表示它是别人的复述。
+`1 - 最近邻相似度`，只在 33 份人写报告内比较（< 120 token 的 0 份只查引用）。接近 1 表示这份讲的东西别处没有；接近 0 表示它是别人的复述。
 
 | 报告 | 边际信息量 | 最近邻 | 相似度 |
 | --- | ---: | --- | ---: |
-| `ingest.md` | 0.897 | `knowledge-contract.md` | 0.103 |
+| `ingest.md` | 0.893 | `knowledge-contract.md` | 0.107 |
 | `repair-experiment.md` | 0.884 | `evaluation.md` | 0.116 |
-| `generality.md` | 0.881 | `ROADMAP.md` | 0.119 |
+| `generality.md` | 0.880 | `ROADMAP.md` | 0.120 |
 | `cost-latency-simulation.md` | 0.879 | `real-model-light-fix-2026-11-16.md` | 0.121 |
-| `knowledge-contract.md` | 0.870 | `architecture.md` | 0.130 |
-| `budget-vs-concurrency.md` | 0.849 | `real-model-baseline-2026-11-16.md` | 0.151 |
-| `rule-map.md` | 0.843 | `problem-and-metrics.md` | 0.157 |
+| `intelligence-roadmap.md` | 0.875 | `architecture.md` | 0.125 |
+| `knowledge-contract.md` | 0.868 | `architecture.md` | 0.132 |
+| `budget-vs-concurrency.md` | 0.848 | `real-model-baseline-2026-11-16.md` | 0.152 |
+| `rule-map.md` | 0.844 | `problem-and-metrics.md` | 0.156 |
 | `cost.md` | 0.837 | `real-model-comparison.md` | 0.163 |
-| `styling-budget.md` | 0.831 | `problem-and-metrics.md` | 0.169 |
-| `failure-gallery.md` | 0.814 | `problem-and-metrics.md` | 0.186 |
+| `styling-budget.md` | 0.830 | `problem-and-metrics.md` | 0.170 |
 
 末位（信息量最低）：
 
-- `evaluation.md` — 0.668，最近邻 `ROADMAP.md`（0.332）
-- `ROADMAP.md` — 0.668，最近邻 `evaluation.md`（0.332）
-- `real-model-baseline-2026-11-16.md` — 0.364，最近邻 `real-model-light-fix-2026-11-16.md`（0.636）
-- `real-model-light-fix-2026-11-16.md` — 0.346，最近邻 `real-model-smoke-2026-11-16.md`（0.654）
-- `real-model-smoke-2026-11-16.md` — 0.346，最近邻 `real-model-light-fix-2026-11-16.md`（0.654）
+- `evaluation.md` — 0.667，最近邻 `ROADMAP.md`（0.333）
+- `ROADMAP.md` — 0.667，最近邻 `evaluation.md`（0.333）
+- `real-model-baseline-2026-11-16.md` — 0.366，最近邻 `real-model-light-fix-2026-11-16.md`（0.634）
+- `real-model-light-fix-2026-11-16.md` — 0.347，最近邻 `real-model-smoke-2026-11-16.md`（0.653）
+- `real-model-smoke-2026-11-16.md` — 0.347，最近邻 `real-model-light-fix-2026-11-16.md`（0.653）
 
 ## 5. 失效引用：读者点开就是 404
 
@@ -111,4 +111,4 @@
 - **交叉引用会推高相似度**：为了让读者不困惑而补的导航句（「同日还有两份更小的采样」）本身增加了共同词汇——实测中一份报告补完导航后，与另外两份的相似度反而从 0.60 升到 0.64。所以 0.55–0.70 更像「同一批实验的不同切面」，而不是「两篇在讲同一件事」：先核对数字，再决定是否合并。
 - **本文件自身不参与**审计，否则每次运行都会把自己报成 100% 重复。
 
-_语料指纹：`f9190f1c5fe1284f`（内容变化时此值必变）_
+_语料指纹：`a4b477f643791308`（内容变化时此值必变）_

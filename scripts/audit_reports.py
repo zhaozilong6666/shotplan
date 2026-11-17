@@ -30,6 +30,7 @@ import argparse
 import hashlib
 import math
 import re
+import subprocess
 import sys
 from collections import Counter
 from pathlib import Path
@@ -452,6 +453,29 @@ def corpus_fingerprint(text_by_name: dict[str, str]) -> str:
     return digest.hexdigest()[:16]
 
 
+def tracked_only(corpus: dict[str, str]) -> dict[str, str]:
+    """Drop files git does not know about.
+
+    An untracked draft sitting in docs/ made this report claim 62 documents
+    locally and 61 on CI, so `--check` passed here and failed there. The corpus
+    being audited is the repository, not the working directory.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "ls-files", "docs"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return corpus  # no git available: audit everything and say so
+    known = {
+        Path(line).name for line in result.stdout.splitlines() if line.endswith(".md")
+    }
+    return {name: body for name, body in corpus.items() if name in known}
+
+
 def collect() -> tuple[dict[str, str], dict[str, str]]:
     """The corpus under audit, plus the root-level files that link into it."""
     corpus = {}
@@ -464,7 +488,7 @@ def collect() -> tuple[dict[str, str], dict[str, str]]:
         path = ROOT / name
         if path.exists():
             external[name] = path.read_text(encoding="utf-8")
-    return corpus, external
+    return tracked_only(corpus), external
 
 
 def main(argv: list[str] | None = None) -> int:

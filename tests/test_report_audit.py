@@ -75,3 +75,12 @@ def test_the_audit_excludes_itself():
     """Otherwise every run reports a 100%-similar duplicate of the last one."""
     text_by_name, _ = ar.collect()
     assert ar.DEFAULT_REPORT.name not in text_by_name
+
+
+def test_untracked_drafts_are_not_part_of_the_corpus():
+    """An untracked file in docs/ made --check pass locally and fail on CI.
+
+    The corpus being audited is the repository, not the working directory.
+    """
+    corpus = {"report-audit.md": "x", "__untracked_draft__.md": "y"}
+    assert list(ar.tracked_only(corpus)) == ["report-audit.md"]
