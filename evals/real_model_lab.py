@@ -259,6 +259,14 @@ def summarise_repeats(
             }
         ),
         "hard_pass_rate": round(statistics.fmean(pass_values), 4) if pass_values else 0.0,
+        # Same split as in `summarise`: a case whose every repeat errored never
+        # produced a plan, so it belongs to availability, not to plan quality.
+        "delivered_cases": sum(1 for r in per_case if r["error_rate"] < 1.0),
+        "hard_pass_rate_delivered": round(
+            statistics.fmean(
+                [float(r["pass_rate"]) for r in per_case if r["error_rate"] < 1.0]
+            ), 4
+        ) if any(r["error_rate"] < 1.0 for r in per_case) else 0.0,
         "hard_pass_ci": [round(rate_lo, 4), round(rate_hi, 4)],
         "mean_score": round(statistics.fmean(score_values), 4) if score_values else 0.0,
         "mean_score_ci": [round(score_lo, 4), round(score_hi, 4)],
@@ -337,7 +345,16 @@ def summarise(outcomes: list[CaseOutcome], settings: Any) -> dict[str, Any]:
         "preflight_cases": len(preflight),
         "preflight_refused": sum(o.status == "infeasible" for o in preflight),
         "hard_pass": hard_pass,
+        # Two rates, because they answer two different questions. The first is
+        # what a user experiences (a timeout counts as "no plan"). The second
+        # is plan quality (a timeout is not a bad plan). Reporting only the
+        # first let upstream queueing masquerade as a model failure; reporting
+        # only the second would hide that some users got nothing.
         "hard_pass_rate": round(hard_pass / len(planned), 4) if planned else 0.0,
+        "delivered_cases": len(planned) - len([o for o in planned if o.error]),
+        "hard_pass_rate_delivered": round(
+            hard_pass / len([o for o in planned if not o.error]), 4
+        ) if any(not o.error for o in planned) else 0.0,
         "mean_score": round(statistics.fmean([o.score for o in planned]), 4) if planned else 0.0,
         # An error case scores 0.0, which is not a "worst plan" — it is no plan.
         # Mixing them would make the minimum look like a quality signal.
@@ -575,6 +592,21 @@ def build_report(
         f"平均得分 **{snapshot['mean_score']:.4f}**"
         f"（95% CI {score_lo:.4f}–{score_hi:.4f}），最低 {snapshot['min_score']:.4f}。",
         "",
+    ]
+    delivered = snapshot.get("delivered_cases")
+    delivered_rate = snapshot.get("hard_pass_rate_delivered")
+    if delivered and delivered < planned and delivered_rate is not None:
+        # Two denominators on purpose: the first is what a user gets, the
+        # second is how good the plan is when there is one.
+        lines.append(
+            f"只看**成功产出方案的 {delivered} 例**，通过率 "
+            f"**{delivered_rate * 100:.1f}%**"
+            f"（{round(delivered_rate * delivered)}/{delivered}）——"
+            f"其余 {planned - delivered} 例因上游超时没有产出方案，"
+            "计入端到端可用率，但不计入方案质量。"
+        )
+        lines.append("")
+    lines += [
         f"**首次输出即可用率 {clean_rate * 100:.1f}%**"
         f"（{snapshot['first_attempt_clean']}/{planned} 未触发修复），"
         f"发生修复 {snapshot['repaired']} 次，异常 {snapshot['errors']} 次。"

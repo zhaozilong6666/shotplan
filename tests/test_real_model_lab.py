@@ -122,6 +122,33 @@ def test_preflight_refusals_are_counted_per_case_not_per_repeat():
     assert summary["preflight_refused"] == 1, "3 repeats must not look like 3 refusals"
 
 
+def test_timeout_is_availability_not_plan_quality():
+    """A request that never returned says nothing about how good the plans are.
+
+    Same rule as the product's run summary ("the outage must not lower the pass
+    rate"), applied to the eval headline: keep both denominators, show both.
+    """
+    ok = CaseOutcome(case_id="C01", group="normal", description="", provider="fake",
+                     hard_pass=True, score=0.9)
+    bad = CaseOutcome(case_id="C02", group="normal", description="", provider="fake",
+                      hard_pass=False, score=0.5)
+    dead = CaseOutcome(case_id="C03", group="normal", description="", provider="fake",
+                       hard_pass=False, score=0.0, status="error",
+                       error="在 120s 预算内未完成生成")
+    summary = summarise([ok, bad, dead], _settings())
+
+    # What the user experiences: one of three did not get a passing plan.
+    assert summary["hard_pass_rate"] == 0.3333
+    # What the plans are worth when one arrives: one of two passes. Without the
+    # split, the outage would read as a model that got worse.
+    assert summary["delivered_cases"] == 2
+    assert summary["hard_pass_rate_delivered"] == 0.5
+
+    report = build_report({**summary, "concurrency": 2}, baseline=None)
+    assert "成功产出方案的 2 例" in report
+    assert "不计入方案质量" in report
+
+
 def test_soft_issue_rate_counts_cases_not_issues():
     """Five soft issues in one plan is still one case that looks bad."""
     def outcome(case_id, soft):
