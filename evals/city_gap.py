@@ -164,7 +164,11 @@ def main() -> int:
         REPORT.write_text(text, encoding="utf-8", newline="\n")
         print(f"wrote {REPORT.relative_to(ROOT)}")
     if "--check" in sys.argv or "--write" in sys.argv:
-        if REPORT.exists() and REPORT.read_text(encoding="utf-8") != text:
+        # A missing page is worse than a stale one: `--check` would pass on a
+        # tree where nobody committed the report the link points at.
+        if not REPORT.exists():
+            found.append(f"缺少 {REPORT.name}，运行 --write")
+        elif REPORT.read_text(encoding="utf-8") != text:
             found.append(f"{REPORT.name} 与当前输出不一致，运行 --write")
     print(f"city gap: {len(rows)} cases, {len(found)} problem(s)")
     for problem in found:
