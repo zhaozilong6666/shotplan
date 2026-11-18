@@ -1,4 +1,4 @@
-.PHONY: help install test lint typecheck eval mutation mine report fuzz bench load httpload workerlab persistlab pipelinedoc scale examples gates kb citygap sweep transfer sample thresholds analysis showcase serve plan smoke clean
+.PHONY: help install test lint typecheck eval mutation mine report fuzz bench load httpload workerlab persistlab pipelinedoc scale examples gates kb citygap sweep transfer probes sample thresholds analysis showcase serve plan smoke clean
 
 PYTHON ?= python
 
@@ -27,6 +27,7 @@ help:
 	@echo "  citygap   三城补充回归（成都 / 北京 / 开封）"
 	@echo "  sweep     可行性判定的影响面（442 条 brief）"
 	@echo "  transfer  20 分钟转场够不够（三角不等式上下界）"
+	@echo "  probes    边界探针：单边改动必须被检出"
 	@echo "  sample    重新生成 README 里的示例输出"
 	@echo "  thresholds 重新生成阈值来源表（哪个数是量出来的）"
 	@echo "  analysis  重新生成四份分析（转场模型、按城市、敏感性、余量）"
@@ -115,6 +116,7 @@ gates:
 	$(PYTHON) -m evals.city_gap --check
 	$(PYTHON) -m evals.feasibility_sweep --check
 	$(PYTHON) -m evals.transfer_check --check
+	$(PYTHON) -m evals.probe_lab --check
 	$(PYTHON) -m evals.annotation_kit --check
 	$(PYTHON) scripts/validate_knowledge.py --check
 	$(PYTHON) scripts/check_gate_count.py
@@ -133,6 +135,7 @@ sweep:
 	$(PYTHON) -m evals.feasibility_sweep --write
 	$(PYTHON) -m evals.feasibility_sweep --check
 	$(PYTHON) -m evals.transfer_check --check
+	$(PYTHON) -m evals.probe_lab --check
 
 transfer:
 	$(PYTHON) -m evals.transfer_check --write
