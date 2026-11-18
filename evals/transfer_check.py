@@ -49,7 +49,7 @@ def sweep() -> tuple[list[dict], Counter]:
     cities = json.loads(DATA.read_text(encoding="utf-8"))["cities"]
     rows = []
     total: Counter[str] = Counter()
-    for city_id, city in cities.items():
+    for city in cities.values():
         counts: Counter[str] = Counter()
         cross_ok = cross_all = 0
         places = city["locations"]

@@ -236,17 +236,3 @@ def test_close_can_tag_the_rule_the_experiment_probed(tmp_path: Path):
     )
     assert code == 0
     assert el.load(ledger)[0]["rules"] == ["TRANSFER_BUFFER"]
-
-
-def test_close_can_tag_the_rule_the_experiment_probed(tmp_path: Path):
-    """Which rule an experiment was about is often clear only after the numbers."""
-    ledger = _ledger(tmp_path, _base_row(id="E17", verdict="open"))
-    report = tmp_path / "r.md"
-    evidence = tmp_path / "evidence.md"
-    evidence.write_text("measured", encoding="utf-8")
-    code = el.main(
-        _args(ledger, report, "--close", "E17", "--verdict", "confirmed", "--to", "92",
-              "--evidence", str(evidence), "--rules", "TRANSFER_BUFFER")
-    )
-    assert code == 0
-    assert el.load(ledger)[0]["rules"] == ["TRANSFER_BUFFER"]
