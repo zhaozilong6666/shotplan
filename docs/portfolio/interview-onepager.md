@@ -15,7 +15,7 @@
 | 变异门禁 **8/8** 拦截（旧门禁只 **4/8**，漏的全是校验端削弱） | `docs/mutation-report.md` |
 | **596** 单测 / 93.15% 覆盖 / **34** 道 CI 门禁 / Python 3.10–3.13 | `.github/workflows/ci.yml` |
 | 真实 uvicorn 压测 **1000** 请求 **0 错误 0 丢写** | `docs/http-load.md` |
-| 写入异步化：vs 同步 **2.96×**（另一批 5.5×）、P95 **186→93ms**、**0 丢写** | `docs/persistence.md` |
+| 写入异步化：vs 同步 **2.96×**（同批关写库对照 5.13×）、P95 **186→93ms**、**0 丢写** | `docs/persistence.md` |
 | 硬杀丢失窗口：`os._exit` 实测，先 flush→N 条全在，不 flush→N−pending | `tests/test_write_behind.py` |
 | 最坏墙钟 **183s** → 墙钟预算 **120s** 兜底，超时降级返回最优草稿 | `docs/pipeline-contract.md` |
 | 模糊测试 **1000** 变异输入 **0** 崩溃，种子可复现 | `docs/fuzz-report.md` |

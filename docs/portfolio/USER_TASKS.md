@@ -72,6 +72,11 @@ git ls-files | grep -E "\.env$|\.db$|evals/out/" || echo "没有敏感文件被�
 | 输入模糊测试 | 1000 次变异，0 未捕获异常 |
 | 性能基准 | p95 ≈0.4ms、单核数千次/秒、堆峰值 0.02MB（全部低于门禁上限一个数量级） |
 | 并发负载 | 并发 1/4/8 各 100 次：0 错误、600/600 写入，并发 8 的 p95 ≈27ms |
+
+性能类数字（2.96×、5.13×、1.04×、1.72×、p95、写入条数）都能在
+[persistence.md](../persistence.md)、[scaling.md](../scaling.md)、[http-load.md](../http-load.md) 里找到出处，
+而这三份是生成物——`make gates` 保证它们与当前代码一致。面试要说哪个数，先看对应报告，
+别只看这一页：这一页是摘要，报告才是证据。
 | 真实启动服务 | `/api/health`、首页、`/api/plan` 全部正常 |
 | 静态展示页 | <https://zhaozilong6666.github.io/shotplan/>（GitHub Pages，已验证 built） |
 | CI 矩阵 | Python 3.10 / 3.11 / 3.12 / 3.13 全部通过 |
