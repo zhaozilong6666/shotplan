@@ -11,8 +11,8 @@
 | --- | ---: |
 | 参与统计的文档 | 63 |
 | 引用失效 | **0**（另有 4 处登记豁免） |
-| 证据类型：实证 / 可复核 / 纯叙述 | 13 / 38 / 12 |
-| 引用实验编号的文档 | 6 |
+| 证据类型：实证 / 可复核 / 纯叙述 | 12 / 38 / 13 |
+| 引用实验编号的文档 | 5 |
 | 引用测量脚本或快照的文档 | 20 |
 | 实验台账 | 14 条，其中未结 0 条 |
 | 决策索引 | 9/18 份 ADR |
@@ -34,14 +34,15 @@
 
 | 类型 | 含义 | 数量 |
 | --- | --- | ---: |
-| 实证 | 引用了已结案的实验，结论可回溯到产物 | 13 |
+| 实证 | 引用了已结案的实验，结论可回溯到产物 | 12 |
 | 可复核 | 引用了存在的代码或文件 | 38 |
-| 纯叙述 | 没有机械可核验的锚点 | 12 |
+| 纯叙述 | 没有机械可核验的锚点 | 13 |
 
 纯叙述文档（不等于错，但不能自动复核）：
 
 - `docs/adr/0001-core-zero-dependency.md`
 - `docs/adr/0003-exact-retrieval-over-vectors.md`
+- `docs/adr/0004-versioned-prompts.md`
 - `docs/adr/0005-no-frontend-framework.md`
 - `docs/adr/0014-request-constraints-are-hard-rules.md`
 - `docs/adr/0015-reproducible-run-trace.md`
@@ -65,23 +66,17 @@
 
 已索引 9 / 18 份 ADR（50%）。未索引的 ADR 不是错的，只是还没有写出「什么情况下该推翻它」。
 
-| 决策 | ADR | 依据 | 状态 |
-| --- | --- | --- | --- |
-| D01 | `docs/adr/0001-core-zero-dependency.md` | — | active |
-| D02 | `docs/adr/0002-validator-outside-model.md` | `E01`, `E06` | active |
-| D03 | `docs/adr/0003-exact-retrieval-over-vectors.md` | — | active |
-| D04 | `docs/adr/0009-gate-sensitivity.md` | — | active |
-| D05 | `docs/adr/0013-explicit-stage-table-and-budget.md` | `E05` | active |
-| D06 | `docs/adr/0014-request-constraints-are-hard-rules.md` | — | active |
-| D07 | `docs/adr/0015-reproducible-run-trace.md` | — | active |
-| D08 | `docs/adr/0004-versioned-prompts.md` | `E03` | active |
-| D09 | `docs/adr/0005-no-frontend-framework.md` | — | active |
-
-### 依据已被推翻的决策
-
-- `D08`（docs/adr/0004-versioned-prompts.md）引用 `E03`，该实验结论为 refuted
-
-这些决策要么改主意，要么在正文里说明为什么推翻之后仍然成立。
+| 决策 | ADR | 依据 | 案例 | 状态 |
+| --- | --- | --- | --- | --- |
+| D01 | `docs/adr/0001-core-zero-dependency.md` | — | — | active |
+| D02 | `docs/adr/0002-validator-outside-model.md` | `E01`, `E06` | — | active |
+| D03 | `docs/adr/0003-exact-retrieval-over-vectors.md` | — | — | active |
+| D04 | `docs/adr/0009-gate-sensitivity.md` | — | — | active |
+| D05 | `docs/adr/0013-explicit-stage-table-and-budget.md` | `E05` | — | active |
+| D06 | `docs/adr/0014-request-constraints-are-hard-rules.md` | — | — | active |
+| D07 | `docs/adr/0015-reproducible-run-trace.md` | — | — | active |
+| D08 | `docs/adr/0004-versioned-prompts.md` | — | `E03` | active |
+| D09 | `docs/adr/0005-no-frontend-framework.md` | — | — | active |
 
 ## 规则覆盖
 

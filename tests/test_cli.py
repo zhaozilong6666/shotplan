@@ -17,6 +17,24 @@ def test_plan_json_prints_a_plan(capsys):
     assert data["validation"]["hard_pass"] is True
 
 
+def test_a_paid_provider_is_announced_before_it_runs(capsys, monkeypatch):
+    """`.env` is resolved beside the installed package, not in the current directory.
+
+    That means a fresh clone can inherit a developer's real provider without
+    either file mentioning the other -- and the quick-start spends a real call
+    before anything prints the provider. The warning has to come first.
+    """
+    monkeypatch.setenv("SHOTPLAN_PROVIDER", "openai_compatible")
+
+    def refuse(settings):
+        raise RuntimeError("stop before the call")
+
+    monkeypatch.setattr(cli, "build_provider", refuse)
+    with pytest.raises(RuntimeError):
+        cli.main(["plan"])
+    assert "真实模型" in capsys.readouterr().err
+
+
 def test_plan_infeasible_returns_exit_code_three(capsys):
     code = cli.main(["plan", "--budget", "100"])
     out = capsys.readouterr().out

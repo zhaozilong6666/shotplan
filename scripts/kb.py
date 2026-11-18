@@ -309,13 +309,20 @@ def decision_problems(rows: list[dict[str, Any]], adrs: set[str], experiment_ids
                 problems.append(f"{ident}: breaks_if 太短，无法判断 -> {trigger!r}")
         if row.get("status") not in {"active", "superseded"}:
             problems.append(f"{ident}: status 必须是 active 或 superseded")
-        about = row.get("evidence") or []
-        if not isinstance(about, list):
-            problems.append(f"{ident}: evidence 必须是实验 id 列表")
-            continue
-        for item in about:
-            if item not in experiment_ids:
-                problems.append(f"{ident}: 引用的实验不在台账 -> {item}")
+        # Two different relations get two different fields. `evidence` supports
+        # the decision, so an experiment later refuted puts it in doubt.
+        # `examples` is cited as a case -- D08 points at E03 precisely because it
+        # lost: that is what versioned prompts let the project notice. Lumping
+        # both into `evidence` made the refutation check flag its own best
+        # illustration.
+        for field_name in ("evidence", "examples"):
+            items = row.get(field_name) or []
+            if not isinstance(items, list):
+                problems.append(f"{ident}: {field_name} 必须是实验 id 列表")
+                continue
+            for item in items:
+                if item not in experiment_ids:
+                    problems.append(f"{ident}: {field_name} 引用的实验不在台账 -> {item}")
     return problems
 
 
@@ -591,12 +598,14 @@ def render_health(
             f"已索引 {len(decisions)} / {adr_total} 份 ADR（{len(decisions) / max(adr_total, 1):.0%}）。"
             "未索引的 ADR 不是错的，只是还没有写出「什么情况下该推翻它」。",
             "",
-            "| 决策 | ADR | 依据 | 状态 |",
-            "| --- | --- | --- | --- |",
+            "| 决策 | ADR | 依据 | 案例 | 状态 |",
+            "| --- | --- | --- | --- | --- |",
         ]
         lines += [
             f"| {row['id']} | `{row['adr']}` | "
             + (", ".join(f"`{item}`" for item in row.get("evidence") or []) or "—")
+            + " | "
+            + (", ".join(f"`{item}`" for item in row.get("examples") or []) or "—")
             + f" | {row.get('status')} |"
             for row in decisions
         ]

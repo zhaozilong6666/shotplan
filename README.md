@@ -53,6 +53,10 @@ python -m evals.worker_lab --check      # 对照实验：验证瓶颈归因
 
 如果没安装包，`python -m shotplan.cli` 需要 `PYTHONPATH=src`，或者执行 `python -m pip install -e ".[api,dev]"`（推荐，会同时装好 Web 与测试依赖）。
 
+**如果这台机器上配过 `.env`**（`SHOTPLAN_PROVIDER=openai_compatible`），第一条命令会走真实模型并产生费用——
+它读的是**包所在目录**的 `.env`，不是当前目录，所以克隆一份仓库并不隔离配置。纯离线演示加
+`--mock-mode good`，或设 `SHOTPLAN_SKIP_DOTENV=1`；CLI 在发起真实调用前也会打印一行提醒。
+
 示例输出（节选）：
 
 ```

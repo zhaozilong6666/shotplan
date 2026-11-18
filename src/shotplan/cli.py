@@ -92,6 +92,17 @@ def cmd_plan(args: argparse.Namespace) -> int:
     if args.mock_mode:
         provider = MockProvider(mode=args.mock_mode)
     else:
+        if settings.provider != "mock":
+            # A paid call must never be silent. `load_dotenv` resolves `.env`
+            # next to the installed package, not in the current directory, so a
+            # fresh clone can inherit a developer's provider without either file
+            # mentioning the other. Running the quick-start in a clone once spent
+            # a real call exactly this way.
+            print(
+                f"注意：provider={settings.provider}，这次会调用真实模型并产生费用。"
+                "纯离线演示用 --mock-mode good，或设 SHOTPLAN_SKIP_DOTENV=1。",
+                file=sys.stderr,
+            )
         provider = build_provider(settings)
     store = RunStore(settings.db_path) if args.persist else None
     result = run_plan(request, provider=provider, store=store, settings=settings)

@@ -147,6 +147,27 @@ def test_a_decision_leaning_on_a_refuted_experiment_is_flagged():
     assert kb.refuted_dependencies(decisions, verdicts) == [("D1", "docs/adr/0001-x.md", "E03")]
 
 
+def test_an_experiment_cited_as_a_case_is_not_evidence():
+    """D08 points at E03 because it lost -- that is the illustration, not support.
+
+    One field for both relations made the refutation check flag its own best
+    example, which is a modelling bug rather than a finding.
+    """
+    decisions = [{"id": "D8", "adr": "docs/adr/0004-x.md", "evidence": [], "examples": ["E03"]}]
+    assert kb.refuted_dependencies(decisions, {"E03": "refuted"}) == []
+
+
+def test_examples_must_also_exist_in_the_ledger():
+    problems = kb.decision_problems(
+        [{"id": "D9", "adr": "docs/adr/0001-core-zero-dependency.md", "decision": "x",
+          "breaks_if": ["某个可观测事件发生了"], "status": "active",
+          "evidence": [], "examples": ["E77"]}],
+        adrs={"docs/adr/0001-core-zero-dependency.md"},
+        experiment_ids={"E01"},
+    )
+    assert any("examples" in problem and "E77" in problem for problem in problems)
+
+
 def test_generated_pages_are_recognised_by_their_signature():
     # The detector is shared with the report audit on purpose; two copies drift.
     fuzz_header = "> 由 `python -m evals.fuzz --write-report` 生成，请勿手工编辑。"
