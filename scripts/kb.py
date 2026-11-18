@@ -792,13 +792,23 @@ def render_next(
     # Rank by how many other documents lean on it; a long tail would bury the
     # few that matter and teach the reader to skip this section.
     linked = incoming_links(all_facts)
-    important = [doc for doc in narrative if linked.get(doc.path, 0) >= 2]
-    important.sort(key=lambda d: (-linked.get(d.path, 0), d.path))
+    # An ADR in the decision index already carries an observable revisit trigger.
+    # That is the anchor a decision needs -- code citations are not, and asking
+    # for one treats a judgement as if it were a measurement. Leaving these in
+    # the queue made every indexed ADR look like a debt the moment it was paid.
     indexed_adrs = {str(row.get("adr")) for row in decisions}
+    important = [
+        doc
+        for doc in narrative
+        if linked.get(doc.path, 0) >= 2
+        and not (doc.kind == "adr" and doc.path in indexed_adrs)
+    ]
+    important.sort(key=lambda d: (-linked.get(d.path, 0), d.path))
     if important:
         lines += [
-            f"被引用最多的一批（共 {len(important)} 份）。ADR 缺的是失效条件，"
-            "报告缺的是代码或数据锚点——两类欠账的补法不同。",
+            f"被引用最多的一批（共 {len(important)} 份）。它们没有实验编号，也没有代码或数据锚点。"
+            "标了「正文含实测数字」的，是测量做了但没登记编号——这类只能从下一次测量改起，"
+            "往回补会破坏「预测先于测量」这条纪律。",
             "",
         ]
         for doc in important[:8]:

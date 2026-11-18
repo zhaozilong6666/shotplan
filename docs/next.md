@@ -15,17 +15,15 @@
 
 ## P2 · 重要但没有证据锚点
 
-被引用最多的一批（共 13 份）。ADR 缺的是失效条件，报告缺的是代码或数据锚点——两类欠账的补法不同。
+被引用最多的一批（共 7 份）。它们没有实验编号，也没有代码或数据锚点。标了「正文含实测数字」的，是测量做了但没登记编号——这类只能从下一次测量改起，往回补会破坏「预测先于测量」这条纪律。
 
 - [ ] `docs/measurement.md` 被 6 份文档引用 —— 正文含实测数字，但没有编号或数据锚点
-- [ ] `docs/adr/0003-exact-retrieval-over-vectors.md` 被 5 份文档引用
 - [ ] `docs/repair-experiment.md` 被 5 份文档引用 —— 正文含实测数字，但没有编号或数据锚点
-- [ ] `docs/adr/0014-request-constraints-are-hard-rules.md` 被 4 份文档引用
-- [ ] `docs/adr/0015-reproducible-run-trace.md` 被 4 份文档引用
-- [ ] `docs/adr/0001-core-zero-dependency.md` 被 3 份文档引用
-- [ ] `docs/adr/0004-versioned-prompts.md` 被 3 份文档引用
-- [ ] `docs/adr/0005-no-frontend-framework.md` 被 3 份文档引用
-- 其余 5 份见 `docs/kb-health.md`
+- [ ] `docs/real-model-smoke-2026-11-16.md` 被 3 份文档引用 —— 正文含实测数字，但没有编号或数据锚点
+- [ ] `docs/redteam-analysis.md` 被 3 份文档引用 —— 正文含实测数字，但没有编号或数据锚点
+- [ ] `docs/release-readiness.md` 被 3 份文档引用
+- [ ] `docs/router-validation.md` 被 3 份文档引用 —— 正文含实测数字，但没有编号或数据锚点
+- [ ] `docs/problem-and-metrics.md` 被 2 份文档引用 —— 正文含实测数字，但没有编号或数据锚点
 
 ## P3 · 文字里缺的规则
 

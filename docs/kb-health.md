@@ -15,7 +15,7 @@
 | 引用实验编号的文档 | 6 |
 | 引用测量脚本或快照的文档 | 19 |
 | 实验台账 | 15 条，其中未结 0 条 |
-| 决策索引 | 10/18 份 ADR |
+| 决策索引 | 18/18 份 ADR |
 | 无文档解释的规则 | 0/16 |
 | CI 门禁 | 33 道 |
 
@@ -64,7 +64,7 @@
 
 ## 决策索引
 
-已索引 10 / 18 份 ADR（56%）。未索引的 ADR 不是错的，只是还没有写出「什么情况下该推翻它」。
+已索引 18 / 18 份 ADR（100%）。未索引的 ADR 不是错的，只是还没有写出「什么情况下该推翻它」。
 
 | 决策 | ADR | 依据 | 案例 | 状态 |
 | --- | --- | --- | --- | --- |
@@ -78,6 +78,14 @@
 | D08 | `docs/adr/0004-versioned-prompts.md` | — | `E03` | active |
 | D09 | `docs/adr/0005-no-frontend-framework.md` | — | — | active |
 | D10 | `docs/adr/0007-feasibility-before-generation.md` | `E15` | — | active |
+| D11 | `docs/adr/0010-holdout-challenge-set.md` | — | — | active |
+| D12 | `docs/adr/0016-source-refs-must-resolve.md` | — | — | active |
+| D13 | `docs/adr/0017-one-settings-object-per-run.md` | — | — | active |
+| D14 | `docs/adr/0006-scoring-determinism.md` | — | — | active |
+| D15 | `docs/adr/0008-fuzz-and-benchmark-gates.md` | — | — | active |
+| D16 | `docs/adr/0011-controlled-experiment-over-inference.md` | — | — | active |
+| D17 | `docs/adr/0012-write-behind-persistence.md` | — | — | active |
+| D18 | `docs/adr/0018-derived-explanations.md` | — | — | active |
 
 ## 规则覆盖
 
