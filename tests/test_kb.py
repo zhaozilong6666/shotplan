@@ -9,6 +9,8 @@ Each is tested directly rather than inferred from coverage.
 
 from __future__ import annotations
 
+import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -75,6 +77,49 @@ def test_an_experiment_naming_a_document_counts_as_evidence():
     enriched = kb.enrich([doc], [], [{"id": "E01", "verdict": "confirmed", "evidence": "docs/a.md"}])
     assert enriched[0].cited_by == ("E01",)
     assert kb.evidence_grade(enriched[0], verdicts) == "empirical"
+
+
+def test_a_decision_can_be_added_by_command(tmp_path):
+    """Writing a decision is a write, not an edit: id, date and refusals included."""
+    path = tmp_path / "decisions.jsonl"
+    path.write_text(
+        json.dumps({"id": "D09", "adr": "docs/adr/0001-core-zero-dependency.md",
+                    "decision": "x", "evidence": [], "breaks_if": ["某个可观测事件发生了"],
+                    "status": "active", "reviewed": "2026-11-17"}) + "\n",
+        encoding="utf-8",
+    )
+    rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+    args = argparse.Namespace(
+        adr="docs/adr/0001-core-zero-dependency.md",
+        decision="核心域保持零依赖",
+        breaks_if=["标准库排一次完整方案超过 500ms，且引入依赖能压到 100ms 以下"],
+        evidence=[], examples=[], note="",
+    )
+    code, new_id = kb.append_decision(
+        args, rows, {"docs/adr/0001-core-zero-dependency.md"}, {"E01"}, path
+    )
+    assert code == 0
+    assert new_id == "D10"
+    assert len(path.read_text(encoding="utf-8").splitlines()) == 2
+
+
+def test_a_vague_revisit_trigger_is_refused_at_write_time(tmp_path):
+    """「以后再说」 is not a trigger; the refusal has to happen now, not in a report."""
+    path = tmp_path / "decisions.jsonl"
+    path.write_text("", encoding="utf-8")
+    args = argparse.Namespace(
+        adr="docs/adr/0001-core-zero-dependency.md",
+        decision="x",
+        # Long enough to pass the length check, so this exercises the vague-word
+        # check rather than stopping at the earlier gate.
+        breaks_if=["等以后业务真的需要的时候再说吧"],
+        evidence=[], examples=[], note="",
+    )
+    code, _ = kb.append_decision(
+        args, [], {"docs/adr/0001-core-zero-dependency.md"}, {"E01"}, path
+    )
+    assert code == 2
+    assert path.read_text(encoding="utf-8") == ""
 
 
 def test_a_decision_index_supplies_evidence_an_adr_omits():

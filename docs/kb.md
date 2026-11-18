@@ -78,7 +78,23 @@ ADR 的通病是记下了决定，没记下**什么情况下这个决定该失�
 
 ## 维护
 
-**加一条决策**：在 `docs/decisions.jsonl` 追加一行。`adr` 必须指向真实文件，`evidence` 必须是台账里的实验编号，`breaks_if` 至少一条。
+**加一条决策**：用命令，不要手写。
+
+```bash
+python scripts/kb.py --decide \
+  --adr docs/adr/0007-feasibility-before-generation.md \
+  --decision "不可执行的 brief 在生成前被结构化拒绝" \
+  --evidence E15 \
+  --breaks-if "出现模型能想出办法、而算术判定说不行的 brief，且人工复核确认模型方案可执行"
+```
+
+它会分配编号、填复核日期、校验 ADR 与实验引用，并在成功后重生成三份页面。
+它会拒绝三种情况：ADR 不存在、没写 `--breaks-if`、失效条件像「等以后再说」。
+手写仍然可行，但这两道门就是为「手写时最容易偷的懒」设的。
+
+**记一条实验**：同理，`python -m evals.experiment_log --open ...` 先写预测，
+`--close` 填实测与判定。`--expect` 含「或」或缺 `--metric` 会被直接拒绝——
+E08 就是因为这两点挂了三天的。
 
 **豁免一处引用**：在 `docs/kb-allow.json` 里登记 `doc` + `token` + `reason`。
 必须写理由——豁免不是删除，是让技术债有名字。当前四条，来自两份文档：

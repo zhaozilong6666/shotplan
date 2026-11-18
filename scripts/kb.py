@@ -33,6 +33,7 @@ in the rendered pages, so a shallow CI clone and a full local clone agree.
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import json
 import re
 import subprocess
@@ -830,11 +831,88 @@ def normalize(text: str) -> str:
     return text.replace("\r\n", "\n").strip()
 
 
+def next_decision_id(rows: list[dict[str, Any]]) -> str:
+    used = [
+        int(str(row["id"])[1:])
+        for row in rows
+        if str(row.get("id", ""))[:1] == "D" and str(row["id"])[1:].isdigit()
+    ]
+    return f"D{max(used, default=0) + 1:02d}"
+
+
+def append_decision(
+    args: argparse.Namespace,
+    decisions: list[dict[str, Any]],
+    adrs: set[str],
+    experiment_ids: set[str],
+    path: Path = DECISIONS,
+) -> tuple[int, str]:
+    """Add a decision the way the experiment ledger adds a prediction.
+
+    The refusals are the point. An ADR with no revisit trigger is a decision
+    nobody can overturn on evidence, and a trigger phrased as a feeling is the
+    same thing in different words -- so both are rejected here, at the moment of
+    writing, instead of being flagged in a report read a week later.
+    """
+    if args.adr not in adrs:
+        print(f"ADR 不存在：{args.adr or '<empty>'}", file=sys.stderr)
+        return 2, ""
+    if not args.decision.strip():
+        print("必须给 --decision：一句话说清选了什么", file=sys.stderr)
+        return 2, ""
+    if not args.breaks_if:
+        print("必须给至少一条 --breaks-if：没有失效条件的决策无法被推翻", file=sys.stderr)
+        return 2, ""
+    for trigger in args.breaks_if:
+        if len(trigger.strip()) < 8:
+            print(f"失效条件太短，无法判断：{trigger!r}", file=sys.stderr)
+            return 2, ""
+        if any(word in trigger for word in VAGUE_TRIGGERS):
+            print(f"失效条件不像可观测事件：{trigger!r}", file=sys.stderr)
+            return 2, ""
+
+    row: dict[str, Any] = {
+        "id": next_decision_id(decisions),
+        "adr": args.adr,
+        "decision": args.decision.strip(),
+        "evidence": list(dict.fromkeys(args.evidence)),
+        "breaks_if": [item.strip() for item in args.breaks_if],
+        "status": "active",
+        "reviewed": dt.date.today().isoformat(),
+    }
+    examples = list(dict.fromkeys(args.examples))
+    if examples:
+        row["examples"] = examples
+    if args.note.strip():
+        row["note"] = args.note.strip()
+
+    problems = decision_problems([row], adrs, experiment_ids)
+    if problems:
+        for problem in problems:
+            print(f"  {problem}", file=sys.stderr)
+        return 2, ""
+
+    decisions.append(row)
+    path.write_text(
+        "\n".join(json.dumps(item, ensure_ascii=False) for item in decisions) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    return 0, str(row["id"])
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="knowledge-base health, queue and handoff")
     parser.add_argument("--write", action="store_true", help="regenerate the three pages")
     parser.add_argument("--check", action="store_true", help="verify citations, decisions and page freshness")
     parser.add_argument("--queue", action="store_true", help="print the local drift ranking (needs full git history)")
+    parser.add_argument("--decide", action="store_true", help="append a decision with its revisit trigger")
+    parser.add_argument("--adr", default="", help="the ADR this decision indexes")
+    parser.add_argument("--decision", default="", help="the choice, in one sentence")
+    parser.add_argument("--breaks-if", action="append", default=[], help="observable event that should reopen it")
+    parser.add_argument("--evidence", action="append", default=[], help="experiment id that supports it")
+    parser.add_argument("--examples", action="append", default=[], help="experiment id cited as a case")
+    parser.add_argument("--note", default="", help="anything a reader needs that the fields cannot hold")
     args = parser.parse_args(argv)
 
     try:
@@ -857,6 +935,15 @@ def main(argv: list[str] | None = None) -> int:
     experiment_ids = set(verdicts)
     names = defined_names()
     adrs = {rel(path) for path in (DOCS / "adr").glob("*.md")}
+
+    if args.decide:
+        code, new_id = append_decision(args, decisions, adrs, experiment_ids)
+        if code != 0:
+            return code
+        print(f"{new_id} 已登记")
+        # Writing a decision and regenerating the pages are one action; going
+        # through the normal entry point keeps that guarantee in one place.
+        return main(["--write"])
 
     issues = cite_issues(facts, names, experiment_ids)
     allowed, allow_problems = load_allow()
