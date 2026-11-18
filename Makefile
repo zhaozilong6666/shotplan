@@ -1,4 +1,4 @@
-.PHONY: help install test lint typecheck eval mutation mine report fuzz bench load httpload workerlab persistlab pipelinedoc scale examples gates kb citygap sweep showcase serve plan smoke clean
+.PHONY: help install test lint typecheck eval mutation mine report fuzz bench load httpload workerlab persistlab pipelinedoc scale examples gates kb citygap sweep sample showcase serve plan smoke clean
 
 PYTHON ?= python
 
@@ -26,6 +26,7 @@ help:
 	@echo "  kb        重新生成知识库健康度 / 下一步队列 / 交接页"
 	@echo "  citygap   三城补充回归（成都 / 北京 / 开封）"
 	@echo "  sweep     可行性判定的影响面（442 条 brief）"
+	@echo "  sample    重新生成 README 里的示例输出"
 	@echo "  showcase  重新生成展示页数据块"
 	@echo "  plan      用离线 mock 生成一份示例方案"
 	@echo "  serve     启动 Web / API (需要 install)"
@@ -103,6 +104,7 @@ gates:
 	$(PYTHON) -m evals.slo_baseline --check
 	$(PYTHON) -m evals.http_smoke --check
 	$(PYTHON) scripts/check_doc_claims.py
+	$(PYTHON) scripts/render_readme_sample.py --check
 	$(PYTHON) -m evals.experiment_log --check
 	$(PYTHON) scripts/audit_reports.py --check
 	$(PYTHON) scripts/kb.py --check

@@ -7,7 +7,7 @@
 
 | 规则 | 严重度 | 构造失败库 | 真实模型触发 | 覆盖测试 | 为什么存在 |
 | --- | --- | ---: | ---: | --- | --- |
-| `TIME_OVERLAP` | hard | 0 | 0 | `test_validator.py::test_time_overlap_is_hard`, `test_kb.py::test_why_on_a_rule_says_when_its_threshold_was_never_measured` | 重叠的行程在现实中不可执行，是最常见的 LLM 幻觉 |
+| `TIME_OVERLAP` | hard | 0 | 0 | `test_validator.py::test_time_overlap_is_hard`, `test_kb.py::test_a_rule_with_no_explaining_document_is_visible` | 重叠的行程在现实中不可执行，是最常见的 LLM 幻觉 |
 | `TIME_OVERRUN` | hard | 64 | 0 | `test_validator.py::test_time_overrun_is_hard`, `test_pipeline.py::test_naive_pipeline_fails_in_the_expected_ways` | 超出拍摄时长意味着要临时加钱或砍环节 |
 | `MISSING_ACTIVITY` | hard | 0 | 0 | `test_validator.py::test_missing_activity_is_hard` | 汉服拍摄没有妆造就不成立 |
 | `MAKEUP_ORDER` | hard | 0 | 0 | `test_validator.py::test_makeup_order_is_hard` | 顺序错误是自由文本生成的高频错误 |
