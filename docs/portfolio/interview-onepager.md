@@ -4,7 +4,7 @@
 
 ## 30 秒开场（背这一段）
 
-> 我做了一个旅拍方案 Agent。它解决的核心问题是：LLM 生成的行程看起来很美但不可执行——一天排五个外景、景点名是编的、妆造排在拍摄之后。我的做法是把「可执行」拆成 15 条规则（10 硬 + 5 软），判定放在确定性代码里，模型只负责生成；生成前先算需求可不可满足，不可满足就结构化拒绝；生成后不过模型校验，报告回喂做定向修复，且只有严格变优才接受。质量不是感觉：80 个主集用例、200 个盲测 brief、一个故意犯错的对照 provider，分数跨 Python 3.10–3.13 逐位一致。
+> 我做了一个旅拍方案 Agent。它解决的核心问题是：LLM 生成的行程看起来很美但不可执行——一天排五个外景、景点名是编的、妆造排在拍摄之后。我的做法是把「可执行」拆成 16 条规则（10 硬 + 6 软），判定放在确定性代码里，模型只负责生成；生成前先算需求可不可满足，不可满足就结构化拒绝；生成后不过模型校验，报告回喂做定向修复，且只有严格变优才接受。质量不是感觉：80 个主集用例、200 个盲测 brief、一个故意犯错的对照 provider，分数跨 Python 3.10–3.13 逐位一致。
 
 ## 数字卡片（面试官问「有数据吗」时照着指）
 
@@ -13,7 +13,7 @@
 | good **0.9796** / naive **0.2974** | 评测对照，`docs/eval-report.md` |
 | 80 主集 + **320** 盲测 brief + **527** 条失败记录聚类 | `evals/cases/`、`evals/challenge/` |
 | 变异门禁 **8/8** 拦截（旧门禁只 **4/8**，漏的全是校验端削弱） | `docs/mutation-report.md` |
-| **491** 单测 / 93.28% 覆盖 / **27** 道 CI 门禁 / Python 3.10–3.13 | `.github/workflows/ci.yml` |
+| **596** 单测 / 93.15% 覆盖 / **34** 道 CI 门禁 / Python 3.10–3.13 | `.github/workflows/ci.yml` |
 | 真实 uvicorn 压测 **1000** 请求 **0 错误 0 丢写** | `docs/http-load.md` |
 | 写入异步化：vs 同步 **2.96×**（另一批 5.5×）、P95 **186→93ms**、**0 丢写** | `docs/persistence.md` |
 | 硬杀丢失窗口：`os._exit` 实测，先 flush→N 条全在，不 flush→N−pending | `tests/test_write_behind.py` |
@@ -41,7 +41,7 @@
 
 ```bash
 python -m pip install -e ".[api,dev]"
-python -m shotplan.cli rules                                   # 15 条规则（10 硬 + 5 软）
+python -m shotplan.cli rules                                   # 16 条规则（10 硬 + 6 软）
 python -m shotplan.cli plan --hours 3 --budget 800             # 预算不足时的结构化拒绝
 SHOTPLAN_PERSIST_MODE=async python -m shotplan.cli serve       # 「运行统计」页看写入积压
 python -m evals.run_eval --write-report                        # 评测报告（退出码即门禁）
