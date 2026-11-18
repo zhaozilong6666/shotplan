@@ -25,6 +25,7 @@ from ..domain.constraints import (
 )
 from ..domain.models import PlanRequest, fmt_minutes
 from ..domain.models import to_minutes as _to_minutes
+from ..domain.transfer import estimate
 from ..knowledge.tools import get_tools
 from .base import GenerationResult
 
@@ -34,16 +35,31 @@ EARLIEST_START = 9 * 60
 MIN_SHOOT_MINUTES = 60
 
 
+def _radius(location_id: str, places: list[dict[str, Any]]) -> int:
+    """Minutes from the centre for a place, or the constant when it is unknown."""
+    for place in places:
+        if place.get("id") == location_id:
+            return int(place.get("travel_min_from_center", MIN_TRANSFER_MINUTES))
+    return MIN_TRANSFER_MINUTES
+
+
 class MockProvider:
     name = "mock"
 
-    def __init__(self, mode: str = "good", prompt_version: str | None = None) -> None:
+    def __init__(
+        self,
+        mode: str = "good",
+        prompt_version: str | None = None,
+        transfer_strategy: str = "fixed",
+    ) -> None:
         if mode not in ("good", "naive"):
             raise ValueError(f"unknown mock mode: {mode}")
         self.mode = mode
         # Offline providers do not consume prompts, but the version is recorded
         # in every trace so v1/v2 eval runs stay comparable (see ADR 0004).
         self.prompt_version = prompt_version or f"mock-{mode}-v1"
+        # `fixed` reproduces the old behaviour; anything else is an experiment.
+        self.transfer_strategy = transfer_strategy
 
     def generate(
         self,
@@ -331,15 +347,32 @@ class MockProvider:
         )
         cursor += makeup_minutes
 
+        previous_radius = _radius(makeup_location_id, all_locations)
         for index, point in enumerate(points):
             ref = f"locations.json#{point['id']}"
             transfer_cost = TRANSFER_COST_CNY if index == 0 else 0
+            here = int(point.get("travel_min_from_center", MIN_TRANSFER_MINUTES))
+            if self.transfer_strategy == "fixed":
+                # Keep the transfer length in this module's namespace: the
+                # mutation lab patches `MIN_TRANSFER_MINUTES` here to prove the
+                # validator catches a planner that drops transfers.
+                gap = MIN_TRANSFER_MINUTES
+            else:
+                # A geometric estimate can land below the physical floor: two
+                # places 10 minutes from the centre are 14 apart under rms. No
+                # model should be allowed to schedule a transfer shorter than
+                # the validator's minimum -- that is not an estimate, it is a bug.
+                gap = max(
+                    MIN_TRANSFER_MINUTES,
+                    int(round(estimate(previous_radius, here, self.transfer_strategy))),
+                )
             push(
-                cursor, cursor + MIN_TRANSFER_MINUTES, "travel", point["id"],
+                cursor, cursor + gap, "travel", point["id"],
                 f"转场至{point['name']}", transfer_cost, [ref],
-                f"按知识库估算至少 {MIN_TRANSFER_MINUTES} 分钟，含补妆与器材搬运",
+                f"按知识库估算至少 {gap} 分钟，含补妆与器材搬运",
             )
-            cursor += MIN_TRANSFER_MINUTES
+            cursor += gap
+            previous_radius = here
 
             duration = per_shoot
             if index == len(points) - 1:
