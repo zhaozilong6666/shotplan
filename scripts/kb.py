@@ -230,7 +230,7 @@ def all_docs() -> list[Path]:
     the report audit -- job-application material is not a project record, and
     counting it here made the two reports disagree about how large the corpus is.
     """
-    own = {HEALTH.name, NEXT.name, HANDOFF.name}
+    own = {HEALTH.name, NEXT.name, HANDOFF.name, "rule-map.md"}
     found = [*ROOT.glob("*.md"), *DOCS.rglob("*.md")]
     return sorted(
         path for path in found if path.name not in own and "portfolio" not in path.parts
@@ -260,6 +260,45 @@ def defined_names() -> set[str]:
     return set(symbol_index())
 
 
+def explain_rule(
+    code: str,
+    facts: list[Facts],
+    ledger: list[dict[str, Any]],
+    texts: dict[str, str],
+) -> str:
+    """What explains this rule, and what has actually been measured about it.
+
+    The gate can tell you a rule is documented and tested. It cannot tell you
+    whether the number inside the rule was ever measured -- and that is the
+    question right before someone changes a threshold. Tagging experiments with
+    the rule they probed turns that into an answer.
+    """
+    explaining = sorted(doc.path for doc in facts if f"`{code}`" in texts.get(doc.path, ""))
+    tagged = [row for row in ledger if code in (row.get("rules") or [])]
+
+    lines = [f"规则 {code}", ""]
+    if explaining:
+        lines += [f"被 {len(explaining)} 份文档提到"]
+        lines += [f"  {path}" for path in explaining]
+        lines.append("")
+    else:
+        lines += ["没有文档解释这条规则。", ""]
+
+    if tagged:
+        lines += [f"被 {len(tagged)} 条实验检验过"]
+        for row in tagged:
+            lines.append(f"  {row['id']}（{row['verdict']}）{row['question']}")
+        lines.append("")
+    else:
+        lines += [
+            "没有任何实验检验过这条规则的门槛值。",
+            "调阈值之前先设计一个能推翻它的实验：",
+            "  python -m evals.experiment_log --open --area rules --question ... --expect ... --metric ...",
+            "",
+        ]
+    return "\n".join(lines)
+
+
 def explain(
     target: str,
     facts: list[Facts],
@@ -276,6 +315,8 @@ def explain(
     gate checks.
     """
     wanted = target.replace("\\", "/").removeprefix("./")
+    if re.fullmatch(r"[A-Z][A-Z0-9_]{2,}", wanted):
+        return explain_rule(wanted, facts, ledger, texts)
     basename = wanted.rsplit("/", 1)[-1]
 
     direct = [doc for doc in facts if wanted in doc.paths]
@@ -603,6 +644,10 @@ def render_health(
     open_rows = [row for row in ledger if row.get("verdict") == "open"]
     undecided = [row for row in ledger if row.get("verdict") not in {"confirmed", "refuted", "partial", "open"}]
     unmentioned = [code for code, docs in mentions.items() if not docs]
+    # "Documented" and "measured" are different claims. A rule can be explained
+    # in prose, tested by the suite, and still carry a threshold nobody has ever
+    # probed -- which is exactly what you want to know before changing it.
+    tested_rules = {code for row in ledger for code in (row.get("rules") or [])} & set(mentions)
     # A decision that leans on an experiment later refuted is the case this
     # whole index exists for.
     cited_refuted = refuted_dependencies(decisions, verdicts)
@@ -629,6 +674,7 @@ def render_health(
         f"| 实验台账 | {len(ledger)} 条，其中未结 {len(open_rows)} 条 |",
         f"| 决策索引 | {len(decisions)}/{adr_total} 份 ADR |",
         f"| 无文档解释的规则 | {len(unmentioned)}/{len(mentions)} |",
+        f"| 被实验检验过门槛的规则 | {len(tested_rules)}/{len(mentions)} |",
         f"| CI 门禁 | {gate_count} 道 |",
         "",
     ]

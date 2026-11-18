@@ -79,6 +79,21 @@ def test_an_experiment_naming_a_document_counts_as_evidence():
     assert kb.evidence_grade(enriched[0], verdicts) == "empirical"
 
 
+def test_why_on_a_rule_reports_the_experiments_that_probed_it(capsys):
+    """Documented, tested, measured -- three different claims about one rule."""
+    assert kb.main(["--why", "SHOOT_TOO_SHORT"]) == 0
+    out = capsys.readouterr().out
+    assert "被 2 条实验检验过" in out
+    assert "E04" in out and "E06" in out
+
+
+def test_why_on_a_rule_says_when_its_threshold_was_never_measured(capsys):
+    assert kb.main(["--why", "TIME_OVERLAP"]) == 0
+    out = capsys.readouterr().out
+    assert "没有任何实验检验过" in out
+    assert "experiment_log --open" in out
+
+
 def test_why_names_the_records_that_depend_on_a_file(capsys):
     """The reverse edge: editing a file should surface the ADRs it supports.
 
