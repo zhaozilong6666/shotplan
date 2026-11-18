@@ -28,6 +28,7 @@ identical, and it is worth seeing next to `transfer`, where they differ.
 
 from __future__ import annotations
 
+import copy
 import json
 import sys
 from contextlib import ExitStack
@@ -42,8 +43,9 @@ sys.path.insert(0, str(ROOT / "src"))
 from shotplan.agents import mock as mock_module  # noqa: E402
 from shotplan.agents import validator as validator_module  # noqa: E402
 from shotplan.agents.mock import MockProvider  # noqa: E402
+from shotplan.agents.validator import validate  # noqa: E402
 from shotplan.config import get_settings  # noqa: E402
-from shotplan.domain.models import PlanRequest  # noqa: E402
+from shotplan.domain.models import PlanRequest, fmt_minutes, to_minutes  # noqa: E402
 from shotplan.pipeline import run_plan  # noqa: E402
 
 REPORT = ROOT / "docs" / "probe-set.md"
@@ -74,10 +76,49 @@ GROUPS = (
 SCENARIOS = ("baseline", "one-sided", "both-sides")
 
 
+def read_group(key: str) -> list[dict[str, Any]]:
+    path = PROBES / f"{key}.jsonl"
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def run_time_group() -> dict[str, list[dict[str, Any]]]:
+    """The one group that does not patch a constant: it forges the output instead.
+
+    `TIME_OVERRUN` cannot be probed by tightening a rule, because the planner never
+    produces an overrun on purpose -- it schedules inside the booking. So the probe
+    takes a valid plan and pushes its last block 20 minutes past the limit, then asks
+    the validator alone. That is the only way to test whether the check works when
+    the generator is not cooperating.
+    """
+    settings = get_settings()
+    rows: dict[str, list[dict[str, Any]]] = {"baseline": [], "inflated": []}
+    for case in read_group("time"):
+        request = PlanRequest(**case["request"])
+        result = run_plan(request, provider=MockProvider(mode="good"), store=None, settings=settings)
+        base = validate(result.plan, request)
+        stretched = copy.deepcopy(result.plan)
+        stretched.slots[-1].end = fmt_minutes(to_minutes(stretched.slots[-1].end) + 20)
+        report = validate(stretched, request)
+        rows["baseline"].append(
+            {
+                "id": case["id"],
+                "pass": bool(base.hard_pass),
+                "codes": sorted({issue.code for issue in base.hard_issues}),
+            }
+        )
+        rows["inflated"].append(
+            {
+                "id": case["id"],
+                "pass": bool(report.hard_pass),
+                "codes": sorted({issue.code for issue in report.hard_issues}),
+            }
+        )
+    return rows
+
+
 def run_group(group: Group) -> dict[str, list[dict[str, Any]]]:
     settings = get_settings()
-    path = PROBES / f"{group.key}.jsonl"
-    briefs = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    briefs = read_group(group.key)
     results: dict[str, list[dict[str, Any]]] = {}
     for scenario in SCENARIOS:
         rows = []
@@ -131,6 +172,28 @@ def render(all_results: dict[str, dict[str, list[dict[str, Any]]]]) -> str:
             codes = sorted({code for row in results[scenario] for code in row["codes"]})
             lines.append(f"| `{scenario}` | {passed}/{total} | {'、'.join(codes) if codes else '—'} |")
         lines.append("")
+
+    time_results = all_results["time"]
+    total = len(time_results["baseline"])
+    lines += [
+        f"## time（{total} 条）",
+        "",
+        "这组不收紧规则，而是**伪造生成结果**：把方案的最后一块延长 20 分钟，交给校验器单独判断。"
+        "`TIME_OVERRUN` 无法用「调紧常量」来探——planner 从不在预约时长外排期，所以正常路径永远不触发。",
+        "",
+        "| 场景 | 通过 | 失败的编码 |",
+        "| --- | ---: | --- |",
+    ]
+    for scenario in ("baseline", "inflated"):
+        passed = sum(row["pass"] for row in time_results[scenario])
+        codes = sorted({code for row in time_results[scenario] for code in row["codes"]})
+        lines.append(f"| `{scenario}` | {passed}/{total} | {'、'.join(codes) if codes else '—'} |")
+    lines += [
+        "",
+        "`inflated` 全部变成 `TIME_OVERRUN`，说明这条检查只依赖方案本身，不依赖生成端配合。"
+        "这正是校验器该有的性质：**它验证结果，不验证过程**。",
+        "",
+    ]
 
     transfer = all_results["transfer"]
     budget = all_results["budget"]
@@ -192,11 +255,22 @@ def check(all_results: dict[str, dict[str, list[dict[str, Any]]]]) -> list[str]:
     broken = [row["id"] for row in both if not row["pass"]]
     if broken:
         problems.append(f"transfer 两端同步后仍失败：{', '.join(broken)}")
+    time_results = all_results["time"]
+    if not time_results["baseline"]:
+        problems.append("time: 探针集为空")
+    else:
+        failed = [row["id"] for row in time_results["baseline"] if not row["pass"]]
+        if failed:
+            problems.append(f"time baseline 不通过：{', '.join(failed)}")
+        missed = [row["id"] for row in time_results["inflated"] if row["pass"]]
+        if missed:
+            problems.append(f"time 注入超时未被检出：{', '.join(missed)}")
     return problems
 
 
 def main() -> int:
     all_results = {group.key: run_group(group) for group in GROUPS}
+    all_results["time"] = run_time_group()
     text = render(all_results)
     if "--write" in sys.argv:
         REPORT.write_text(text, encoding="utf-8", newline="\n")
@@ -211,6 +285,14 @@ def main() -> int:
                 for scenario in SCENARIOS
             )
         )
+    time_total = len(all_results["time"]["baseline"])
+    print(
+        "probe time: "
+        + ", ".join(
+            f"{scenario} {sum(row['pass'] for row in all_results['time'][scenario])}/{time_total}"
+            for scenario in ("baseline", "inflated")
+        )
+    )
     if "--check" in sys.argv:
         problems = check(all_results)
         for problem in problems:
