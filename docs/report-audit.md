@@ -8,14 +8,14 @@
 
 | 指标 | 值 |
 | --- | --- |
-| 扫描报告 | 70 份（383 KB） |
+| 扫描报告 | 71 份（387 KB） |
 | 脚本生成 | 34 份，来自 24 个生成器 |
-| 人写报告 | 36 份 |
+| 人写报告 | 37 份 |
 | 人写报告冗余对（≥ 0.55） | 3 对 |
 | 同名前缀家族（≥ 3 份） | 3 个 |
 | 失效引用 | 0 处 |
-| 孤儿报告（无入链） | 6 份 |
-| 人写报告平均边际信息量 | 0.755 |
+| 孤儿报告（无入链） | 7 份 |
+| 人写报告平均边际信息量 | 0.759 |
 
 ## 1. 同源实例：报告为什么会堆积
 
@@ -49,9 +49,9 @@
 
 | 报告 A | 报告 B | 相似度 | 建议 |
 | --- | --- | ---: | --- |
-| `real-model-light-fix-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.663 | 部分重叠：只核对数字是否互相矛盾 |
-| `real-model-baseline-2026-11-16.md` | `real-model-light-fix-2026-11-16.md` | 0.645 | 部分重叠：只核对数字是否互相矛盾 |
-| `real-model-baseline-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.567 | 部分重叠：只核对数字是否互相矛盾 |
+| `real-model-light-fix-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.664 | 部分重叠：只核对数字是否互相矛盾 |
+| `real-model-baseline-2026-11-16.md` | `real-model-light-fix-2026-11-16.md` | 0.646 | 部分重叠：只核对数字是否互相矛盾 |
+| `real-model-baseline-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.568 | 部分重叠：只核对数字是否互相矛盾 |
 
 **不要直接删**：这些文件记录的是「当时为什么那么判断」。保留边际信息量最高的一份作为当前结论，其余在首行加一行`> 已被 <新文件> 取代（<日期>）；本文保留为历史记录`。
 
@@ -67,34 +67,40 @@
 
 ## 4. 边际信息量排序：人写报告里谁值得先读
 
-`1 - 最近邻相似度`，只在 36 份人写报告内比较（< 120 token 的 0 份只查引用）。接近 1 表示这份讲的东西别处没有；接近 0 表示它是别人的复述。
+`1 - 最近邻相似度`，只在 37 份人写报告内比较（< 120 token 的 0 份只查引用）。接近 1 表示这份讲的东西别处没有；接近 0 表示它是别人的复述。
 
 | 报告 | 边际信息量 | 最近邻 | 相似度 |
 | --- | ---: | --- | ---: |
+| `thresholds.md` | 0.912 | `kb.md` | 0.088 |
 | `multi-turn-attribution.md` | 0.904 | `ROADMAP.md` | 0.096 |
-| `ingest.md` | 0.894 | `knowledge-contract.md` | 0.106 |
+| `ingest.md` | 0.893 | `knowledge-contract.md` | 0.107 |
 | `generality.md` | 0.880 | `ROADMAP.md` | 0.120 |
 | `repair-experiment.md` | 0.878 | `evaluation.md` | 0.122 |
-| `cost-latency-simulation.md` | 0.874 | `real-model-light-fix-2026-11-16.md` | 0.126 |
-| `intelligence-roadmap.md` | 0.874 | `architecture.md` | 0.126 |
+| `intelligence-roadmap.md` | 0.873 | `architecture.md` | 0.127 |
+| `cost-latency-simulation.md` | 0.873 | `real-model-light-fix-2026-11-16.md` | 0.127 |
 | `knowledge-contract.md` | 0.869 | `architecture.md` | 0.131 |
 | `city-coverage.md` | 0.868 | `evaluation.md` | 0.132 |
 | `rule-map.md` | 0.846 | `problem-and-metrics.md` | 0.154 |
-| `budget-vs-concurrency.md` | 0.846 | `real-model-baseline-2026-11-16.md` | 0.154 |
 
 末位（信息量最低）：
 
-- `ROADMAP.md` — 0.670，最近邻 `evaluation.md`（0.330）
-- `evaluation.md` — 0.670，最近邻 `ROADMAP.md`（0.330）
-- `real-model-baseline-2026-11-16.md` — 0.355，最近邻 `real-model-light-fix-2026-11-16.md`（0.645）
-- `real-model-light-fix-2026-11-16.md` — 0.337，最近邻 `real-model-smoke-2026-11-16.md`（0.663）
-- `real-model-smoke-2026-11-16.md` — 0.337，最近邻 `real-model-light-fix-2026-11-16.md`（0.663）
+- `ROADMAP.md` — 0.669，最近邻 `evaluation.md`（0.331）
+- `evaluation.md` — 0.669，最近邻 `ROADMAP.md`（0.331）
+- `real-model-baseline-2026-11-16.md` — 0.354，最近邻 `real-model-light-fix-2026-11-16.md`（0.646）
+- `real-model-light-fix-2026-11-16.md` — 0.336，最近邻 `real-model-smoke-2026-11-16.md`（0.664）
+- `real-model-smoke-2026-11-16.md` — 0.336，最近邻 `real-model-light-fix-2026-11-16.md`（0.664）
 
 ## 5. 失效引用：读者点开就是 404
 
 无。
 
 ## 6. 孤儿报告：没人链接，等于没人读
+
+**人写但没有入链（1 份，需要处理）**
+
+- `thresholds.md`
+
+处理方式二选一：在 `ROADMAP` 或相关报告里加入**可点击链接**（反引号里的路径不算，读者点不到）；或承认它不是给读者看的，移出 `docs/`。
 
 **脚本生成且无入链（6 份，属正常）**
 
@@ -119,4 +125,4 @@
 - **本文件自身不参与**审计，否则每次运行都会把自己报成 100% 重复。
 - **提交动作会改变语料**：语料取的是 git 索引，`git add` 一份新文档就会让统计数 +1。新增文档后要**先 add、再 `--write`**，否则本地算的是旧份数，CI 算的是新份数——这个陷阱已经踩过两次（一次是未跟踪的草稿被算进来，一次是刚 add 的新文档没重新生成）。
 
-_语料指纹：`2b62d5c49f180a4a`（内容变化时此值必变）_
+_语料指纹：`8ddc6da31881fc50`（内容变化时此值必变）_

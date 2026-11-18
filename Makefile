@@ -1,4 +1,4 @@
-.PHONY: help install test lint typecheck eval mutation mine report fuzz bench load httpload workerlab persistlab pipelinedoc scale examples gates kb citygap sweep sample showcase serve plan smoke clean
+.PHONY: help install test lint typecheck eval mutation mine report fuzz bench load httpload workerlab persistlab pipelinedoc scale examples gates kb citygap sweep sample thresholds showcase serve plan smoke clean
 
 PYTHON ?= python
 
@@ -27,6 +27,7 @@ help:
 	@echo "  citygap   三城补充回归（成都 / 北京 / 开封）"
 	@echo "  sweep     可行性判定的影响面（442 条 brief）"
 	@echo "  sample    重新生成 README 里的示例输出"
+	@echo "  thresholds 重新生成阈值来源表（哪个数是量出来的）"
 	@echo "  showcase  重新生成展示页数据块"
 	@echo "  plan      用离线 mock 生成一份示例方案"
 	@echo "  serve     启动 Web / API (需要 install)"
@@ -94,6 +95,7 @@ gates:
 	$(PYTHON) -m evals.persist_lab --check
 	$(PYTHON) scripts/build_pipeline_doc.py --check
 	$(PYTHON) scripts/build_rule_map.py --check
+	$(PYTHON) scripts/build_thresholds.py --check
 	$(PYTHON) -m evals.product_lab --check
 	$(PYTHON) -m evals.domain_portability --check
 	$(PYTHON) -m evals.multi_turn_lab --check
