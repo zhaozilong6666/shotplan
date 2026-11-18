@@ -23,8 +23,8 @@
 | 指标口径一致且不会被断供污染 | `/api/summary` `/api/stats` `/metrics` 三处统一；注入 error 后 pass 仍 1.0 |
 | 知识库不会悄悄过期 | `check_knowledge_freshness.py`，超 180 天 CI 红 |
 | 快照无法悄悄含凭据 | `check_snapshot_hygiene.py`，历史例外显式列出 |
-| 门禁数量与文档不会漂移 | `check_gate_count.py`，31 道 |
-| 质量与成本可见 | 31 道 `make gates` 全过、mypy/ruff 干净、全量测试通过 |
+| 门禁数量与文档不会漂移 | `check_gate_count.py` 让 README 的声明与 Makefile 同源 |
+| 质量与成本可见 | `make gates` 全过、mypy/ruff 干净、全量测试通过 |
 | 有可报警的线 | SLO 由 7 份快照推出，附 PromQL 与告警规则 |
 
 ## 上线前必须做（还没做）
@@ -54,7 +54,7 @@
 ## 最小部署检查清单
 
 ```bash
-# 1. 全量门禁（31 道；CI 另跑 mypy 与展示页一致性）
+# 1. 全量门禁（数量以 Makefile 为准；CI 另跑 mypy 与展示页一致性）
 make gates
 
 # 2. 真实 HTTP 冒烟（会启动/关闭本地 uvicorn）
