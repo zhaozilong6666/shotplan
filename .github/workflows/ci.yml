@@ -65,8 +65,16 @@ jobs:
       # The gate list lives in exactly one place: the Makefile. Keeping a
       # hand-copied list here is how CI drifted to 17 gates while the Makefile
       # ran 25 and README claimed 25 -- three numbers, none of them equal.
+      #
+      # The tee is not decoration: one run failed on an flaky gate and the only
+      # thing left to diagnose it with was "make gates exited 1". pipefail keeps
+      # the step red while the log survives into the artifact.
       - name: "All quality gates (single source of truth: Makefile)"
-        run: make gates
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p evals/out
+          make gates 2>&1 | tee evals/out/gates.log
 
       - name: No generated artifact is stale
         run: git diff --exit-code
@@ -84,4 +92,5 @@ jobs:
           name: eval-py3.12
           path: |
             evals/out/latest.json
+            evals/out/gates.log
             docs/eval-report.md
