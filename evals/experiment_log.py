@@ -343,6 +343,10 @@ def close_entry(args: argparse.Namespace, rows: list[dict[str, Any]]) -> int:
         return 2
     row["verdict"] = args.verdict
     row["evidence"] = args.evidence
+    if args.rules:
+        # Tagging at close time, not open time: an experiment often discovers
+        # which rule it was really about only after the numbers arrive.
+        row["rules"] = list(dict.fromkeys([*(row.get("rules") or []), *args.rules]))
     if args.end is not None:
         row["to"] = args.end
     if args.start is not None:
@@ -372,6 +376,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--from", dest="start", type=int, default=None)
     parser.add_argument("--to", dest="end", type=int, default=None)
     parser.add_argument("--evidence", default="")
+    parser.add_argument("--rules", action="append", default=[], help="rule codes this experiment probed")
     parser.add_argument("--cost", type=float, default=None)
     args = parser.parse_args(argv)
 

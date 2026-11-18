@@ -11,7 +11,7 @@
 | `TIME_OVERRUN` | hard | 64 | 0 | `test_validator.py::test_time_overrun_is_hard`, `test_pipeline.py::test_naive_pipeline_fails_in_the_expected_ways` | 超出拍摄时长意味着要临时加钱或砍环节 |
 | `MISSING_ACTIVITY` | hard | 0 | 0 | `test_validator.py::test_missing_activity_is_hard` | 汉服拍摄没有妆造就不成立 |
 | `MAKEUP_ORDER` | hard | 0 | 0 | `test_validator.py::test_makeup_order_is_hard` | 顺序错误是自由文本生成的高频错误 |
-| `TRANSFER_BUFFER` | hard | 198 | 0 | `test_validator.py::test_transfer_buffer_is_hard`, `test_pipeline.py::test_naive_pipeline_fails_in_the_expected_ways` | 西安景区之间转场 + 补妆实际需要 20 分钟以上 |
+| `TRANSFER_BUFFER` | hard | 198 | 0 | `test_validator.py::test_transfer_buffer_is_hard`, `test_experiment_log.py::test_close_can_tag_the_rule_the_experiment_probed` | 西安景区之间转场 + 补妆实际需要 20 分钟以上 |
 | `BUDGET_EXCEEDED` | hard | 69 | 0 | `test_validator.py::test_budget_exceeded_is_hard`, `test_validator.py::test_budget_uses_slot_cost_even_if_declared_total_is_low` | 预算是用户给的硬约束，不是建议 |
 | `UNKNOWN_LOCATION` | hard | 186 | 0 | `test_validator.py::test_unknown_location_is_hard`, `test_validator.py::test_empty_travel_location_is_allowed` | 用于检测模型编造不存在的地点 |
 | `MISSING_REQUIRED_LOCATION` | hard | 6 | 0 | `test_validator.py::test_missing_required_location_is_hard`, `test_validator.py::test_required_location_satisfied_by_a_shoot_block` | 用户明确要求的地点被忽略，方案即使自洽也不可交付 |

@@ -1,4 +1,4 @@
-.PHONY: help install test lint typecheck eval mutation mine report fuzz bench load httpload workerlab persistlab pipelinedoc scale examples gates kb citygap sweep sample thresholds showcase serve plan smoke clean
+.PHONY: help install test lint typecheck eval mutation mine report fuzz bench load httpload workerlab persistlab pipelinedoc scale examples gates kb citygap sweep transfer sample thresholds showcase serve plan smoke clean
 
 PYTHON ?= python
 
@@ -26,6 +26,7 @@ help:
 	@echo "  kb        重新生成知识库健康度 / 下一步队列 / 交接页"
 	@echo "  citygap   三城补充回归（成都 / 北京 / 开封）"
 	@echo "  sweep     可行性判定的影响面（442 条 brief）"
+	@echo "  transfer  20 分钟转场够不够（三角不等式上下界）"
 	@echo "  sample    重新生成 README 里的示例输出"
 	@echo "  thresholds 重新生成阈值来源表（哪个数是量出来的）"
 	@echo "  showcase  重新生成展示页数据块"
@@ -112,6 +113,7 @@ gates:
 	$(PYTHON) scripts/kb.py --check
 	$(PYTHON) -m evals.city_gap --check
 	$(PYTHON) -m evals.feasibility_sweep --check
+	$(PYTHON) -m evals.transfer_check --check
 	$(PYTHON) -m evals.annotation_kit --check
 	$(PYTHON) scripts/validate_knowledge.py --check
 	$(PYTHON) scripts/check_gate_count.py
@@ -129,6 +131,7 @@ citygap:
 sweep:
 	$(PYTHON) -m evals.feasibility_sweep --write
 	$(PYTHON) -m evals.feasibility_sweep --check
+	$(PYTHON) -m evals.transfer_check --check
 
 showcase:
 	$(PYTHON) -m evals.cost_latency --write-report
