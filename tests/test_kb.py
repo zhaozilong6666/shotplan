@@ -79,6 +79,47 @@ def test_an_experiment_naming_a_document_counts_as_evidence():
     assert kb.evidence_grade(enriched[0], verdicts) == "empirical"
 
 
+def test_a_missing_path_is_reported():
+    """The gate is only worth its runtime if it actually fails on each shape."""
+    facts = [kb.Facts(path="docs/a.md", kind="guide", paths=("docs/not-here.md",))]
+    issues = kb.cite_issues(facts, set(), set())
+    assert [issue.token for issue in issues] == ["docs/not-here.md"]
+    assert issues[0].kind == "path"
+
+
+def test_a_missing_function_is_reported():
+    facts = [kb.Facts(path="docs/a.md", kind="guide", calls=("deleted_helper",))]
+    issues = kb.cite_issues(facts, {"live_helper"}, set())
+    assert [issue.token for issue in issues] == ["deleted_helper()"]
+    assert issues[0].kind == "call"
+
+
+def test_an_experiment_id_outside_the_ledger_is_reported():
+    facts = [kb.Facts(path="docs/a.md", kind="guide", experiments=("E99",))]
+    issues = kb.cite_issues(facts, set(), {"E01"})
+    assert [issue.token for issue in issues] == ["E99"]
+    assert issues[0].kind == "experiment"
+
+
+def test_a_resolvable_reference_produces_no_issue():
+    facts = [
+        kb.Facts(
+            path="docs/a.md",
+            kind="guide",
+            paths=("docs/kb.md",),
+            calls=("cite_issues",),
+            experiments=("E01",),
+        )
+    ]
+    assert kb.cite_issues(facts, {"cite_issues"}, {"E01"}) == []
+
+
+def test_a_rule_with_no_explaining_document_is_visible():
+    """Regression for the metric that read 0/16 because a generated page counted."""
+    mentions = kb.rule_mentions({"docs/a.md": "这里只有 `OTHER_RULE`。"}, ["TIME_OVERLAP"])
+    assert mentions == {"TIME_OVERLAP": []}
+
+
 def test_why_on_a_rule_reports_the_experiments_that_probed_it(capsys):
     """Documented, tested, measured -- three different claims about one rule."""
     assert kb.main(["--why", "SHOOT_TOO_SHORT"]) == 0
