@@ -1,4 +1,4 @@
-.PHONY: help install test lint typecheck eval mutation mine report fuzz bench load httpload workerlab persistlab pipelinedoc scale examples gates kb citygap sweep transfer sample thresholds showcase serve plan smoke clean
+.PHONY: help install test lint typecheck eval mutation mine report fuzz bench load httpload workerlab persistlab pipelinedoc scale examples gates kb citygap sweep transfer sample thresholds analysis showcase serve plan smoke clean
 
 PYTHON ?= python
 
@@ -29,6 +29,7 @@ help:
 	@echo "  transfer  20 分钟转场够不够（三角不等式上下界）"
 	@echo "  sample    重新生成 README 里的示例输出"
 	@echo "  thresholds 重新生成阈值来源表（哪个数是量出来的）"
+	@echo "  analysis  重新生成四份分析（转场模型、按城市、敏感性、余量）"
 	@echo "  showcase  重新生成展示页数据块"
 	@echo "  plan      用离线 mock 生成一份示例方案"
 	@echo "  serve     启动 Web / API (需要 install)"
@@ -132,6 +133,24 @@ sweep:
 	$(PYTHON) -m evals.feasibility_sweep --write
 	$(PYTHON) -m evals.feasibility_sweep --check
 	$(PYTHON) -m evals.transfer_check --check
+
+transfer:
+	$(PYTHON) -m evals.transfer_check --write
+
+thresholds:
+	$(PYTHON) scripts/build_thresholds.py --write
+
+sample:
+	$(PYTHON) scripts/render_readme_sample.py --write
+
+# The four analysis pages take about a minute together and change only when the
+# rules, the knowledge base or the eval set change. They are not gates: an always-on
+# diagnostic is just a slower gate, and these answer questions rather than block work.
+analysis:
+	$(PYTHON) -m evals.transfer_model --write
+	$(PYTHON) -m evals.transfer_by_city --write
+	$(PYTHON) -m evals.sensitivity --write
+	$(PYTHON) -m evals.eval_margin --write
 
 showcase:
 	$(PYTHON) -m evals.cost_latency --write-report
