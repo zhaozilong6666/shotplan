@@ -127,3 +127,98 @@ def test_the_page_matches_the_ledger():
 def test_rendering_twice_gives_the_same_text():
     rows = el.load(el.DEFAULT_LEDGER)
     assert el.render(rows) == el.render(rows)
+
+
+def _ledger(tmp_path: Path, *rows: dict) -> Path:
+    path = tmp_path / "ledger.jsonl"
+    path.write_text(
+        "\n".join(json.dumps(row, ensure_ascii=False) for row in rows) + "\n",
+        encoding="utf-8",
+    )
+    return path
+
+
+def _base_row(**overrides) -> dict:
+    row = {
+        "id": "E07",
+        "date": "2026-11-17",
+        "area": "docs",
+        "question": "q",
+        "expect": "e",
+        "verdict": "confirmed",
+        "evidence": None,
+    }
+    row.update(overrides)
+    return row
+
+
+def _args(ledger: Path, report: Path, *extra: str) -> list[str]:
+    return ["--ledger", str(ledger), "--report-path", str(report), *extra]
+
+
+def test_open_assigns_the_next_id_and_refreshes_the_page(tmp_path: Path):
+    """Recording is a command, not an edit: the id, the date and the page follow."""
+    ledger = _ledger(tmp_path, _base_row())
+    report = tmp_path / "experiments.md"
+    code = el.main(
+        _args(
+            ledger, report,
+            "--open", "--area", "rules", "--question", "新规则会不会误伤",
+            "--expect", "误伤 0 条", "--metric", "被拒绝的条数", "--date", "2026-11-18",
+        )
+    )
+    assert code == 0
+    rows = el.load(ledger)
+    assert rows[-1]["id"] == "E08"
+    assert rows[-1]["verdict"] == "open"
+    assert rows[-1]["date"] == "2026-11-18"
+    assert report.exists(), "the page must be refreshed by the same command"
+
+
+def test_open_refuses_a_prediction_with_two_metrics(tmp_path: Path):
+    """E08 stayed open for three days because its prediction said 「或」."""
+    ledger = _ledger(tmp_path, _base_row())
+    code = el.main(
+        _args(
+            ledger, tmp_path / "r.md",
+            "--open", "--area", "data", "--question", "q",
+            "--expect", "通过率或覆盖度提升", "--metric", "m",
+        )
+    )
+    assert code == 2
+    assert len(el.load(ledger)) == 1
+
+
+def test_open_refuses_a_missing_metric(tmp_path: Path):
+    ledger = _ledger(tmp_path, _base_row())
+    code = el.main(
+        _args(ledger, tmp_path / "r.md", "--open", "--area", "data",
+              "--question", "q", "--expect", "e")
+    )
+    assert code == 2
+    assert len(el.load(ledger)) == 1
+
+
+def test_close_needs_an_evidence_file_that_exists(tmp_path: Path):
+    ledger = _ledger(tmp_path, _base_row(id="E09", verdict="open"))
+    report = tmp_path / "r.md"
+    assert el.main(_args(ledger, report, "--close", "E09", "--verdict", "confirmed",
+                         "--to", "0", "--evidence", "docs/nowhere.md")) == 2
+    assert el.load(ledger)[0]["verdict"] == "open"
+
+    evidence = tmp_path / "evidence.md"
+    evidence.write_text("measured", encoding="utf-8")
+    assert el.main(_args(ledger, report, "--close", "E09", "--verdict", "confirmed",
+                         "--to", "0", "--evidence", str(evidence))) == 0
+    row = el.load(ledger)[0]
+    assert row["verdict"] == "confirmed"
+    assert row["to"] == 0
+
+
+def test_close_refuses_to_rejudge_a_decided_entry(tmp_path: Path):
+    """Flipping a refuted result has to be a visible hand edit, not a flag."""
+    ledger = _ledger(tmp_path, _base_row(id="E10", verdict="refuted"))
+    code = el.main(_args(ledger, tmp_path / "r.md", "--close", "E10",
+                         "--verdict", "confirmed", "--evidence", "docs/a.md"))
+    assert code == 2
+    assert el.load(ledger)[0]["verdict"] == "refuted"

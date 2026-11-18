@@ -1,4 +1,4 @@
-.PHONY: help install test lint typecheck eval mutation mine report fuzz bench load httpload workerlab persistlab pipelinedoc scale examples gates kb citygap showcase serve plan smoke clean
+.PHONY: help install test lint typecheck eval mutation mine report fuzz bench load httpload workerlab persistlab pipelinedoc scale examples gates kb citygap sweep showcase serve plan smoke clean
 
 PYTHON ?= python
 
@@ -25,6 +25,7 @@ help:
 	@echo "  gates     本地跑一遍 CI 的全部质量门禁"
 	@echo "  kb        重新生成知识库健康度 / 下一步队列 / 交接页"
 	@echo "  citygap   三城补充回归（成都 / 北京 / 开封）"
+	@echo "  sweep     可行性判定的影响面（442 条 brief）"
 	@echo "  showcase  重新生成展示页数据块"
 	@echo "  plan      用离线 mock 生成一份示例方案"
 	@echo "  serve     启动 Web / API (需要 install)"
@@ -106,6 +107,7 @@ gates:
 	$(PYTHON) scripts/audit_reports.py --check
 	$(PYTHON) scripts/kb.py --check
 	$(PYTHON) -m evals.city_gap --check
+	$(PYTHON) -m evals.feasibility_sweep --check
 	$(PYTHON) -m evals.annotation_kit --check
 	$(PYTHON) scripts/validate_knowledge.py --check
 	$(PYTHON) scripts/check_gate_count.py
@@ -119,6 +121,10 @@ kb:
 citygap:
 	$(PYTHON) -m evals.city_gap --write
 	$(PYTHON) -m evals.city_gap --check
+
+sweep:
+	$(PYTHON) -m evals.feasibility_sweep --write
+	$(PYTHON) -m evals.feasibility_sweep --check
 
 showcase:
 	$(PYTHON) -m evals.cost_latency --write-report

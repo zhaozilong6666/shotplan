@@ -17,6 +17,7 @@ data.
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import json
 import sys
 from pathlib import Path
@@ -263,12 +264,115 @@ def render(rows: list[dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
+def next_id(rows: list[dict[str, Any]]) -> str:
+    """Next free E-number, zero-padded so the ledger sorts the way it reads."""
+    used = [int(row["id"][1:]) for row in rows if row["id"][:1] == "E" and row["id"][1:].isdigit()]
+    return f"E{max(used, default=0) + 1:02d}"
+
+
+def save(path: Path, rows: list[dict[str, Any]]) -> None:
+    path.write_text(
+        "\n".join(json.dumps(row, ensure_ascii=False) for row in rows) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+
+def open_entry(args: argparse.Namespace, rows: list[dict[str, Any]]) -> int:
+    """Record the prediction before the measurement exists.
+
+    The two refusals come from E08, which sat open for three days: an expectation
+    containing 「或」 names two possible metrics, and a metric of `None` means
+    nobody can say afterwards whether it was met. Both are rejected at the moment
+    of writing, because a warning raised here is worth more than a report nobody
+    opens at the right moment.
+    """
+    if "或" in args.expect:
+        print("预测里含「或」：两个可能指标等于没有指标，只留一个", file=sys.stderr)
+        return 2
+    if not args.metric:
+        print("必须给 --metric：没有指标，跑完也不知道该填什么", file=sys.stderr)
+        return 2
+    if args.area not in AREA_NAMES:
+        print(f"未知方向 {args.area!r}，可选：{', '.join(AREA_NAMES)}", file=sys.stderr)
+        return 2
+    row = {
+        "id": next_id(rows),
+        "date": args.date or dt.date.today().isoformat(),
+        "area": args.area,
+        "question": args.question,
+        "change": args.change,
+        "expect": args.expect,
+        "metric": args.metric,
+        "from": args.start,
+        "to": None,
+        "verdict": "open",
+        "evidence": None,
+        "cost_cny": float(args.cost or 0),
+    }
+    rows.append(row)
+    save(args.ledger, rows)
+    print(
+        f"{row['id']} 已登记为待结。跑完后："
+        f"python -m evals.experiment_log --close {row['id']} "
+        "--verdict <confirmed|refuted|partial> --to <实测值> --evidence <文件>"
+    )
+    return 0
+
+
+def close_entry(args: argparse.Namespace, rows: list[dict[str, Any]]) -> int:
+    """Fill in the measurement and the verdict, once, with the evidence on disk."""
+    match = [row for row in rows if row["id"] == args.close]
+    if not match:
+        print(f"台账里没有 {args.close}", file=sys.stderr)
+        return 2
+    row = match[0]
+    if row["verdict"] != "open":
+        # Re-judging is allowed, but it has to be a visible edit: silently
+        # flipping a refuted result is how a ledger becomes a press release.
+        print(f"{args.close} 已经是 {row['verdict']}；改判请手工编辑并写明原因", file=sys.stderr)
+        return 2
+    if args.verdict not in ("confirmed", "refuted", "partial"):
+        print("--verdict 只能是 confirmed / refuted / partial", file=sys.stderr)
+        return 2
+    if not args.evidence:
+        print("必须给 --evidence：点不动的结论不写进台账", file=sys.stderr)
+        return 2
+    if not (ROOT / args.evidence).exists():
+        print(f"证据文件不存在：{args.evidence}", file=sys.stderr)
+        return 2
+    row["verdict"] = args.verdict
+    row["evidence"] = args.evidence
+    if args.end is not None:
+        row["to"] = args.end
+    if args.start is not None:
+        row["from"] = args.start
+    if args.cost is not None:
+        row["cost_cny"] = float(args.cost)
+    save(args.ledger, rows)
+    print(f"{args.close} → {args.verdict}（证据：{args.evidence}）")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="实验台账：预测 → 实测 → 判定")
     parser.add_argument("--ledger", type=Path, default=DEFAULT_LEDGER)
     parser.add_argument("--report-path", type=Path, default=DEFAULT_REPORT)
     parser.add_argument("--write", action="store_true")
     parser.add_argument("--check", action="store_true")
+    parser.add_argument("--open", action="store_true", help="登记一条待结实验（在动手之前）")
+    parser.add_argument("--close", metavar="EID", default="", help="结案：填实测与判定")
+    parser.add_argument("--area", default="")
+    parser.add_argument("--question", default="")
+    parser.add_argument("--expect", default="")
+    parser.add_argument("--metric", default="")
+    parser.add_argument("--change", default="")
+    parser.add_argument("--date", default="", help="覆盖日期（测试用）")
+    parser.add_argument("--verdict", default="")
+    parser.add_argument("--from", dest="start", type=int, default=None)
+    parser.add_argument("--to", dest="end", type=int, default=None)
+    parser.add_argument("--evidence", default="")
+    parser.add_argument("--cost", type=float, default=None)
     args = parser.parse_args(argv)
 
     try:
@@ -276,6 +380,15 @@ def main(argv: list[str] | None = None) -> int:
     except ValueError as exc:
         print(exc, file=sys.stderr)
         return 2
+
+    if args.open or args.close:
+        code = open_entry(args, rows) if args.open else close_entry(args, rows)
+        if code == 0:
+            # Recording and refreshing are one action; a ledger that needs a
+            # second command to stay consistent is a ledger that drifts.
+            args.report_path.write_text(render(load(args.ledger)), encoding="utf-8", newline="\n")
+            print(f"已刷新 {args.report_path}", file=sys.stderr)
+        return code
 
     body = render(rows)
 
