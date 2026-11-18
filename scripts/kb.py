@@ -226,23 +226,124 @@ def all_docs() -> list[Path]:
 
     The three pages this script writes are excluded: scanning last run's output
     would let a stale copy of a problem become evidence that the problem still
-    exists. They are checked for freshness separately, and the link test still
-    covers them.
+    exists. `docs/portfolio/` is excluded for the same reason it is excluded from
+    the report audit -- job-application material is not a project record, and
+    counting it here made the two reports disagree about how large the corpus is.
     """
     own = {HEALTH.name, NEXT.name, HANDOFF.name}
     found = [*ROOT.glob("*.md"), *DOCS.rglob("*.md")]
-    return sorted(path for path in found if path.name not in own)
+    return sorted(
+        path for path in found if path.name not in own and "portfolio" not in path.parts
+    )
+
+
+def symbol_index() -> dict[str, str]:
+    """Which file defines each symbol -- the other half of a citation.
+
+    `defined_names` answers "does this name exist anywhere", which is enough to
+    catch a citation of deleted code. Answering "what breaks if I change this
+    file" needs the edge in the other direction, so the same scan keeps it.
+    """
+    index: dict[str, str] = {}
+    for base in (SRC, ROOT / "evals", ROOT / "scripts"):
+        for path in base.rglob("*.py"):
+            text = path.read_text(encoding="utf-8")
+            found = re.findall(r"^\s*(?:def|class)\s+([A-Za-z_][A-Za-z0-9_]*)", text, re.M)
+            found += re.findall(r"^([A-Z][A-Z0-9_]{2,})\s*[:=]", text, re.M)
+            for name in found:
+                index.setdefault(name, rel(path))
+    return index
 
 
 def defined_names() -> set[str]:
     """Every function, class and module-level constant defined in this repo."""
-    names: set[str] = set()
-    for base in (SRC, ROOT / "evals", ROOT / "scripts"):
-        for path in base.rglob("*.py"):
-            text = path.read_text(encoding="utf-8")
-            names.update(re.findall(r"^\s*(?:def|class)\s+([A-Za-z_][A-Za-z0-9_]*)", text, re.M))
-            names.update(re.findall(r"^([A-Z][A-Z0-9_]{2,})\s*[:=]", text, re.M))
-    return names
+    return set(symbol_index())
+
+
+def explain(
+    target: str,
+    facts: list[Facts],
+    decisions: list[dict[str, Any]],
+    ledger: list[dict[str, Any]],
+    symbols: dict[str, str],
+    texts: dict[str, str],
+) -> str:
+    """What points at this file, and what has to be reconsidered if it changes.
+
+    The rest of this script answers "is this document still true". This answers
+    the question that comes first in practice: I am about to edit a file, which
+    records does that touch? --file is the reverse edge of every citation the
+    gate checks.
+    """
+    wanted = target.replace("\\", "/").removeprefix("./")
+    basename = wanted.rsplit("/", 1)[-1]
+
+    direct = [doc for doc in facts if wanted in doc.paths]
+    # Paths in prose are anchored to a repo directory, so `constraints.py` on its
+    # own is not a citation the gate checks. It is still a mention, and someone
+    # asking "what depends on this" wants to see it -- labelled differently.
+    mentioned = [
+        doc
+        for doc in facts
+        if doc not in direct
+        and basename
+        in {token.strip().rsplit("/", 1)[-1] for token in INLINE.findall(texts.get(doc.path, ""))}
+    ]
+    indirect = [
+        doc
+        for doc in facts
+        if doc not in direct
+        and doc not in mentioned
+        and any(symbols.get(call) == wanted for call in doc.calls)
+    ]
+    touching = direct + mentioned + indirect
+
+    lines = [f"{wanted}", ""]
+    if not touching:
+        lines += ["没有文档引用这个路径，也没有文档引用它定义的符号。", ""]
+        return "\n".join(lines)
+
+    if direct:
+        lines += [f"直接引用（{len(direct)} 份）"]
+        lines += [f"  {doc.path}" for doc in direct]
+        lines.append("")
+    if mentioned:
+        lines += [f"提到文件名（{len(mentioned)} 份，不是路径引用）"]
+        lines += [f"  {doc.path}" for doc in mentioned]
+        lines.append("")
+    if indirect:
+        lines += [f"通过符号引用（{len(indirect)} 份）"]
+        for doc in indirect:
+            hit = sorted({call for call in doc.calls if symbols.get(call) == wanted})
+            lines.append(f"  {doc.path}（{', '.join(hit)}）")
+        lines.append("")
+
+    paths = {doc.path for doc in touching}
+    related_decisions = [row for row in decisions if str(row.get("adr")) in paths]
+    if related_decisions:
+        lines += [f"相关决策（{len(related_decisions)} 条）"]
+        for row in related_decisions:
+            support = ", ".join(row.get("evidence") or []) or "无实验依据"
+            lines.append(f"  {row['id']} {row['decision']}（依据 {support}）")
+        lines.append("")
+
+    cited_docs = {str(row.get("evidence")) for row in ledger if row.get("evidence")}
+    related_experiments = [row for row in ledger if str(row.get("evidence")) in paths]
+    if related_experiments:
+        lines += [f"相关实验（{len(related_experiments)} 条）"]
+        for row in related_experiments:
+            lines.append(f"  {row['id']} {row['question']}（{row['verdict']}）")
+        lines.append("")
+
+    lines += [
+        "改它之前：",
+        "  - 引用不会失效（路径与符号仍在），但描述可能过期；`--queue` 按漂移排序",
+        "  - 改了签名或行为，`make gates` 负责红；改了结论，上面那几条实验要重读",
+    ]
+    if cited_docs & paths:
+        lines.append("  - 它（或引用它的文档）是实验证据：改了数字，证据文档要跟着更新")
+    lines.append("")
+    return "\n".join(lines)
 
 
 def load_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -906,6 +1007,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--write", action="store_true", help="regenerate the three pages")
     parser.add_argument("--check", action="store_true", help="verify citations, decisions and page freshness")
     parser.add_argument("--queue", action="store_true", help="print the local drift ranking (needs full git history)")
+    parser.add_argument("--why", metavar="PATH", default="", help="who depends on this file, and what to reconsider")
     parser.add_argument("--decide", action="store_true", help="append a decision with its revisit trigger")
     parser.add_argument("--adr", default="", help="the ADR this decision indexes")
     parser.add_argument("--decision", default="", help="the choice, in one sentence")
@@ -933,8 +1035,13 @@ def main(argv: list[str] | None = None) -> int:
     facts = enrich(facts, decisions, ledger)
     verdicts = {str(row["id"]): str(row["verdict"]) for row in ledger}
     experiment_ids = set(verdicts)
-    names = defined_names()
+    symbols = symbol_index()
+    names = set(symbols)
     adrs = {rel(path) for path in (DOCS / "adr").glob("*.md")}
+
+    if args.why:
+        print(explain(args.why, facts, decisions, ledger, symbols, texts))
+        return 0
 
     if args.decide:
         code, new_id = append_decision(args, decisions, adrs, experiment_ids)

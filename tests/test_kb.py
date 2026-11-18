@@ -79,6 +79,25 @@ def test_an_experiment_naming_a_document_counts_as_evidence():
     assert kb.evidence_grade(enriched[0], verdicts) == "empirical"
 
 
+def test_why_names_the_records_that_depend_on_a_file(capsys):
+    """The reverse edge: editing a file should surface the ADRs it supports.
+
+    ADR 0014 cites `constraints.py` by bare filename, which the gate deliberately
+    does not treat as a path. The query still has to find it, under a different
+    label, or the answer to "what does this change affect" is wrong.
+    """
+    assert kb.main(["--why", "src/shotplan/domain/constraints.py"]) == 0
+    out = capsys.readouterr().out
+    assert "docs/adr/0014-request-constraints-are-hard-rules.md" in out
+    assert "D06" in out
+    assert "提到文件名" in out
+
+
+def test_why_says_so_when_nothing_points_at_the_file(capsys):
+    assert kb.main(["--why", "src/shotplan/no_such_module.py"]) == 0
+    assert "没有文档引用这个路径" in capsys.readouterr().out
+
+
 def test_a_decision_can_be_added_by_command(tmp_path):
     """Writing a decision is a write, not an edit: id, date and refusals included."""
     path = tmp_path / "decisions.jsonl"
