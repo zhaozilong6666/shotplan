@@ -434,10 +434,11 @@ def render() -> str:
         if not guards.get(row["name"]) and not mutants.get(row["name"])
     ]
     lines += [
-        "## 没有专门护栏的常量",
+        "## 没有探针或变异的常量",
         "",
         "这些数改了之后，没有任何一组探针或变异会专门变红。它们不是不能改，"
-        "而是改完只能看全量评测——先开一条实验、写下预测，再动。",
+        "而是改完只能看全量评测——先开一条实验、写下预测，再动。注意：这不等于"
+        "「没有测试」，只是本表的探针/变异两列都不覆盖它。",
         "",
     ]
     if uncovered:
@@ -456,6 +457,9 @@ def render() -> str:
         "它能解析的那部分声明。",
         "- **运行时才绑定的名字**：`patch.object(module, \"NAME\", ...)` 这类字符串引用"
         "不算 import，只有出现在 `tests/` 或 `evals/` 的补丁里时才会被本表看到。",
+        "- **单元测试里的边界断言**：对 `min_budget_cny` 这类派生值的断言会挡住改动，但它"
+        "既不是探针也不是变异，不会出现在上表的两列里。`变异` 列只表示 mutation_lab 的 "
+        "80 条评测语料看不看得见这个常量。",
         "",
         f"统计：{len(rows)} 个标量常量，{len([r for r in rows if guards.get(r['name'])])} 个有探针，"
         f"{len([r for r in rows if mutants.get(r['name'])])} 个有变异，{len(uncovered)} 个两者都没有。",
