@@ -20,11 +20,11 @@
 | `BUDGET_TOLERANCE_CNY` | 0 | 设计选择 | 1 src | `—` | budget | validator/budget-tolerance |
 | `MAX_OVERRUN_MINUTES` | 15 | 设计选择 | 1 src | `hard:TIME_OVERRUN` | time | validator/no-time-limit |
 | `MIN_ALTERNATIVES` | 1 | 设计选择 | 1 src | `soft:NO_ALTERNATIVE` | — | — |
-| `MIN_FEASIBLE_HOURS` | 1.5 | 设计选择 | 1 src | `gate:feasibility` | — | feasibility/no-min-hours |
+| `MIN_FEASIBLE_HOURS` | 1.5 | 设计选择 | 1 src | `gate:feasibility` | hours-floor | feasibility/no-min-hours |
 | `MIN_SHOOT_BLOCK_FLOOR` | 30 | 实测 | 0 | `soft:SHOOT_TOO_SHORT` | — | — |
 | `MIN_SHOOT_BLOCK_MINUTES` | 60 | 设计选择 | 2 src | `soft:SHOOT_TOO_SHORT` | — | — |
 | `MIN_SOURCE_REFS` | 2 | 设计选择 | 1 src | `soft:NO_SOURCE_REF` | — | — |
-| `MIN_TRANSFER_COST_CNY` | 50 | 设计选择 | 3 src | `—` | — | — |
+| `MIN_TRANSFER_COST_CNY` | 50 | 设计选择 | 3 src | `—` | budget-floor | — |
 | `MIN_TRANSFER_MINUTES` | 20 | 设计选择 | 5 src / 2 tests | `hard:TRANSFER_BUFFER` | transfer | planner/no-transfer、validator/no-transfer-rule |
 | `STYLING_FLOOR_MINUTES` | 60 | 设计选择 | 1 src | `indirect` | — | — |
 | `STYLING_SHARE` | 0.35 | 实测 | 0 | `indirect` | — | — |
@@ -71,9 +71,9 @@
 - 按名绑定（1 个模块 / 4 处使用）：`src/shotplan/domain/feasibility.py`（L97, L103, L104, L192）
 - 同文件内使用：L259
 - 规则：`gate:feasibility`
-- 探针：无
+- 探针：`hours-floor`（3 条 brief）
 - 变异：`feasibility/no-min-hours`
-- 漏改会怎样：`mutation_lab` 会对这个常量做单侧变异，护栏失效时报告会红。
+- 漏改会怎样：只改一侧（比如只收紧校验端）时，`probe_lab` 的 one-sided 组会掉通过率——这正是「漏改一处」的典型症状。
 
 ### `MIN_SHOOT_BLOCK_FLOOR = 30`
 
@@ -115,9 +115,9 @@
 - 按名绑定（3 个模块 / 5 处使用）：`src/shotplan/agents/mock.py`（L33）；`src/shotplan/domain/feasibility.py`（L73, L195）；`src/shotplan/knowledge/tools.py`（L125, L135）
 - 同文件内使用：L260
 - 规则：`—`
-- 探针：无
+- 探针：`budget-floor`（4 条 brief）
 - 变异：无
-- 漏改会怎样：没有专门的探针或变异；改动只能靠全量评测与测试兜底。
+- 漏改会怎样：只改一侧（比如只收紧校验端）时，`probe_lab` 的 one-sided 组会掉通过率——这正是「漏改一处」的典型症状。
 
 ### `MIN_TRANSFER_MINUTES = 20`
 
@@ -159,7 +159,6 @@
 - `MIN_SHOOT_BLOCK_FLOOR`
 - `MIN_SHOOT_BLOCK_MINUTES`
 - `MIN_SOURCE_REFS`
-- `MIN_TRANSFER_COST_CNY`
 - `STYLING_FLOOR_MINUTES`
 - `STYLING_SHARE`
 
@@ -170,4 +169,4 @@
 - **运行时才绑定的名字**：`patch.object(module, "NAME", ...)` 这类字符串引用不算 import，只有出现在 `tests/` 或 `evals/` 的补丁里时才会被本表看到。
 - **单元测试里的边界断言**：对 `min_budget_cny` 这类派生值的断言会挡住改动，但它既不是探针也不是变异，不会出现在上表的两列里。`变异` 列只表示 mutation_lab 的 80 条评测语料看不看得见这个常量。
 
-统计：11 个标量常量，3 个有探针，4 个有变异，7 个两者都没有。
+统计：11 个标量常量，5 个有探针，4 个有变异，6 个两者都没有。

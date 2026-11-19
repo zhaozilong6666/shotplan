@@ -1,0 +1,4 @@
+{"id": "BF01", "description": "预算 349 元，比最低可执行成本少 1 元", "request": {"city": "xian", "date": "2026-10-04", "hours": 4.5, "budget_cny": 349, "styles": ["tang"], "preferences": []}, "expect_feasible": false}
+{"id": "BF02", "description": "预算 350 元，刚好等于最低可执行成本", "request": {"city": "xian", "date": "2026-10-04", "hours": 4.5, "budget_cny": 350, "styles": ["tang"], "preferences": []}, "expect_feasible": true}
+{"id": "BF03", "description": "预算 351 元，比最低线多 1 元", "request": {"city": "xian", "date": "2026-10-04", "hours": 4.5, "budget_cny": 351, "styles": ["tang"], "preferences": []}, "expect_feasible": true}
+{"id": "BF04", "description": "预算 450 元，明显高于最低线", "request": {"city": "xian", "date": "2026-10-04", "hours": 4.5, "budget_cny": 450, "styles": ["tang"], "preferences": []}, "expect_feasible": true}

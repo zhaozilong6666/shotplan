@@ -30,6 +30,8 @@ def test_probe_guards_cover_patched_and_forged_groups():
     guards = bc.probe_guards(bc.rule_codes(), roles)
     assert "transfer" in guards["MIN_TRANSFER_MINUTES"]
     assert "budget" in guards["BUDGET_TOLERANCE_CNY"]
+    assert "budget-floor" in guards["MIN_TRANSFER_COST_CNY"]
+    assert "hours-floor" in guards["MIN_FEASIBLE_HOURS"]
     # run_time_group does not patch a constant; it forges an overrun. The mapping
     # has to go through the rule code, or this constant would look unguarded.
     assert "time" in guards["MAX_OVERRUN_MINUTES"]

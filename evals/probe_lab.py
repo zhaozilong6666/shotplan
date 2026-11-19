@@ -45,7 +45,10 @@ from shotplan.agents import validator as validator_module  # noqa: E402
 from shotplan.agents.mock import MockProvider  # noqa: E402
 from shotplan.agents.validator import validate  # noqa: E402
 from shotplan.config import get_settings  # noqa: E402
+from shotplan.domain import feasibility as feasibility_module  # noqa: E402
+from shotplan.domain.feasibility import check_feasibility  # noqa: E402
 from shotplan.domain.models import PlanRequest, fmt_minutes, to_minutes  # noqa: E402
+from shotplan.knowledge.tools import KnowledgeTools  # noqa: E402
 from shotplan.pipeline import run_plan  # noqa: E402
 
 REPORT = ROOT / "docs" / "probe-set.md"
@@ -59,6 +62,7 @@ class Group:
     tightened: float
     modules: tuple[Any, ...]
     note: str
+    kind: str = "plan"
 
 
 GROUPS = (
@@ -72,7 +76,22 @@ GROUPS = (
         (validator_module,),
         "预算容差收紧到 −50 元，方案成本刚好等于预算",
     ),
+    Group(
+        "budget-floor", "MIN_TRANSFER_COST_CNY", 0,
+        (feasibility_module,),
+        "最低转场成本改成 0 元：预算低于最低线的 brief 会被误判为可行",
+        kind="feasibility",
+    ),
+    Group(
+        "hours-floor", "MIN_FEASIBLE_HOURS", 0,
+        (feasibility_module,),
+        "1.5 小时下限改成 0：排不下的短预约会被误判为可行",
+        kind="feasibility",
+    ),
 )
+
+PLAN_GROUPS = tuple(group for group in GROUPS if group.kind == "plan")
+FEASIBILITY_GROUPS = tuple(group for group in GROUPS if group.kind == "feasibility")
 SCENARIOS = ("baseline", "one-sided", "both-sides")
 
 
@@ -143,6 +162,38 @@ def run_group(group: Group) -> dict[str, list[dict[str, Any]]]:
     return results
 
 
+def run_feasibility_group(group: Group) -> dict[str, list[dict[str, Any]]]:
+    """A gate constant: the probe asserts the accept/reject decision, not a score.
+
+    These groups exist because a gate can fail in the dangerous direction without
+    changing any plan: lower the floor, and an impossible brief silently becomes
+    "feasible". No plan is generated, so `run_group`'s hard-pass model cannot see it.
+    """
+    tools = KnowledgeTools()
+    briefs = read_group(group.key)
+    results: dict[str, list[dict[str, Any]]] = {}
+    for scenario in SCENARIOS:
+        rows = []
+        with ExitStack() as stack:
+            if scenario != "baseline":
+                targets = group.modules[:1] if scenario == "one-sided" else group.modules
+                for module in targets:
+                    stack.enter_context(patch.object(module, group.constant, group.tightened))
+            for case in briefs:
+                report = check_feasibility(PlanRequest(**case["request"]), tools)
+                rows.append(
+                    {
+                        "id": case["id"],
+                        "pass": report.feasible == case["expect_feasible"],
+                        "feasible": report.feasible,
+                        "expect_feasible": case["expect_feasible"],
+                        "codes": sorted({reason.code for reason in report.reasons}),
+                    }
+                )
+        results[scenario] = rows
+    return results
+
+
 def render(all_results: dict[str, dict[str, list[dict[str, Any]]]]) -> str:
     lines = [
         "> 由 `python -m evals.probe_lab --write` 生成，请勿手工编辑。",
@@ -150,13 +201,15 @@ def render(all_results: dict[str, dict[str, list[dict[str, Any]]]]) -> str:
         "# 边界探针：单边改动必须被检出",
         "",
         "主集看不见多数常量的 ±50% 变化（E19），E20 解释了原因：方案总是排满，"
-        "而最小调整单位是一个地点。这两组探针反过来构造——每条 brief 都卡在**某一条规则**的边缘。",
+        "而最小调整单位是一个地点。这些探针反过来构造——每条 brief 都卡在**某一条规则或某一道闸门**的边缘。",
         "",
-        "每个场景跑同一批 brief：`baseline` 什么都不改；`one-sided` 只在校验端收紧规则，"
-        "生成端不变；`both-sides` 在所有绑定该常量的模块里同步收紧。",
+        "`transfer` / `budget` 跑完整流水线：`baseline` 什么都不改，`one-sided` 只收紧校验端，"
+        "`both-sides` 在所有绑定该常量的模块里同步收紧。`budget-floor` / `hours-floor` 不生成方案，"
+        "只调用可行性判定——把闸门常量改成 0，原本该拒绝的 brief 会被误判为可行。`time` 伪造一份"
+        "超时方案，单独交给校验器。",
         "",
     ]
-    for group in GROUPS:
+    for group in PLAN_GROUPS:
         results = all_results[group.key]
         total = len(results["baseline"])
         lines += [
@@ -195,6 +248,35 @@ def render(all_results: dict[str, dict[str, list[dict[str, Any]]]]) -> str:
         "",
     ]
 
+    for group in FEASIBILITY_GROUPS:
+        results = all_results[group.key]
+        total = len(results["baseline"])
+        lines += [
+            f"## {group.key}（{total} 条）",
+            "",
+            f"{group.note}。",
+            "",
+            "| 场景 | 符合预期 | 判定分布 | 误判 |",
+            "| --- | ---: | --- | --- |",
+        ]
+        for scenario in SCENARIOS:
+            rows = results[scenario]
+            passed = sum(row["pass"] for row in rows)
+            feasible = sum(row["feasible"] for row in rows)
+            wrong = [row["id"] for row in rows if not row["pass"]]
+            lines.append(
+                f"| `{scenario}` | {passed}/{total} | 可行 {feasible} / 不可行 {total - feasible} "
+                f"| {'、'.join(wrong) if wrong else '—'} |"
+            )
+        lines.append("")
+
+    lines += [
+        "这两组的 `baseline` 是「闸门该拒绝的拒绝、该放行的放行」；`one-sided` 把常量改成 0 之后，"
+        "**边界内侧那条 brief 被误判为可行**——不生成任何方案，也不会撞硬规则，只有直接断言"
+        "可行性判定才看得见。这正是 E22 里评测集漏掉的那类改动。",
+        "",
+    ]
+
     transfer = all_results["transfer"]
     budget = all_results["budget"]
     lines += [
@@ -228,8 +310,9 @@ def render(all_results: dict[str, dict[str, list[dict[str, Any]]]]) -> str:
         "",
         "## 局限",
         "",
-        "`TIME_OVERRUN` 还没有探针：planner 不会主动超时，要构造这条边界得注入一个超长的方案，"
-        "方式与这两组不同（不是收紧规则，而是伪造生成结果）。留作后续。",
+        "探针覆盖三类边界：常量单边改动（`transfer` / `budget`）、闸门常量失效"
+        "（`budget-floor` / `hours-floor`）、伪造超时（`time`）。它不覆盖行级并发、崩溃恢复"
+        "与真实模型的输出分布——那三类分别由并发测试、崩溃恢复测试与真实模型实验负责。",
         "",
         "探针集不进主集、不进 80 条评测，改动它们不影响基线分数。",
         "",
@@ -239,7 +322,7 @@ def render(all_results: dict[str, dict[str, list[dict[str, Any]]]]) -> str:
 
 def check(all_results: dict[str, dict[str, list[dict[str, Any]]]]) -> list[str]:
     problems = []
-    for group in GROUPS:
+    for group in PLAN_GROUPS:
         results = all_results[group.key]
         baseline = results["baseline"]
         if not baseline:
@@ -251,6 +334,31 @@ def check(all_results: dict[str, dict[str, list[dict[str, Any]]]]) -> list[str]:
         survived = [row["id"] for row in results["one-sided"] if row["pass"]]
         if survived:
             problems.append(f"{group.key} 单边改动被放过：{', '.join(survived)}")
+    for group in FEASIBILITY_GROUPS:
+        results = all_results[group.key]
+        baseline = results["baseline"]
+        if not baseline:
+            problems.append(f"{group.key}: 探针集为空")
+            continue
+        failed = [row["id"] for row in baseline if not row["pass"]]
+        if failed:
+            problems.append(f"{group.key} baseline 不通过：{', '.join(failed)}")
+        if not any(not row["expect_feasible"] for row in baseline):
+            problems.append(f"{group.key} 没有卡在拒绝侧的 brief，闸门失效也看不出来")
+        missed = [
+            row["id"]
+            for row in results["one-sided"]
+            if not row["expect_feasible"] and row["pass"]
+        ]
+        if missed:
+            problems.append(f"{group.key} 闸门常量失效后仍被判不可行：{', '.join(missed)}")
+        broken = [
+            row["id"]
+            for row in results["one-sided"]
+            if row["expect_feasible"] and not row["pass"]
+        ]
+        if broken:
+            problems.append(f"{group.key} 闸门常量失效后原本可行的 brief 被拒绝：{', '.join(broken)}")
     both = all_results["transfer"]["both-sides"]
     broken = [row["id"] for row in both if not row["pass"]]
     if broken:
@@ -269,7 +377,11 @@ def check(all_results: dict[str, dict[str, list[dict[str, Any]]]]) -> list[str]:
 
 
 def main() -> int:
-    all_results = {group.key: run_group(group) for group in GROUPS}
+    all_results: dict[str, dict[str, list[dict[str, Any]]]] = {}
+    for group in GROUPS:
+        all_results[group.key] = (
+            run_feasibility_group(group) if group.kind == "feasibility" else run_group(group)
+        )
     all_results["time"] = run_time_group()
     text = render(all_results)
     if "--write" in sys.argv:

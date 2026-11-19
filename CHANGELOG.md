@@ -23,6 +23,13 @@
   `tests/test_feasibility.py` 对 `min_budget_cny` 的断言守着，变异门禁看不见它。结论记为
   refuted，变异不保留：不能把已知幸存者留在门禁里。
 
+- **可行性探针：闸门常量失效时，不生成方案也能被抓到（2026-11-19）**：新增
+  `evals/probes/budget-floor.jsonl`（4 条）与 `hours-floor.jsonl`（3 条），以及
+  `run_feasibility_group`——它直接断言「该拒绝的拒绝、该放行的放行」，不经过 planner。
+  `baseline` 分别是 4/4、3/3；把 `MIN_TRANSFER_COST_CNY` / `MIN_FEASIBLE_HOURS` 改成 0
+  之后，边界内侧各翻 1 条（BF01 / HF01）。这正是 E22 里 80 条评测集漏掉的那类改动；
+  清单的探针覆盖从 3 个常量变成 5 个。
+
 - **边界探针：单边改动必须被检出（2026-11-18）**：新增 `evals/probes/`（`transfer.jsonl` 12 条、
   `budget.jsonl` 4 条）与 `evals/probe_lab.py`。转场组每条 brief 卡在「刚好排得下第二个地点」
   （拍摄块 68–95 分钟）；预算组每条的成本刚好等于预算，1 元容差就能决定结果。
