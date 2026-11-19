@@ -1,0 +1,37 @@
+groups:
+  - name: shotplan
+    rules:
+      - alert: ShotplanScrapeDown
+        expr: up{job="shotplan"} == 0
+        for: 2m
+        labels: {severity: critical}
+        annotations:
+          summary: "抓取不到 /metrics，服务可能已挂（指标自报不了自己的死亡）"
+
+      - alert: ShotplanLatencyHigh
+        expr: shotplan_duration_ms{quantile="0.95"} > 180000
+        for: 15m
+        labels: {severity: warning}
+        annotations:
+          summary: "P95 超过 180s；对照 slo-baseline.md 检查是否换了模型或 prompt 变长"
+
+      - alert: ShotplanQualityRegression
+        expr: shotplan_hard_pass_rate < 0.90
+        for: 30m
+        labels: {severity: warning}
+        annotations:
+          summary: "硬约束通过率跌破 90%；先确认 ok_runs 是否足够，再查规则变更"
+
+      - alert: ShotplanUpstreamErrorsHigh
+        expr: shotplan_error_rate > 0.05
+        for: 10m
+        labels: {severity: warning}
+        annotations:
+          summary: "上游错误率超过 5% 误差预算；注意不要把它算成模型质量退化"
+
+      - alert: ShotplanCostHigh
+        expr: shotplan_llm_cost_cny / shotplan_runs > 0.08
+        for: 30m
+        labels: {severity: warning}
+        annotations:
+          summary: "单次调用成本超过 ¥0.08；检查 max_tokens / adaptive budget"

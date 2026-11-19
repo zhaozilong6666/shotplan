@@ -123,6 +123,7 @@ gates:
 	$(PYTHON) -m evals.scaling --check --requests 300
 	$(PYTHON) -m evals.examples --check
 	$(PYTHON) scripts/build_constant_checklist.py --check
+	$(PYTHON) scripts/check_deploy_config.py --check
 
 kb:
 	$(PYTHON) scripts/kb.py --write

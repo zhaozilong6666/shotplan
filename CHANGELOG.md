@@ -6,6 +6,12 @@
 
 ### Added
 
+- **Prometheus 抓取与告警配置（2026-11-19）**：新增 `deploy/prometheus/shotplan.yml`
+  （15s 抓取 `/metrics`）与由 `docs/slo.md` 生成的 `shotplan.rules.yml`（5 条告警）。
+  `scripts/check_deploy_config.py` 校验规则与文档同源、每条告警有 `expr/for/severity/summary`、
+  表达式里的 `shotplan_*` 指标在 `observability.py` 中真实存在。第 39 道门禁。
+  密钥仍由代理/配置管理注入，仓库不写。
+
 - **改常量清单：从 AST 生成「漏改会被谁抓到」（2026-11-19）**：新增
   `scripts/build_constant_checklist.py` 与 `docs/constant-checklist.md`。逐常量列出按名绑定
   （模块与行号）、`RULES` f-string 里的规则映射、卡边界的探针组和变异覆盖。11 个标量常量里

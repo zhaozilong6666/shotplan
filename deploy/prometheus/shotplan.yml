@@ -1,0 +1,37 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - shotplan.rules.yml
+
+scrape_configs:
+  - job_name: shotplan
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["shotplan:8000"]
+    # /metrics requires `X-API-Key` when SHOTPLAN_API_KEY is set.
+    # Do not commit the key. Scrape through a reverse proxy that injects the
+    # header, or (Prometheus 3.x) use http_headers with a value supplied by
+    # config management:
+    #
+    # http_headers:
+    #   X-API-Key:
+    #     values: ["<from-secret-manager>"]
+
+  # Black-box probe: /metrics cannot report the service's own death.
+  # Enable after a blackbox_exporter is reachable; see docs/release-readiness.md.
+  #
+  # - job_name: shotplan-health
+  #   metrics_path: /probe
+  #   params:
+  #     module: [http_2xx]
+  #   static_configs:
+  #     - targets: ["http://shotplan:8000/api/health"]
+  #   relabel_configs:
+  #     - source_labels: [__address__]
+  #       target_label: __param_target
+  #     - source_labels: [__param_target]
+  #       target_label: instance
+  #     - target_label: __address__
+  #       replacement: blackbox-exporter:9115

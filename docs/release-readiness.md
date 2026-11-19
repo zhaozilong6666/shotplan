@@ -24,13 +24,16 @@
 | 知识库不会悄悄过期 | `check_knowledge_freshness.py`，超 180 天 CI 红 |
 | 快照无法悄悄含凭据 | `check_snapshot_hygiene.py`，历史例外显式列出 |
 | 门禁数量与文档不会漂移 | `check_gate_count.py` 让 README 的声明与 Makefile 同源 |
+| Prometheus 抓取与告警配置 | `deploy/prometheus/`：15s 抓取、5 条告警；规则由 `docs/slo.md` 生成，`check_deploy_config.py` 校验结构与指标名 |
 | 质量与成本可见 | `make gates` 全过、mypy/ruff 干净、全量测试通过 |
 | 有可报警的线 | SLO 由 7 份快照推出，附 PromQL 与告警规则 |
 
 ## 上线前必须做（还没做）
 
-1. **配置抓取端**：`/metrics` 全是滑动窗口 gauge，必须由 Prometheus 定期抓取并保存时间序列，
-   否则 30 天误差预算无从计算。当前仓库没有 `scrape_configs` 或 recording rules 的部署配置。
+1. **部署抓取端**：`/metrics` 全是滑动窗口 gauge，必须由 Prometheus 定期抓取并保存时间序列，
+   否则 30 天误差预算无从计算。仓库已提供 `deploy/prometheus/shotplan.yml` 与由
+   `docs/slo.md` 生成的告警规则，`check_deploy_config.py` 校验抓取路径、规则同源、告警字段和
+   指标名；但**实际运行 Prometheus 并保存 30 天序列仍未做**，仓库里的 YAML 替代不了这一步。
 2. **黑盒探针**：服务挂掉时自己不会报指标，`probe_success` / `up` 需要部署方提供。
 3. **密钥注入方式**：`load_dotenv` 会把 `.env` 写进 `os.environ` 并被子进程继承
    （`http_load.py` 的 uvicorn 子进程、`cli --reload` worker）。公网部署应改用环境变量注入，
