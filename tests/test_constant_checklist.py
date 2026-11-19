@@ -53,6 +53,15 @@ def test_rule_table_reads_the_fstrings_not_a_second_list():
     assert ("SHOOT_TOO_SHORT", "soft") in rules["MIN_SHOOT_BLOCK_FLOOR"]
 
 
+def test_function_tests_are_found_through_direct_imports():
+    names = {row["name"] for row in bc.thresholds.collect()}
+    functions = bc.constraint_functions(names)
+    assert "styling_minutes_for" in functions["STYLING_SHARE"]
+    refs = bc.function_tests({fn for fns in functions.values() for fn in fns})
+    assert "tests/test_timeline.py" in refs["styling_minutes_for"]
+    assert "tests/test_timeline.py" in refs["min_shoot_block_minutes"]
+
+
 def test_report_is_portable_and_names_every_constant():
     text = bc.render()
     assert "src\\" not in text, "Windows separators would make the generated page differ on CI"

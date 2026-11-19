@@ -237,6 +237,48 @@ def internal_uses(constants: set[str]) -> dict[str, list[int]]:
     return {name: sorted(lines) for name, lines in uses.items()}
 
 
+def function_tests(names: set[str]) -> dict[str, list[str]]:
+    """Function -> test files that import it from `constraints.py`.
+
+    A test that imports `styling_minutes_for` exercises `STYLING_SHARE` even though
+    it never names the constant. This is the narrow, defensible half of "tests
+    guard it too": direct imports only, not every test that happens to call
+    `validate`.
+    """
+    refs: dict[str, set[str]] = {}
+    for area, path, tree in iter_sources():
+        if area != "tests":
+            continue
+        rel = path.relative_to(ROOT).as_posix()
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.ImportFrom)
+                and node.module
+                and node.module.endswith("constraints")
+            ):
+                for alias in node.names:
+                    if alias.name in names:
+                        refs.setdefault(alias.name, set()).add(rel)
+    return {name: sorted(paths) for name, paths in refs.items()}
+
+
+def constraint_functions(constants: set[str]) -> dict[str, list[str]]:
+    """Constant -> functions in `constraints.py` whose body reads it."""
+    tree = parse(SOURCE)
+    mapping: dict[str, list[str]] = {}
+    for node in tree.body:
+        if not isinstance(node, ast.FunctionDef):
+            continue
+        used = {
+            sub.id
+            for sub in ast.walk(node)
+            if isinstance(sub, ast.Name) and sub.id in constants
+        }
+        for name in sorted(used):
+            mapping.setdefault(name, []).append(node.name)
+    return mapping
+
+
 def role_label(name: str, roles: dict[str, str], rules: dict[str, list[tuple[str, str]]]) -> str:
     if name in roles:
         return roles[name]
@@ -350,7 +392,15 @@ def render() -> str:
     guards = probe_guards(rule_codes(), roles, rules)
     mutants = mutant_guards()
     probe_n = probe_counts()
-    internal = internal_uses({row["name"] for row in rows})
+    names = {row["name"] for row in rows}
+    internal = internal_uses(names)
+    func_map = constraint_functions(names)
+    func_tests = function_tests({fn for fns in func_map.values() for fn in fns})
+
+    def tests_for(name: str) -> list[str]:
+        return sorted(
+            {path for fn in func_map.get(name, []) for path in func_tests.get(fn, [])}
+        )
 
     lines = [
         "> 由 `python scripts/build_constant_checklist.py --write` 生成，请勿手工编辑。",
@@ -375,8 +425,8 @@ def render() -> str:
         "",
         "## 总览",
         "",
-        "| 常量 | 值 | 依据 | 按名绑定 | 规则 | 探针 | 变异 |",
-        "| --- | --- | --- | --- | --- | --- | --- |",
+        "| 常量 | 值 | 依据 | 按名绑定 | 规则 | 探针 | 变异 | 函数测试 |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
     for row in sorted(rows, key=lambda item: item["name"]):
         name = row["name"]
@@ -384,9 +434,10 @@ def render() -> str:
         probe = "、".join(sorted(set(guards.get(name, [])))) or "—"
         mutant = "、".join(sorted(set(mutants.get(name, [])))) or "—"
         basis = "实测" if row["measured"] else "设计选择"
+        tests = "、".join(path.rsplit("/", 1)[-1] for path in tests_for(name)) or "—"
         lines.append(
             f"| `{name}` | {row['value']} | {basis} | {area_counts(bound[name])} "
-            f"| `{role}` | {probe} | {mutant} |"
+            f"| `{role}` | {probe} | {mutant} | {tests} |"
         )
     lines.append("")
 
@@ -417,6 +468,17 @@ def render() -> str:
             refs = ", ".join(f"L{line}" for line in sites_in_file[:6])
             more = "…" if len(sites_in_file) > 6 else ""
             lines.append(f"- 同文件内使用：{refs}{more}")
+        covered = [
+            (fn, func_tests[fn])
+            for fn in func_map.get(name, [])
+            if func_tests.get(fn)
+        ]
+        if covered:
+            detail = "；".join(
+                f"`{fn}()` → {'、'.join(f'`{path}`' for path in paths)}"
+                for fn, paths in covered
+            )
+            lines.append(f"- 函数级测试：{detail}")
         lines.append(f"- 规则：`{role}`")
         if probe_keys:
             detail = "、".join(f"`{key}`（{probe_n.get(key, '?')} 条 brief）" for key in probe_keys)
@@ -450,7 +512,7 @@ def render() -> str:
         "",
         "这些数改了之后，没有任何一组探针或变异会专门变红。它们不是不能改，"
         "而是改完只能看全量评测——先开一条实验、写下预测，再动。注意：这不等于"
-        "「没有测试」，只是本表的探针/变异两列都不覆盖它。",
+        "「没有测试」——函数测试列会列出直接 import 了相关函数的测试，只是探针/变异没覆盖它。",
         "",
     ]
     if uncovered:
@@ -469,12 +531,13 @@ def render() -> str:
         "它能解析的那部分声明。",
         "- **运行时才绑定的名字**：`patch.object(module, \"NAME\", ...)` 这类字符串引用"
         "不算 import，只有出现在 `tests/` 或 `evals/` 的补丁里时才会被本表看到。",
-        "- **单元测试里的边界断言**：对 `min_budget_cny` 这类派生值的断言会挡住改动，但它"
-        "既不是探针也不是变异，不会出现在上表的两列里。`变异` 列只表示 mutation_lab 的 "
+        "- **单元测试里的边界断言**：函数测试列只统计「直接 import 了 `constraints.py` 中相关函数」"
+        "的测试；对 `min_budget_cny` 这类派生值的断言仍然落在列外。`变异` 列只表示 mutation_lab 的 "
         "80 条评测语料看不看得见这个常量。",
         "",
         f"统计：{len(rows)} 个标量常量，{len([r for r in rows if guards.get(r['name'])])} 个有探针，"
-        f"{len([r for r in rows if mutants.get(r['name'])])} 个有变异，{len(uncovered)} 个两者都没有。",
+        f"{len([r for r in rows if mutants.get(r['name'])])} 个有变异，{len(uncovered)} 个两者都没有，"
+        f"{len([r for r in rows if tests_for(r['name'])])} 个有函数级测试。",
         "",
     ]
     return "\n".join(lines)

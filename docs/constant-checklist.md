@@ -15,19 +15,19 @@
 
 ## 总览
 
-| 常量 | 值 | 依据 | 按名绑定 | 规则 | 探针 | 变异 |
-| --- | --- | --- | --- | --- | --- | --- |
-| `BUDGET_TOLERANCE_CNY` | 0 | 设计选择 | 1 src | `—` | budget | validator/budget-tolerance |
-| `MAX_OVERRUN_MINUTES` | 15 | 设计选择 | 1 src | `hard:TIME_OVERRUN` | time | validator/no-time-limit |
-| `MIN_ALTERNATIVES` | 1 | 设计选择 | 1 src | `soft:NO_ALTERNATIVE` | alternatives | — |
-| `MIN_FEASIBLE_HOURS` | 1.5 | 设计选择 | 1 src | `gate:feasibility` | hours-floor | feasibility/no-min-hours |
-| `MIN_SHOOT_BLOCK_FLOOR` | 30 | 实测 | 0 | `soft:SHOOT_TOO_SHORT` | shoot-floor | — |
-| `MIN_SHOOT_BLOCK_MINUTES` | 60 | 设计选择 | 2 src | `soft:SHOOT_TOO_SHORT` | shoot-floor | — |
-| `MIN_SOURCE_REFS` | 2 | 设计选择 | 1 src | `soft:NO_SOURCE_REF` | source-refs | — |
-| `MIN_TRANSFER_COST_CNY` | 50 | 设计选择 | 3 src | `—` | budget-floor | — |
-| `MIN_TRANSFER_MINUTES` | 20 | 设计选择 | 5 src / 2 tests | `hard:TRANSFER_BUFFER` | transfer | planner/no-transfer、validator/no-transfer-rule |
-| `STYLING_FLOOR_MINUTES` | 60 | 设计选择 | 1 src | `indirect` | — | — |
-| `STYLING_SHARE` | 0.35 | 实测 | 0 | `indirect` | — | — |
+| 常量 | 值 | 依据 | 按名绑定 | 规则 | 探针 | 变异 | 函数测试 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `BUDGET_TOLERANCE_CNY` | 0 | 设计选择 | 1 src | `—` | budget | validator/budget-tolerance | — |
+| `MAX_OVERRUN_MINUTES` | 15 | 设计选择 | 1 src | `hard:TIME_OVERRUN` | time | validator/no-time-limit | — |
+| `MIN_ALTERNATIVES` | 1 | 设计选择 | 1 src | `soft:NO_ALTERNATIVE` | alternatives | — | — |
+| `MIN_FEASIBLE_HOURS` | 1.5 | 设计选择 | 1 src | `gate:feasibility` | hours-floor | feasibility/no-min-hours | — |
+| `MIN_SHOOT_BLOCK_FLOOR` | 30 | 实测 | 0 | `soft:SHOOT_TOO_SHORT` | shoot-floor | — | test_timeline.py |
+| `MIN_SHOOT_BLOCK_MINUTES` | 60 | 设计选择 | 2 src | `soft:SHOOT_TOO_SHORT` | shoot-floor | — | test_timeline.py |
+| `MIN_SOURCE_REFS` | 2 | 设计选择 | 1 src | `soft:NO_SOURCE_REF` | source-refs | — | — |
+| `MIN_TRANSFER_COST_CNY` | 50 | 设计选择 | 3 src | `—` | budget-floor | — | — |
+| `MIN_TRANSFER_MINUTES` | 20 | 设计选择 | 5 src / 2 tests | `hard:TRANSFER_BUFFER` | transfer | planner/no-transfer、validator/no-transfer-rule | — |
+| `STYLING_FLOOR_MINUTES` | 60 | 设计选择 | 1 src | `indirect` | — | — | test_timeline.py |
+| `STYLING_SHARE` | 0.35 | 实测 | 0 | `indirect` | — | — | test_timeline.py |
 
 ## 逐个常量
 
@@ -81,6 +81,7 @@
 - 注释：But a 1.5-hour booking is makeup (90 min) + one transfer (20 min) + whatever is left. Demanding a 60-minute block there flagged 7 of 8 real-model failures that were physically impossible, not badly planned. The floor now scales with the booking, capped at the ceiling above.
 - 按名绑定：无（只在本文件内使用）
 - 同文件内使用：L34, L207
+- 函数级测试：`min_shoot_block_minutes()` → `tests/test_timeline.py`
 - 规则：`soft:SHOOT_TOO_SHORT`
 - 探针：`shoot-floor`（4 条 brief）
 - 变异：无
@@ -92,6 +93,7 @@
 - 注释：A shoot block shorter than this is not worth setting up lights for. This is the CEILING: with time to spare, a block should be at least this long.
 - 按名绑定（2 个模块 / 2 处使用）：`src/shotplan/domain/feasibility.py`（L171）；`src/shotplan/light.py`（L94）
 - 同文件内使用：L34, L208, L258
+- 函数级测试：`min_shoot_block_minutes()` → `tests/test_timeline.py`
 - 规则：`soft:SHOOT_TOO_SHORT`
 - 探针：`shoot-floor`（4 条 brief）
 - 变异：无
@@ -135,6 +137,7 @@
 - 定义：`src/shotplan/domain/constraints.py:42`
 - 按名绑定（1 个模块 / 1 处使用）：`src/shotplan/domain/feasibility.py`（L172）
 - 同文件内使用：L52
+- 函数级测试：`styling_minutes_for()` → `tests/test_timeline.py`
 - 规则：`indirect`
 - 探针：无
 - 变异：无
@@ -146,6 +149,7 @@
 - 注释：Styling is the one block that can give time back. A 1.5-hour booking cannot hold a full 85-minute 民国 styling block plus a shoot, but the answer is a compressed styling, not a five-minute photoshoot -- which is what a real-model run actually produced before this rule existed (C46).
 - 按名绑定：无（只在本文件内使用）
 - 同文件内使用：L52
+- 函数级测试：`styling_minutes_for()` → `tests/test_timeline.py`
 - 规则：`indirect`
 - 探针：无
 - 变异：无
@@ -153,7 +157,7 @@
 
 ## 没有探针或变异的常量
 
-这些数改了之后，没有任何一组探针或变异会专门变红。它们不是不能改，而是改完只能看全量评测——先开一条实验、写下预测，再动。注意：这不等于「没有测试」，只是本表的探针/变异两列都不覆盖它。
+这些数改了之后，没有任何一组探针或变异会专门变红。它们不是不能改，而是改完只能看全量评测——先开一条实验、写下预测，再动。注意：这不等于「没有测试」——函数测试列会列出直接 import 了相关函数的测试，只是探针/变异没覆盖它。
 
 - `STYLING_FLOOR_MINUTES`
 - `STYLING_SHARE`
@@ -163,6 +167,6 @@
 - **复制成字面量的副本**：AST 只认名字。如果某个模块自己写了 `FIXED_MINUTES = 20`，它不会出现在「按名绑定」里。`mutation_lab` 的变异能抓到其中一部分，抓不到全部。
 - **文档里的数字**：`docs/` 有些正文仍然手写阈值。`check_doc_claims.py` 只覆盖它能解析的那部分声明。
 - **运行时才绑定的名字**：`patch.object(module, "NAME", ...)` 这类字符串引用不算 import，只有出现在 `tests/` 或 `evals/` 的补丁里时才会被本表看到。
-- **单元测试里的边界断言**：对 `min_budget_cny` 这类派生值的断言会挡住改动，但它既不是探针也不是变异，不会出现在上表的两列里。`变异` 列只表示 mutation_lab 的 80 条评测语料看不看得见这个常量。
+- **单元测试里的边界断言**：函数测试列只统计「直接 import 了 `constraints.py` 中相关函数」的测试；对 `min_budget_cny` 这类派生值的断言仍然落在列外。`变异` 列只表示 mutation_lab 的 80 条评测语料看不看得见这个常量。
 
-统计：11 个标量常量，9 个有探针，4 个有变异，2 个两者都没有。
+统计：11 个标量常量，9 个有探针，4 个有变异，2 个两者都没有，4 个有函数级测试。
