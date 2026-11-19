@@ -28,6 +28,9 @@ promtool check config deploy/prometheus/shotplan.yml   # 有 Prometheus 时的�
 - 推荐让反向代理注入该头，Prometheus 只抓代理；
 - Prometheus 3.x 也可用 `http_headers`，值由配置管理/secret manager 提供（`shotplan.yml` 里有注释示例）。
 
+`.env` 只读进 `shotplan.config` 的私有字典，不会写 `os.environ`，所以子进程不会顺带继承；
+生产仍应使用环境变量注入，并可设 `SHOTPLAN_SKIP_DOTENV=1` 彻底忽略 `.env`。
+
 ## 黑盒探针
 
 `/metrics` 报不了自己的死亡（服务挂了就没有指标）。`blackbox.yml` 已给出 `http_2xx` 模块，

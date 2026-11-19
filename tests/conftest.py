@@ -12,6 +12,7 @@ if str(ROOT / "src") not in sys.path:
 
 import pytest
 
+import shotplan.config as config
 from shotplan.domain.models import Plan, PlanRequest, TimeSlot
 from shotplan.knowledge.tools import get_tools
 
@@ -25,6 +26,7 @@ def hermetic_env(monkeypatch):
     reason that had nothing to do with the code under test.
     """
     monkeypatch.setenv("SHOTPLAN_SKIP_DOTENV", "1")
+    monkeypatch.setattr(config, "_DOTENV", {})
     for name in [key for key in os.environ if key.startswith("SHOTPLAN_")]:
         if name != "SHOTPLAN_SKIP_DOTENV":
             monkeypatch.delenv(name, raising=False)

@@ -37,9 +37,9 @@
 2. **黑盒探针**：服务挂掉时自己不会报指标，`probe_success` / `up` 需要部署方提供。
    `deploy/prometheus/blackbox.yml` 已给出 `http_2xx` 模块，`shotplan.yml` 里保留了注释 job；
    仍需部署 `blackbox_exporter` 并取消注释。
-3. **密钥注入方式**：`load_dotenv` 会把 `.env` 写进 `os.environ` 并被子进程继承
-   （`http_load.py` 的 uvicorn 子进程、`cli --reload` worker）。公网部署应改用环境变量注入，
-   不要挂载 `.env` 文件。参见架构评审 R11。
+3. **密钥注入方式**：`.env` 现在只读进 `shotplan.config` 的私有字典，**不再写 `os.environ`**，
+   子进程不会顺带继承开发机的 key；每个进程自己加载 `.env`。公网部署仍应直接用环境变量注入，
+   不要挂载 `.env`；生产可设 `SHOTPLAN_SKIP_DOTENV=1` 彻底忽略该文件。
 4. **反向代理注入 `X-API-Key`**：内置面板不发该头；若设了 `SHOTPLAN_API_KEY`，
    要么代理注入，要么换独立前端。Prometheus 抓取同理（3.x 可用 `http_headers`）。
 5. **SLO 重新校准**：上线一周后用真实分布重跑 `slo_baseline --write`。

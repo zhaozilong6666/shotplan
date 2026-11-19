@@ -29,8 +29,16 @@ def _default_db_path() -> Path:
     return Path.cwd() / "data" / "shotplan.db"
 
 
+_DOTENV: dict[str, str] = {}
+
+
 def _env(name: str, default: str) -> str:
-    return os.environ.get(name, default).strip()
+    # A real environment variable wins over `.env`; `.env` stays in this module
+    # instead of being exported, so a child process cannot inherit a key just
+    # because the parent loaded a file. See load_dotenv().
+    if name in os.environ:
+        return os.environ[name].strip()
+    return _DOTENV.get(name, default).strip()
 
 
 def _env_int(name: str, default: int) -> int:
@@ -198,7 +206,14 @@ class Settings:
 
 
 def load_dotenv(path: Path | None = None) -> None:
-    """Minimal .env loader, avoids a python-dotenv dependency.
+    """Read `.env` into this module, **not** into `os.environ`.
+
+    Exporting a `.env` value makes every child process inherit it: `http_load`'s
+    uvicorn workers, `cli --reload` workers, any subprocess started later. A
+    local key then leaks far beyond the file the developer wrote. Keeping the
+    values private means each process must load its own `.env` (which the app
+    does on startup), and production can inject real environment variables
+    without a mounted file.
 
     `SHOTPLAN_SKIP_DOTENV=1` turns it off. The test suite sets it, because a
     developer's local `.env` (a real provider key, say) must not change what a
@@ -214,7 +229,7 @@ def load_dotenv(path: Path | None = None) -> None:
         if not line or line.startswith("#") or "=" not in line:
             continue
         key, value = line.split("=", 1)
-        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+        _DOTENV.setdefault(key.strip(), value.strip().strip('"').strip("'"))
 
 
 def get_settings() -> Settings:

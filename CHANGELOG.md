@@ -12,6 +12,11 @@
   表达式里的 `shotplan_*` 指标在 `observability.py` 中真实存在；另附 `blackbox.yml` 的
   `http_2xx` 模块（job 保留注释，接上 exporter 再启用）。第 39 道门禁。密钥仍由代理/配置管理注入，仓库不写。
 
+- **`.env` 不再导出到子进程（2026-11-19）**：`load_dotenv()` 改为写入模块私有字典，
+  `_env()` 优先读真实环境变量。uvicorn worker / `cli --reload` 不再顺带继承开发机的 key；
+  每个进程自己加载 `.env`。测试从「断言 `os.environ` 被改写」改成「断言没有被改写」。
+  文档同步：生产用环境变量注入，或设 `SHOTPLAN_SKIP_DOTENV=1`。
+
 - **改常量清单：从 AST 生成「漏改会被谁抓到」（2026-11-19）**：新增
   `scripts/build_constant_checklist.py` 与 `docs/constant-checklist.md`。逐常量列出按名绑定
   （模块与行号）、`RULES` f-string 里的规则映射、卡边界的探针组和变异覆盖。11 个标量常量里
