@@ -267,7 +267,11 @@ def probe_guards(
     guards: dict[str, list[str]] = {}
     constants = {row["name"] for row in thresholds.collect()}
     for node in ast.walk(tree):
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "Group":
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id in ("Group", "FieldGroup")
+        ):
             if len(node.args) >= 2:
                 key, const = literal(node.args[0]), literal(node.args[1])
                 if isinstance(key, str) and const in constants:

@@ -70,6 +70,28 @@
 
 `baseline` 的 4 条 below 全部命中、4 条 at-floor 全部不命中；`disabled` 只剩下门槛仍大于 30 分钟的那几档还在命中——1.5 小时那档被放过。软规则不会让方案失败，但它的沉默同样是一种回归。
 
+## alternatives（3 条 brief / 6 个断言）
+
+备选方案清零：NO_ALTERNATIVE 应当命中；留 1 条则不应命中。把校验端绑定的 `MIN_ALTERNATIVES` 改成 0 后，below 断言应当失守。
+
+| 场景 | 符合预期 | 命中 | 最低分 | 失守的断言 |
+| --- | ---: | ---: | ---: | --- |
+| `baseline` | 6/6 | 3/6 | 0.8025 | — |
+| `disabled` | 3/6 | 0/6 | 0.8225 | AL01-below、AL02-below、AL03-below |
+
+`disabled` 只应让低于门槛的那一半失守；at-floor 仍应通过，否则说明改动把 `NO_ALTERNATIVE` 的判定整个弄坏了，而不只是放过了边界。
+
+## source-refs（3 条 brief / 6 个断言）
+
+引用只留 1 条：NO_SOURCE_REF 应当命中；留 2 条则不应命中。把校验端绑定的 `MIN_SOURCE_REFS` 改成 0 后，below 断言应当失守。
+
+| 场景 | 符合预期 | 命中 | 最低分 | 失守的断言 |
+| --- | ---: | ---: | ---: | --- |
+| `baseline` | 6/6 | 3/6 | 0.7775 | — |
+| `disabled` | 3/6 | 0/6 | 0.8425 | SR01-below、SR02-below、SR03-below |
+
+`disabled` 只应让低于门槛的那一半失守；at-floor 仍应通过，否则说明改动把 `NO_SOURCE_REF` 的判定整个弄坏了，而不只是放过了边界。
+
 ## 为什么这个对比重要
 
 同一个常量出现在多个模块里，因为 `from constraints import X` 会把值复制成模块自己的名字。只改一份不是「改了规则」，而是让两个组件对规则的理解产生分歧。

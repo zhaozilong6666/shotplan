@@ -17,6 +17,11 @@ def shoot_rows():
     return probe_lab.run_shoot_floor_group()
 
 
+@pytest.fixture(scope="module")
+def field_rows():
+    return {group.key: probe_lab.run_field_group(group) for group in probe_lab.FIELD_GROUPS}
+
+
 def test_each_feasibility_group_has_cases_on_both_sides_of_the_gate():
     for group in probe_lab.FEASIBILITY_GROUPS:
         cases = probe_lab.read_group(group.key)
@@ -53,6 +58,8 @@ def test_the_whole_probe_set_passes_its_own_gate():
     }
     all_results["time"] = probe_lab.run_time_group()
     all_results["shoot-floor"] = probe_lab.run_shoot_floor_group()
+    for group in probe_lab.FIELD_GROUPS:
+        all_results[group.key] = probe_lab.run_field_group(group)
     assert probe_lab.check(all_results) == []
 
 
@@ -77,3 +84,31 @@ def test_the_soft_score_drops_for_a_below_floor_block(shoot_rows):
     for row in baseline:
         if row["expect_issue"]:
             assert row["score"] < at_floor[row["id"].replace("-below", "")]
+
+
+def test_field_baseline_hits_only_below_the_threshold(field_rows):
+    for key, rows in field_rows.items():
+        baseline = rows["baseline"]
+        assert all(row["pass"] for row in baseline), key
+        assert sum(row["hit"] for row in baseline) == len(baseline) // 2, key
+
+
+def test_disabling_a_field_constant_hides_every_below_assertion(field_rows):
+    for key, rows in field_rows.items():
+        disabled = rows["disabled"]
+        flipped = [row for row in disabled if row["expect_issue"] and not row["pass"]]
+        assert len(flipped) == len(rows["baseline"]) // 2, key
+        assert all(row["pass"] for row in disabled if not row["expect_issue"]), key
+
+
+def test_field_scores_drop_for_a_below_threshold_plan(field_rows):
+    for key, rows in field_rows.items():
+        baseline = rows["baseline"]
+        at_threshold = {
+            row["id"].replace("-at-floor", ""): row["score"]
+            for row in baseline
+            if not row["expect_issue"]
+        }
+        for row in baseline:
+            if row["expect_issue"]:
+                assert row["score"] < at_threshold[row["id"].replace("-below", "")], key

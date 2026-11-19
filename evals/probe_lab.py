@@ -93,6 +93,31 @@ GROUPS = (
 
 PLAN_GROUPS = tuple(group for group in GROUPS if group.kind == "plan")
 FEASIBILITY_GROUPS = tuple(group for group in GROUPS if group.kind == "feasibility")
+
+
+@dataclass(frozen=True)
+class FieldGroup:
+    """A soft rule over a plan field: trim the list and assert the issue appears."""
+
+    key: str
+    constant: str
+    code: str
+    field: str
+    below: int
+    at: int
+    note: str
+
+
+FIELD_GROUPS = (
+    FieldGroup(
+        "alternatives", "MIN_ALTERNATIVES", "NO_ALTERNATIVE", "alternatives", 0, 1,
+        "备选方案清零：NO_ALTERNATIVE 应当命中；留 1 条则不应命中",
+    ),
+    FieldGroup(
+        "source-refs", "MIN_SOURCE_REFS", "NO_SOURCE_REF", "source_refs", 1, 2,
+        "引用只留 1 条：NO_SOURCE_REF 应当命中；留 2 条则不应命中",
+    ),
+)
 SCENARIOS = ("baseline", "one-sided", "both-sides")
 
 
@@ -171,6 +196,37 @@ def run_shoot_floor_group() -> dict[str, list[dict[str, Any]]]:
                             "expect_issue": expect,
                             "score": round(report.score, 4),
                             "floor": floor,
+                        }
+                    )
+    return rows
+
+
+def run_field_group(group: FieldGroup) -> dict[str, list[dict[str, Any]]]:
+    """Trim a plan list to below/at the threshold and ask the validator only."""
+    settings = get_settings()
+    rows: dict[str, list[dict[str, Any]]] = {"baseline": [], "disabled": []}
+    for case in read_group(group.key):
+        request = PlanRequest(**case["request"])
+        result = run_plan(request, provider=MockProvider(mode="good"), store=None, settings=settings)
+        for scenario in ("baseline", "disabled"):
+            with ExitStack() as stack:
+                if scenario == "disabled":
+                    # The rule reads validator's own binding (`from constraints import X`
+                    # copies the value), so patching constraints alone would be a no-op.
+                    stack.enter_context(patch.object(validator_module, group.constant, 0))
+                for label, keep in (("below", group.below), ("at-floor", group.at)):
+                    forged = copy.deepcopy(result.plan)
+                    setattr(forged, group.field, getattr(forged, group.field)[:keep])
+                    report = validate(forged, request)
+                    hit = any(issue.code == group.code for issue in report.issues)
+                    expect = label == "below"
+                    rows[scenario].append(
+                        {
+                            "id": f"{case['id']}-{label}",
+                            "pass": hit == expect,
+                            "hit": hit,
+                            "expect_issue": expect,
+                            "score": round(report.score, 4),
                         }
                     )
     return rows
@@ -349,6 +405,34 @@ def render(all_results: dict[str, dict[str, list[dict[str, Any]]]]) -> str:
         "",
     ]
 
+    for group in FIELD_GROUPS:
+        results = all_results[group.key]
+        total = len(results["baseline"])
+        lines += [
+            f"## {group.key}（{total // 2} 条 brief / {total} 个断言）",
+            "",
+            f"{group.note}。把校验端绑定的 `{group.constant}` 改成 0 后，below 断言应当失守。",
+            "",
+            "| 场景 | 符合预期 | 命中 | 最低分 | 失守的断言 |",
+            "| --- | ---: | ---: | ---: | --- |",
+        ]
+        for scenario in ("baseline", "disabled"):
+            rows = results[scenario]
+            passed = sum(row["pass"] for row in rows)
+            hits = sum(row["hit"] for row in rows)
+            low = min(row["score"] for row in rows)
+            wrong = [row["id"] for row in rows if not row["pass"]]
+            lines.append(
+                f"| `{scenario}` | {passed}/{len(rows)} | {hits}/{len(rows)} | {low:.4f} "
+                f"| {'、'.join(wrong) if wrong else '—'} |"
+            )
+        lines += [
+            "",
+            f"`disabled` 只应让低于门槛的那一半失守；at-floor 仍应通过，否则说明改动把"
+            f" `{group.code}` 的判定整个弄坏了，而不只是放过了边界。",
+            "",
+        ]
+
     transfer = all_results["transfer"]
     budget = all_results["budget"]
     lines += [
@@ -455,6 +539,31 @@ def check(all_results: dict[str, dict[str, list[dict[str, Any]]]]) -> list[str]:
         ]
         if broken:
             problems.append(f"shoot-floor 门槛失效后 at-floor 断言反而命中：{', '.join(broken)}")
+    for group in FIELD_GROUPS:
+        results = all_results[group.key]
+        baseline = results["baseline"]
+        if not baseline:
+            problems.append(f"{group.key}: 探针集为空")
+            continue
+        failed = [row["id"] for row in baseline if not row["pass"]]
+        if failed:
+            problems.append(f"{group.key} baseline 不通过：{', '.join(failed)}")
+        if not any(row["expect_issue"] for row in baseline):
+            problems.append(f"{group.key} 没有低于门槛的断言，常量失效也看不出来")
+        flipped = [
+            row["id"]
+            for row in results["disabled"]
+            if row["expect_issue"] and not row["pass"]
+        ]
+        if not flipped:
+            problems.append(f"{group.key} 常量失效后没有任何 below 断言失守")
+        broken = [
+            row["id"]
+            for row in results["disabled"]
+            if not row["expect_issue"] and not row["pass"]
+        ]
+        if broken:
+            problems.append(f"{group.key} 常量失效后 at-floor 断言反而命中：{', '.join(broken)}")
     both = all_results["transfer"]["both-sides"]
     broken = [row["id"] for row in both if not row["pass"]]
     if broken:
@@ -480,6 +589,8 @@ def main() -> int:
         )
     all_results["time"] = run_time_group()
     all_results["shoot-floor"] = run_shoot_floor_group()
+    for group in FIELD_GROUPS:
+        all_results[group.key] = run_field_group(group)
     text = render(all_results)
     if "--write" in sys.argv:
         REPORT.write_text(text, encoding="utf-8", newline="\n")
@@ -511,6 +622,16 @@ def main() -> int:
             for scenario in ("baseline", "disabled")
         )
     )
+    for group in FIELD_GROUPS:
+        rows = all_results[group.key]
+        total = len(rows["baseline"])
+        print(
+            f"probe {group.key}: "
+            + ", ".join(
+                f"{scenario} {sum(row['pass'] for row in rows[scenario])}/{total}"
+                for scenario in ("baseline", "disabled")
+            )
+        )
     if "--check" in sys.argv:
         problems = check(all_results)
         for problem in problems:

@@ -35,6 +35,11 @@
   `floor - 1` 与正好 `floor`，前者应命中、后者不应命中；把 `MIN_SHOOT_BLOCK_FLOOR` 改成 0 后，
   1.5 小时那档（门槛 30 → 22）的 below 断言失守。清单的探针覆盖从 5 个常量变成 7 个。
 
+- **备选与溯源也进了软规则探针（2026-11-19）**：新增 `alternatives` / `source-refs` 两组，
+  把方案的 `alternatives` 清零、`source_refs` 只留 1 条，断言 `NO_ALTERNATIVE` /
+  `NO_SOURCE_REF` 命中；`baseline` 各 6/6，禁用校验端常量后各 3/6，最低分分别从
+  0.8025 → 0.8225、0.7775 → 0.8425。清单的探针覆盖 7 → 9，只剩 `STYLING_*` 两个。
+
 - **边界探针：单边改动必须被检出（2026-11-18）**：新增 `evals/probes/`（`transfer.jsonl` 12 条、
   `budget.jsonl` 4 条）与 `evals/probe_lab.py`。转场组每条 brief 卡在「刚好排得下第二个地点」
   （拍摄块 68–95 分钟）；预算组每条的成本刚好等于预算，1 元容差就能决定结果。
