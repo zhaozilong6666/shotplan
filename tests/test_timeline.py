@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from shotplan.domain.constraints import styling_minutes_for
 from shotplan.domain.models import Plan, PlanRequest, TimeSlot, to_minutes
 from shotplan.timeline import compress_styling_for_shoots, repair_short_shoots
 
@@ -78,6 +79,16 @@ def test_the_floor_scales_with_the_booking():
     assert floor(3.0) == 45
     assert floor(4.0) == 60      # from here the ceiling applies
     assert floor(7.0) == 60
+
+
+def test_styling_cap_scales_with_the_booking():
+    """C46: an 85-minute styling block cannot fit a 1.5h booking."""
+    assert styling_minutes_for(85, 1.5) == 60   # 31 min proportional -> floor
+    assert styling_minutes_for(85, 2.0) == 60   # 42 -> floor
+    assert styling_minutes_for(85, 3.0) == 62   # 180*0.35 is 62.999... -> 62
+    assert styling_minutes_for(85, 4.0) == 84   # 84 -> share applies
+    assert styling_minutes_for(85, 5.0) == 85   # cap exceeds the style's standard
+    assert styling_minutes_for(40, 1.5) == 40   # never longer than standard
 
 
 def test_a_physically_short_block_is_not_flagged():
