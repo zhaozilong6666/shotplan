@@ -49,6 +49,7 @@ from shotplan import pipeline
 from shotplan.agents import MockProvider
 from shotplan.agents import mock as mock_module
 from shotplan.agents import validator as validator_module
+from shotplan.domain import feasibility as feasibility_module
 from shotplan.domain.models import ValidationReport
 from shotplan.knowledge.tools import KnowledgeTools
 
@@ -95,6 +96,11 @@ def _validator_no_transfer(stack: ExitStack) -> None:
 
 def _validator_no_time_limit(stack: ExitStack) -> None:
     stack.enter_context(patch.object(validator_module, "MAX_OVERRUN_MINUTES", 10**6))
+
+
+def _feasibility_no_min_hours(stack: ExitStack) -> None:
+    """The 1.5-hour floor disappears; briefs that cannot fit are planned anyway."""
+    stack.enter_context(patch.object(feasibility_module, "MIN_FEASIBLE_HOURS", 0))
 
 
 def _universal_location_ids() -> set[str]:
@@ -159,6 +165,10 @@ MUTANTS: tuple[Mutant, ...] = (
     Mutant(
         "validator/no-time-limit", "validator",
         "时长宽限改成 10^6 分钟，TIME_OVERRUN 永不触发", _validator_no_time_limit,
+    ),
+    Mutant(
+        "feasibility/no-min-hours", "feasibility",
+        "取消 1.5 小时可行性下限，排不下的 brief 也进入排期", _feasibility_no_min_hours,
     ),
     Mutant(
         "validator/no-grounding", "validator",

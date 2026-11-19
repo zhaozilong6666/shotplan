@@ -70,10 +70,12 @@ def test_eval_gate_problems_accepts_current_baseline():
     assert eval_gate_problems(_good(), _naive(0.3014, 0.1375, counts), 0.80) == []
 
 
-def test_mutants_are_unique_and_cover_both_sides():
+def test_mutants_are_unique_and_cover_every_side():
     keys = [mutant.key for mutant in mutation_lab.MUTANTS]
     assert len(keys) == len(set(keys))
-    assert {mutant.side for mutant in mutation_lab.MUTANTS} == {"planner", "validator"}
+    assert {mutant.side for mutant in mutation_lab.MUTANTS} == {
+        "planner", "validator", "feasibility",
+    }
 
 
 def test_every_mutation_is_caught_and_rolled_back(lab_result):

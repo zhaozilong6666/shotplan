@@ -20,7 +20,7 @@
 | `BUDGET_TOLERANCE_CNY` | 0 | 设计选择 | 1 src | `—` | budget | validator/budget-tolerance |
 | `MAX_OVERRUN_MINUTES` | 15 | 设计选择 | 1 src | `hard:TIME_OVERRUN` | time | validator/no-time-limit |
 | `MIN_ALTERNATIVES` | 1 | 设计选择 | 1 src | `soft:NO_ALTERNATIVE` | — | — |
-| `MIN_FEASIBLE_HOURS` | 1.5 | 设计选择 | 1 src | `gate:feasibility` | — | — |
+| `MIN_FEASIBLE_HOURS` | 1.5 | 设计选择 | 1 src | `gate:feasibility` | — | feasibility/no-min-hours |
 | `MIN_SHOOT_BLOCK_FLOOR` | 30 | 实测 | 0 | `soft:SHOOT_TOO_SHORT` | — | — |
 | `MIN_SHOOT_BLOCK_MINUTES` | 60 | 设计选择 | 2 src | `soft:SHOOT_TOO_SHORT` | — | — |
 | `MIN_SOURCE_REFS` | 2 | 设计选择 | 1 src | `soft:NO_SOURCE_REF` | — | — |
@@ -72,8 +72,8 @@
 - 同文件内使用：L259
 - 规则：`gate:feasibility`
 - 探针：无
-- 变异：无
-- 漏改会怎样：没有专门的探针或变异；改动只能靠全量评测与测试兜底。
+- 变异：`feasibility/no-min-hours`
+- 漏改会怎样：`mutation_lab` 会对这个常量做单侧变异，护栏失效时报告会红。
 
 ### `MIN_SHOOT_BLOCK_FLOOR = 30`
 
@@ -156,7 +156,6 @@
 这些数改了之后，没有任何一组探针或变异会专门变红。它们不是不能改，而是改完只能看全量评测——先开一条实验、写下预测，再动。
 
 - `MIN_ALTERNATIVES`
-- `MIN_FEASIBLE_HOURS`
 - `MIN_SHOOT_BLOCK_FLOOR`
 - `MIN_SHOOT_BLOCK_MINUTES`
 - `MIN_SOURCE_REFS`
@@ -170,4 +169,4 @@
 - **文档里的数字**：`docs/` 有些正文仍然手写阈值。`check_doc_claims.py` 只覆盖它能解析的那部分声明。
 - **运行时才绑定的名字**：`patch.object(module, "NAME", ...)` 这类字符串引用不算 import，只有出现在 `tests/` 或 `evals/` 的补丁里时才会被本表看到。
 
-统计：11 个标量常量，3 个有探针，3 个有变异，8 个两者都没有。
+统计：11 个标量常量，3 个有探针，4 个有变异，7 个两者都没有。

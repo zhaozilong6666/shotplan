@@ -73,7 +73,7 @@
 | 报告 | 边际信息量 | 最近邻 | 相似度 |
 | --- | ---: | --- | ---: |
 | `multi-turn-attribution.md` | 0.904 | `ROADMAP.md` | 0.096 |
-| `ingest.md` | 0.896 | `knowledge-contract.md` | 0.104 |
+| `ingest.md` | 0.895 | `knowledge-contract.md` | 0.105 |
 | `generality.md` | 0.881 | `ROADMAP.md` | 0.119 |
 | `repair-experiment.md` | 0.877 | `evaluation.md` | 0.123 |
 | `intelligence-roadmap.md` | 0.872 | `architecture.md` | 0.128 |
@@ -127,4 +127,4 @@
 - **本文件自身不参与**审计，否则每次运行都会把自己报成 100% 重复。
 - **提交动作会改变语料**：语料取的是 git 索引，`git add` 一份新文档就会让统计数 +1。新增文档后要**先 add、再 `--write`**，否则本地算的是旧份数，CI 算的是新份数——这个陷阱已经踩过两次（一次是未跟踪的草稿被算进来，一次是刚 add 的新文档没重新生成）。
 
-_语料指纹：`e67bbca4e4819b80`（内容变化时此值必变）_
+_语料指纹：`6afe8410506dbce7`（内容变化时此值必变）_

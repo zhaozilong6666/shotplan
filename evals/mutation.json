@@ -18,9 +18,9 @@
   },
   "baseline_gate_problems": [],
   "case_count": 80,
-  "caught": 8,
-  "caught_by_legacy_gate": 4,
-  "mutant_count": 8,
+  "caught": 9,
+  "caught_by_legacy_gate": 5,
+  "mutant_count": 9,
   "mutants": [
     {
       "cases_failed": 69,
@@ -140,6 +140,23 @@
       ]
     },
     {
+      "cases_failed": 1,
+      "caught": true,
+      "caught_by_legacy_gate": true,
+      "delta": 0.6822,
+      "description": "取消 1.5 小时可行性下限，排不下的 brief 也进入排期",
+      "disabled_rules": [],
+      "good_avg": 0.9671,
+      "good_hard_pass_rate": 0.9875,
+      "key": "feasibility/no-min-hours",
+      "naive_avg": 0.2849,
+      "score_delta": -0.0125,
+      "side": "feasibility",
+      "signals": [
+        "1 case(s) failed their expectation"
+      ]
+    },
+    {
       "cases_failed": 0,
       "caught": true,
       "caught_by_legacy_gate": false,
@@ -197,7 +214,7 @@
   "restored": true,
   "restored_avg": 0.9796,
   "restored_cases_failed": 0,
-  "restored_checks": 8,
+  "restored_checks": 9,
   "restored_hard_pass_rate": 1.0,
   "survivors": 0
 }
