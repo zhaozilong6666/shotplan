@@ -122,6 +122,7 @@ gates:
 	$(PYTHON) scripts/check_gate_count.py
 	$(PYTHON) -m evals.scaling --check --requests 300
 	$(PYTHON) -m evals.examples --check
+	$(PYTHON) scripts/build_constant_checklist.py --check
 
 kb:
 	$(PYTHON) scripts/kb.py --write
