@@ -21,8 +21,8 @@
 | `MAX_OVERRUN_MINUTES` | 15 | 设计选择 | 1 src | `hard:TIME_OVERRUN` | time | validator/no-time-limit |
 | `MIN_ALTERNATIVES` | 1 | 设计选择 | 1 src | `soft:NO_ALTERNATIVE` | — | — |
 | `MIN_FEASIBLE_HOURS` | 1.5 | 设计选择 | 1 src | `gate:feasibility` | hours-floor | feasibility/no-min-hours |
-| `MIN_SHOOT_BLOCK_FLOOR` | 30 | 实测 | 0 | `soft:SHOOT_TOO_SHORT` | — | — |
-| `MIN_SHOOT_BLOCK_MINUTES` | 60 | 设计选择 | 2 src | `soft:SHOOT_TOO_SHORT` | — | — |
+| `MIN_SHOOT_BLOCK_FLOOR` | 30 | 实测 | 0 | `soft:SHOOT_TOO_SHORT` | shoot-floor | — |
+| `MIN_SHOOT_BLOCK_MINUTES` | 60 | 设计选择 | 2 src | `soft:SHOOT_TOO_SHORT` | shoot-floor | — |
 | `MIN_SOURCE_REFS` | 2 | 设计选择 | 1 src | `soft:NO_SOURCE_REF` | — | — |
 | `MIN_TRANSFER_COST_CNY` | 50 | 设计选择 | 3 src | `—` | budget-floor | — |
 | `MIN_TRANSFER_MINUTES` | 20 | 设计选择 | 5 src / 2 tests | `hard:TRANSFER_BUFFER` | transfer | planner/no-transfer、validator/no-transfer-rule |
@@ -82,9 +82,9 @@
 - 按名绑定：无（只在本文件内使用）
 - 同文件内使用：L34, L207
 - 规则：`soft:SHOOT_TOO_SHORT`
-- 探针：无
+- 探针：`shoot-floor`（4 条 brief）
 - 变异：无
-- 漏改会怎样：没有专门的探针或变异；改动只能靠全量评测与测试兜底。
+- 漏改会怎样：只改一侧（比如只收紧校验端）时，`probe_lab` 的 one-sided 组会掉通过率——这正是「漏改一处」的典型症状。
 
 ### `MIN_SHOOT_BLOCK_MINUTES = 60`
 
@@ -93,9 +93,9 @@
 - 按名绑定（2 个模块 / 2 处使用）：`src/shotplan/domain/feasibility.py`（L171）；`src/shotplan/light.py`（L94）
 - 同文件内使用：L34, L208, L258
 - 规则：`soft:SHOOT_TOO_SHORT`
-- 探针：无
+- 探针：`shoot-floor`（4 条 brief）
 - 变异：无
-- 漏改会怎样：没有专门的探针或变异；改动只能靠全量评测与测试兜底。
+- 漏改会怎样：只改一侧（比如只收紧校验端）时，`probe_lab` 的 one-sided 组会掉通过率——这正是「漏改一处」的典型症状。
 
 ### `MIN_SOURCE_REFS = 2`
 
@@ -156,8 +156,6 @@
 这些数改了之后，没有任何一组探针或变异会专门变红。它们不是不能改，而是改完只能看全量评测——先开一条实验、写下预测，再动。注意：这不等于「没有测试」，只是本表的探针/变异两列都不覆盖它。
 
 - `MIN_ALTERNATIVES`
-- `MIN_SHOOT_BLOCK_FLOOR`
-- `MIN_SHOOT_BLOCK_MINUTES`
 - `MIN_SOURCE_REFS`
 - `STYLING_FLOOR_MINUTES`
 - `STYLING_SHARE`
@@ -169,4 +167,4 @@
 - **运行时才绑定的名字**：`patch.object(module, "NAME", ...)` 这类字符串引用不算 import，只有出现在 `tests/` 或 `evals/` 的补丁里时才会被本表看到。
 - **单元测试里的边界断言**：对 `min_budget_cny` 这类派生值的断言会挡住改动，但它既不是探针也不是变异，不会出现在上表的两列里。`变异` 列只表示 mutation_lab 的 80 条评测语料看不看得见这个常量。
 
-统计：11 个标量常量，5 个有探针，4 个有变异，6 个两者都没有。
+统计：11 个标量常量，7 个有探针，4 个有变异，4 个两者都没有。

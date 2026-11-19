@@ -45,6 +45,7 @@ from shotplan.agents import validator as validator_module  # noqa: E402
 from shotplan.agents.mock import MockProvider  # noqa: E402
 from shotplan.agents.validator import validate  # noqa: E402
 from shotplan.config import get_settings  # noqa: E402
+from shotplan.domain import constraints as constraints_module  # noqa: E402
 from shotplan.domain import feasibility as feasibility_module  # noqa: E402
 from shotplan.domain.feasibility import check_feasibility  # noqa: E402
 from shotplan.domain.models import PlanRequest, fmt_minutes, to_minutes  # noqa: E402
@@ -132,6 +133,46 @@ def run_time_group() -> dict[str, list[dict[str, Any]]]:
                 "codes": sorted({issue.code for issue in report.hard_issues}),
             }
         )
+    return rows
+
+
+def run_shoot_floor_group() -> dict[str, list[dict[str, Any]]]:
+    """A soft rule, probed by forging plans just below and at the floor.
+
+    `SHOOT_TOO_SHORT` does not change `hard_pass`, so the plan-level probes cannot
+    see it. Take a valid plan, shorten one shoot block to `floor - 1` and to
+    `floor`, and assert the issue appears only in the first case. Disabling the
+    floor constant must make the below-floor case disappear again.
+    """
+    settings = get_settings()
+    rows: dict[str, list[dict[str, Any]]] = {"baseline": [], "disabled": []}
+    for case in read_group("shoot-floor"):
+        request = PlanRequest(**case["request"])
+        result = run_plan(request, provider=MockProvider(mode="good"), store=None, settings=settings)
+        floor = constraints_module.min_shoot_block_minutes(request.hours)
+        for scenario in ("baseline", "disabled"):
+            with ExitStack() as stack:
+                if scenario == "disabled":
+                    stack.enter_context(
+                        patch.object(constraints_module, "MIN_SHOOT_BLOCK_FLOOR", 0)
+                    )
+                for label, minutes in (("below", max(1, floor - 1)), ("at-floor", floor)):
+                    forged = copy.deepcopy(result.plan)
+                    slot = next(s for s in forged.slots if s.activity == "shoot")
+                    slot.end = fmt_minutes(to_minutes(slot.start) + minutes)
+                    report = validate(forged, request)
+                    hit = any(issue.code == "SHOOT_TOO_SHORT" for issue in report.issues)
+                    expect = label == "below"
+                    rows[scenario].append(
+                        {
+                            "id": f"{case['id']}-{label}",
+                            "pass": hit == expect,
+                            "hit": hit,
+                            "expect_issue": expect,
+                            "score": round(report.score, 4),
+                            "floor": floor,
+                        }
+                    )
     return rows
 
 
@@ -277,6 +318,37 @@ def render(all_results: dict[str, dict[str, list[dict[str, Any]]]]) -> str:
         "",
     ]
 
+    shoot = all_results["shoot-floor"]
+    total = len(shoot["baseline"])
+    lines += [
+        f"## shoot-floor（{total // 2} 条 brief / {total} 个断言）",
+        "",
+        "`SHOOT_TOO_SHORT` 是软规则，不影响 `hard_pass`，方案级探针看不见它。这里把同一份方案的"
+        "拍摄块压到 `floor - 1` 与正好 `floor`：前者应命中，后者不应命中。把 "
+        "`MIN_SHOOT_BLOCK_FLOOR` 改成 0 后，1.5 小时那档的门槛从 30 掉到 22，"
+        "低于 30 的断言应当失守。",
+        "",
+        "| 场景 | 符合预期 | 命中 | 最低分 | 失守的断言 |",
+        "| --- | ---: | ---: | ---: | --- |",
+    ]
+    for scenario in ("baseline", "disabled"):
+        rows = shoot[scenario]
+        passed = sum(row["pass"] for row in rows)
+        hits = sum(row["hit"] for row in rows)
+        low = min(row["score"] for row in rows)
+        wrong = [row["id"] for row in rows if not row["pass"]]
+        lines.append(
+            f"| `{scenario}` | {passed}/{len(rows)} | {hits}/{len(rows)} | {low:.4f} "
+            f"| {'、'.join(wrong) if wrong else '—'} |"
+        )
+    lines += [
+        "",
+        f"`baseline` 的 {total // 2} 条 below 全部命中、{total // 2} 条 at-floor 全部不命中；"
+        "`disabled` 只剩下门槛仍大于 30 分钟的那几档还在命中——1.5 小时那档被放过。软规则不会让方案失败，"
+        "但它的沉默同样是一种回归。",
+        "",
+    ]
+
     transfer = all_results["transfer"]
     budget = all_results["budget"]
     lines += [
@@ -359,6 +431,30 @@ def check(all_results: dict[str, dict[str, list[dict[str, Any]]]]) -> list[str]:
         ]
         if broken:
             problems.append(f"{group.key} 闸门常量失效后原本可行的 brief 被拒绝：{', '.join(broken)}")
+    shoot = all_results["shoot-floor"]
+    baseline = shoot["baseline"]
+    if not baseline:
+        problems.append("shoot-floor: 探针集为空")
+    else:
+        failed = [row["id"] for row in baseline if not row["pass"]]
+        if failed:
+            problems.append(f"shoot-floor baseline 不通过：{', '.join(failed)}")
+        if not any(row["expect_issue"] for row in baseline):
+            problems.append("shoot-floor 没有低于门槛的断言，门槛失效也看不出来")
+        missed = [
+            row["id"]
+            for row in shoot["disabled"]
+            if row["expect_issue"] and not row["pass"]
+        ]
+        if not missed:
+            problems.append("shoot-floor 门槛失效后没有任何 below 断言失守")
+        broken = [
+            row["id"]
+            for row in shoot["disabled"]
+            if not row["expect_issue"] and not row["pass"]
+        ]
+        if broken:
+            problems.append(f"shoot-floor 门槛失效后 at-floor 断言反而命中：{', '.join(broken)}")
     both = all_results["transfer"]["both-sides"]
     broken = [row["id"] for row in both if not row["pass"]]
     if broken:
@@ -383,6 +479,7 @@ def main() -> int:
             run_feasibility_group(group) if group.kind == "feasibility" else run_group(group)
         )
     all_results["time"] = run_time_group()
+    all_results["shoot-floor"] = run_shoot_floor_group()
     text = render(all_results)
     if "--write" in sys.argv:
         REPORT.write_text(text, encoding="utf-8", newline="\n")
@@ -403,6 +500,15 @@ def main() -> int:
         + ", ".join(
             f"{scenario} {sum(row['pass'] for row in all_results['time'][scenario])}/{time_total}"
             for scenario in ("baseline", "inflated")
+        )
+    )
+    shoot = all_results["shoot-floor"]
+    shoot_total = len(shoot["baseline"])
+    print(
+        "probe shoot-floor: "
+        + ", ".join(
+            f"{scenario} {sum(row['pass'] for row in shoot[scenario])}/{shoot_total}"
+            for scenario in ("baseline", "disabled")
         )
     )
     if "--check" in sys.argv:

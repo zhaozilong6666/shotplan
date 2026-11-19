@@ -1,13 +1,20 @@
-"""Feasibility probes exist because a gate can fail without producing a plan.
+"""Probes that cannot be expressed as a hard-pass count.
 
-Lower the minimum budget or the minimum hours, and an impossible brief becomes
-"feasible" — no plan, no hard-rule violation, nothing for the eval corpus to catch
-(E22). These tests pin the baseline decisions and the one-sided regression.
+Lower a feasibility floor and an impossible brief becomes "feasible"; shorten a
+shoot block below the floor and a **soft** rule fires without changing `hard_pass`.
+Neither shows up in the plan-level probe groups, so these tests pin the direct
+assertions: the gate decision, the issue, and the score.
 """
 
 from __future__ import annotations
 
+import pytest
 from evals import probe_lab
+
+
+@pytest.fixture(scope="module")
+def shoot_rows():
+    return probe_lab.run_shoot_floor_group()
 
 
 def test_each_feasibility_group_has_cases_on_both_sides_of_the_gate():
@@ -45,4 +52,28 @@ def test_the_whole_probe_set_passes_its_own_gate():
         for group in probe_lab.GROUPS
     }
     all_results["time"] = probe_lab.run_time_group()
+    all_results["shoot-floor"] = probe_lab.run_shoot_floor_group()
     assert probe_lab.check(all_results) == []
+
+
+def test_shoot_floor_baseline_hits_only_below_the_floor(shoot_rows):
+    baseline = shoot_rows["baseline"]
+    assert all(row["pass"] for row in baseline)
+    assert sum(row["hit"] for row in baseline) == len(baseline) // 2
+
+
+def test_disabling_the_shoot_floor_hides_the_below_case(shoot_rows):
+    disabled = shoot_rows["disabled"]
+    flipped = [row for row in disabled if row["expect_issue"] and not row["pass"]]
+    assert flipped, "关掉门槛下限后，低于门槛的断言必须失守"
+    # Only the 1.5h tier changes (floor 30 -> 22); 2h/3h are still above 29/44.
+    assert {row["id"] for row in flipped} == {"SF01-below"}
+    assert all(row["pass"] for row in disabled if not row["expect_issue"])
+
+
+def test_the_soft_score_drops_for_a_below_floor_block(shoot_rows):
+    baseline = shoot_rows["baseline"]
+    at_floor = {row["id"].replace("-at-floor", ""): row["score"] for row in baseline if not row["expect_issue"]}
+    for row in baseline:
+        if row["expect_issue"]:
+            assert row["score"] < at_floor[row["id"].replace("-below", "")]

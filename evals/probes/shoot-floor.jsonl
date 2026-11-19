@@ -1,0 +1,4 @@
+{"id": "SF01", "description": "1.5 小时预约：门槛 30 分钟", "request": {"city": "xian", "date": "2026-10-04", "hours": 1.5, "budget_cny": 1500, "styles": ["tang"], "preferences": []}}
+{"id": "SF02", "description": "2.0 小时预约：门槛 30 分钟", "request": {"city": "xian", "date": "2026-10-04", "hours": 2.0, "budget_cny": 1500, "styles": ["tang"], "preferences": []}}
+{"id": "SF03", "description": "3.0 小时预约：门槛 45 分钟", "request": {"city": "xian", "date": "2026-10-04", "hours": 3.0, "budget_cny": 1500, "styles": ["tang"], "preferences": []}}
+{"id": "SF04", "description": "4.0 小时预约：门槛封顶 60 分钟", "request": {"city": "xian", "date": "2026-10-04", "hours": 4.0, "budget_cny": 1500, "styles": ["tang"], "preferences": []}}

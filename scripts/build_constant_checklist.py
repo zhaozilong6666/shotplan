@@ -227,13 +227,13 @@ def internal_uses(constants: set[str]) -> dict[str, list[int]]:
                 if isinstance(target, ast.Name) and target.id in constants:
                     definitions.add((target.id, node.lineno))
     uses: dict[str, set[int]] = {}
-    for node in ast.walk(tree):
+    for sub in ast.walk(tree):
         if (
-            isinstance(node, ast.Name)
-            and node.id in constants
-            and (node.id, node.lineno) not in definitions
+            isinstance(sub, ast.Name)
+            and sub.id in constants
+            and (sub.id, sub.lineno) not in definitions
         ):
-            uses.setdefault(node.id, set()).add(node.lineno)
+            uses.setdefault(sub.id, set()).add(sub.lineno)
     return {name: sorted(lines) for name, lines in uses.items()}
 
 
@@ -257,7 +257,11 @@ def probe_counts() -> dict[str, int]:
     return counts
 
 
-def probe_guards(codes: set[str], roles: dict[str, str]) -> dict[str, list[str]]:
+def probe_guards(
+    codes: set[str],
+    roles: dict[str, str],
+    rules: dict[str, list[tuple[str, str]]],
+) -> dict[str, list[str]]:
     """Constant -> probe group keys, from `Group(...)` and the forged time group."""
     tree = parse(PROBE_LAB)
     guards: dict[str, list[str]] = {}
@@ -275,6 +279,7 @@ def probe_guards(codes: set[str], roles: dict[str, str]) -> dict[str, list[str]]
         if not isinstance(node, ast.FunctionDef) or not node.name.startswith("run_"):
             continue
         key = node.name[len("run_"): -len("_group")] if node.name.endswith("_group") else ""
+        key = key.replace("_", "-")
         if not key:
             continue
         segment = ast.get_source_segment(PROBE_LAB.read_text(encoding="utf-8-sig"), node) or ""
@@ -283,6 +288,9 @@ def probe_guards(codes: set[str], roles: dict[str, str]) -> dict[str, list[str]]
                 continue
             for name, role in roles.items():
                 if role.endswith(f":{code}"):
+                    guards.setdefault(name, []).append(key)
+            for name, entries in rules.items():
+                if any(entry[0] == code for entry in entries):
                     guards.setdefault(name, []).append(key)
     return guards
 
@@ -335,7 +343,7 @@ def render() -> str:
     bound = bindings()
     roles = sensitivity_roles()
     rules = rule_table()
-    guards = probe_guards(rule_codes(), roles)
+    guards = probe_guards(rule_codes(), roles, rules)
     mutants = mutant_guards()
     probe_n = probe_counts()
     internal = internal_uses({row["name"] for row in rows})
