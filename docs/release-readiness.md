@@ -35,6 +35,8 @@
    `docs/slo.md` 生成的告警规则，`check_deploy_config.py` 校验抓取路径、规则同源、告警字段和
    指标名；但**实际运行 Prometheus 并保存 30 天序列仍未做**，仓库里的 YAML 替代不了这一步。
 2. **黑盒探针**：服务挂掉时自己不会报指标，`probe_success` / `up` 需要部署方提供。
+   `deploy/prometheus/blackbox.yml` 已给出 `http_2xx` 模块，`shotplan.yml` 里保留了注释 job；
+   仍需部署 `blackbox_exporter` 并取消注释。
 3. **密钥注入方式**：`load_dotenv` 会把 `.env` 写进 `os.environ` 并被子进程继承
    （`http_load.py` 的 uvicorn 子进程、`cli --reload` worker）。公网部署应改用环境变量注入，
    不要挂载 `.env` 文件。参见架构评审 R11。

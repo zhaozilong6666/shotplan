@@ -9,6 +9,7 @@
 | --- | --- |
 | `prometheus/shotplan.yml` | 抓取配置：`/metrics`、15s 间隔、加载告警规则 |
 | `prometheus/shotplan.rules.yml` | 5 条告警；**由 `docs/slo.md` 的 YAML 块生成，不要手改** |
+| `prometheus/blackbox.yml` | blackbox_exporter 的 `http_2xx` 模块；接上 exporter 后启用注释里的 job |
 
 ```bash
 python scripts/check_deploy_config.py --write   # 从 docs/slo.md 重新生成规则
@@ -29,9 +30,9 @@ promtool check config deploy/prometheus/shotplan.yml   # 有 Prometheus 时的�
 
 ## 黑盒探针
 
-`/metrics` 报不了自己的死亡（服务挂了就没有指标）。`shotplan.yml` 里保留了
-`shotplan-health` 的注释块，接上 `blackbox_exporter` 后取消注释即可；没有 exporter 时
-不要启用，否则 `up{job="shotplan-health"}` 会永久为 0。
+`/metrics` 报不了自己的死亡（服务挂了就没有指标）。`blackbox.yml` 已给出 `http_2xx` 模块，
+`shotplan.yml` 里保留了 `shotplan-health` 的注释 job；启动 `blackbox_exporter` 后取消注释即可。
+没有 exporter 时不要启用，否则 `up{job="shotplan-health"}` 会永久为 0。
 
 ## 还没做的
 

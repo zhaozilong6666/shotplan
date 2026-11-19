@@ -32,6 +32,18 @@ def test_config_has_a_scrape_job_and_valid_alerts():
     assert all(alert["alert"].startswith("Shotplan") for alert in alerts)
 
 
+def test_blackbox_module_is_valid():
+    config = yaml.safe_load(cfg.BLACKBOX.read_text(encoding="utf-8"))
+    assert cfg.validate_blackbox(config) == []
+
+
+def test_blackbox_without_a_prober_is_rejected():
+    config = yaml.safe_load(cfg.BLACKBOX.read_text(encoding="utf-8"))
+    broken = copy.deepcopy(config)
+    broken["modules"]["http_2xx"]["prober"] = "tcp"
+    assert any("prober" in problem for problem in cfg.validate_blackbox(broken))
+
+
 def test_an_unknown_metric_is_rejected():
     scrape, rules = _load()
     broken = copy.deepcopy(rules)

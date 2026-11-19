@@ -30,6 +30,7 @@ SLO = ROOT / "docs" / "slo.md"
 DEPLOY = ROOT / "deploy" / "prometheus"
 SCRAPE = DEPLOY / "shotplan.yml"
 RULES = DEPLOY / "shotplan.rules.yml"
+BLACKBOX = DEPLOY / "blackbox.yml"
 OBSERVABILITY = ROOT / "src" / "shotplan" / "observability.py"
 
 RULE_BLOCK = re.compile(r"```yaml\n(groups:\n.*?)```", re.DOTALL)
@@ -48,6 +49,21 @@ def extract_rules() -> str:
 def known_metrics() -> set[str]:
     text = OBSERVABILITY.read_text(encoding="utf-8")
     return set(re.findall(r"shotplan_[a-z0-9_]+", text))
+
+
+def validate_blackbox(config: dict[str, Any]) -> list[str]:
+    problems: list[str] = []
+    module = (config.get("modules") or {}).get("http_2xx")
+    if not isinstance(module, dict):
+        return ["blackbox.yml 缺少 modules.http_2xx"]
+    if module.get("prober") != "http":
+        problems.append("http_2xx 的 prober 必须是 http")
+    if not module.get("timeout"):
+        problems.append("http_2xx 没有 timeout")
+    codes = ((module.get("http") or {}).get("valid_status_codes")) or []
+    if 200 not in codes:
+        problems.append("http_2xx 的 valid_status_codes 必须包含 200")
+    return problems
 
 
 def validate(scrape: dict[str, Any], rules: dict[str, Any]) -> list[str]:
@@ -115,7 +131,15 @@ def main(argv: list[str] | None = None) -> int:
     except yaml.YAMLError as exc:
         print(f"YAML 解析失败：{exc}", file=sys.stderr)
         return 1
-    problems = validate(scrape, rules)
+    if not BLACKBOX.exists():
+        print("缺少 deploy/prometheus/blackbox.yml", file=sys.stderr)
+        return 1
+    try:
+        blackbox = yaml.safe_load(BLACKBOX.read_text(encoding="utf-8")) or {}
+    except yaml.YAMLError as exc:
+        print(f"blackbox.yml 解析失败：{exc}", file=sys.stderr)
+        return 1
+    problems = validate(scrape, rules) + validate_blackbox(blackbox)
     for problem in problems:
         print(f"DEPLOY FAILED: {problem}", file=sys.stderr)
     print(
