@@ -1,6 +1,6 @@
 # 需要你本人动手的事项（当前状态）
 
-> **本文里的数字是 2026-11-18 的快照**：测试数、门禁数、用例数都随开发变化，面试前想引用哪个数字，跑一遍 `make gates` 或 `py -3.12 -m pytest --collect-only` 再报，比背下来安全。
+> **本文里的数字是 2026-11-20 的快照**：测试数、门禁数、用例数都随开发变化，面试前想引用哪个数字，跑一遍 `make gates` 或 `py -3.12 -m pytest --collect-only` 再报，比背下来安全。
 
 > **项目主副本已迁到 `D:\WorkBuddy\projects\shotplan`**（C 盘空间不足），下面所有命令都基于新路径；C 盘旧副本暂留作备份。
 > **2026-11-12 更新：第 1、2 节已由我在本机执行完毕并验证，你不用再照着做。**
@@ -61,10 +61,10 @@ git ls-files | grep -E "\.env$|\.db$|evals/out/" || echo "没有敏感文件被�
 
 | 检查 | 结果 |
 | --- | --- |
-| `pytest` | 596 passed（Python 3.12），覆盖率 93.15% |
+| `pytest` | 637 passed（Python 3.12），覆盖率 93.19% |
 | `ruff check src tests evals scripts` | All checks passed |
 | `evals.run_eval --compare v6` | 80/80，均分 0.9796，对照组 0.2974，差值 0.6822，退出码 0 |
-| `evals.mutation_lab --check` | 8/8 受控变异被门禁拦截、0 存活、8/8 回滚后与基线一致（旧门禁仅 4/8） |
+| `evals.mutation_lab --check` | 9/9 受控变异被门禁拦截、0 存活、9/9 回滚后与基线一致（旧门禁仅 4/8） |
 | `evals.case_miner --check` | 360 候选 → 320 个未见 brief 纳入、40 个矛盾输入被可行性判定筛掉，覆盖 19/40 → 40/40 |
 | `evals.http_load --check` | 真实 uvicorn 服务：40 次 loopback POST /api/plan，0 错误、40/40 落库 |
 | `evals.worker_lab --check` | 持久化开/关对照：开 20/20 落库、关 0/20 落库，0 错误 |
@@ -109,7 +109,7 @@ python -m shotplan.cli serve
 
 直接可用的一行描述：
 
-> **shotplan** — 可评测的旅拍方案 Agent（Python / FastAPI / SQLite）：生成前判定需求可满足性，以确定性硬约束校验替代 LLM 自评，校验报告驱动定向修复；建 80 用例主评测集 + 320 个盲测 brief、对照组与门禁有效性变异测试，CI 设 34 道质量门禁（含真实 HTTP 服务压测、持久化三组对照、写入异步化与流水线契约一致性）。
+> **shotplan** — 可评测的旅拍方案 Agent（Python / FastAPI / SQLite）：生成前判定需求可满足性，以确定性硬约束校验替代 LLM 自评，校验报告驱动定向修复；建 80 用例主评测集 + 320 个盲测 brief、对照组与门禁有效性变异测试，CI 设 39 道质量门禁（含真实 HTTP 服务压测、持久化三组对照、写入异步化与流水线契约一致性）。
 
 四条 bullets 和 10 分钟讲稿在 [interview-notes.md](interview-notes.md)。**按 AI 应用/Agent 开发方向写好的整段项目经历在 [resume.md](resume.md)**，可直接复制；数字卡片与现场命令在 [interview-onepager.md](interview-onepager.md)。验证方法：找个人用 30 秒讲一遍，对方能复述出「校验不交给模型」这个点就算成功。
 
