@@ -8,14 +8,14 @@
 
 | 指标 | 值 |
 | --- | --- |
-| 扫描报告 | 78 份（423 KB） |
+| 扫描报告 | 79 份（427 KB） |
 | 脚本生成 | 40 份，来自 30 个生成器 |
-| 人写报告 | 38 份 |
+| 人写报告 | 39 份 |
 | 人写报告冗余对（≥ 0.55） | 3 对 |
 | 同名前缀家族（≥ 3 份） | 4 个 |
 | 失效引用 | 0 处 |
 | 孤儿报告（无入链） | 8 份 |
-| 人写报告平均边际信息量 | 0.753 |
+| 人写报告平均边际信息量 | 0.755 |
 
 ## 1. 同源实例：报告为什么会堆积
 
@@ -51,7 +51,7 @@
 | --- | --- | ---: | --- |
 | `real-model-light-fix-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.668 | 部分重叠：只核对数字是否互相矛盾 |
 | `real-model-baseline-2026-11-16.md` | `real-model-light-fix-2026-11-16.md` | 0.651 | 部分重叠：只核对数字是否互相矛盾 |
-| `real-model-baseline-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.572 | 部分重叠：只核对数字是否互相矛盾 |
+| `real-model-baseline-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.573 | 部分重叠：只核对数字是否互相矛盾 |
 
 **不要直接删**：这些文件记录的是「当时为什么那么判断」。保留边际信息量最高的一份作为当前结论，其余在首行加一行`> 已被 <新文件> 取代（<日期>）；本文保留为历史记录`。
 
@@ -68,25 +68,25 @@
 
 ## 4. 边际信息量排序：人写报告里谁值得先读
 
-`1 - 最近邻相似度`，只在 38 份人写报告内比较（< 120 token 的 0 份只查引用）。接近 1 表示这份讲的东西别处没有；接近 0 表示它是别人的复述。
+`1 - 最近邻相似度`，只在 39 份人写报告内比较（< 120 token 的 0 份只查引用）。接近 1 表示这份讲的东西别处没有；接近 0 表示它是别人的复述。
 
 | 报告 | 边际信息量 | 最近邻 | 相似度 |
 | --- | ---: | --- | ---: |
-| `multi-turn-attribution.md` | 0.904 | `ROADMAP.md` | 0.096 |
+| `multi-turn-attribution.md` | 0.903 | `ROADMAP.md` | 0.097 |
 | `ingest.md` | 0.895 | `knowledge-contract.md` | 0.105 |
 | `generality.md` | 0.881 | `ROADMAP.md` | 0.119 |
 | `repair-experiment.md` | 0.877 | `evaluation.md` | 0.123 |
-| `intelligence-roadmap.md` | 0.873 | `architecture.md` | 0.127 |
+| `intelligence-roadmap.md` | 0.872 | `architecture.md` | 0.128 |
 | `cost-latency-simulation.md` | 0.871 | `real-model-light-fix-2026-11-16.md` | 0.129 |
 | `knowledge-contract.md` | 0.869 | `architecture.md` | 0.131 |
-| `city-coverage.md` | 0.869 | `evaluation.md` | 0.131 |
+| `city-coverage.md` | 0.868 | `evaluation.md` | 0.132 |
+| `write-lock-retest.md` | 0.859 | `evaluation.md` | 0.141 |
 | `rule-map.md` | 0.846 | `problem-and-metrics.md` | 0.154 |
-| `budget-vs-concurrency.md` | 0.843 | `real-model-baseline-2026-11-16.md` | 0.157 |
 
 末位（信息量最低）：
 
-- `ROADMAP.md` — 0.667，最近邻 `evaluation.md`（0.333）
-- `evaluation.md` — 0.667，最近邻 `ROADMAP.md`（0.333）
+- `ROADMAP.md` — 0.668，最近邻 `evaluation.md`（0.332）
+- `evaluation.md` — 0.668，最近邻 `ROADMAP.md`（0.332）
 - `real-model-baseline-2026-11-16.md` — 0.349，最近邻 `real-model-light-fix-2026-11-16.md`（0.651）
 - `real-model-light-fix-2026-11-16.md` — 0.332，最近邻 `real-model-smoke-2026-11-16.md`（0.668）
 - `real-model-smoke-2026-11-16.md` — 0.332，最近邻 `real-model-light-fix-2026-11-16.md`（0.668）
@@ -127,4 +127,4 @@
 - **本文件自身不参与**审计，否则每次运行都会把自己报成 100% 重复。
 - **提交动作会改变语料**：语料取的是 git 索引，`git add` 一份新文档就会让统计数 +1。新增文档后要**先 add、再 `--write`**，否则本地算的是旧份数，CI 算的是新份数——这个陷阱已经踩过两次（一次是未跟踪的草稿被算进来，一次是刚 add 的新文档没重新生成）。
 
-_语料指纹：`25546ba179c7857f`（内容变化时此值必变）_
+_语料指纹：`f138cc6e2c746c9b`（内容变化时此值必变）_

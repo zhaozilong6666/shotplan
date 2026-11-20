@@ -6,6 +6,11 @@
 
 ### Added
 
+- **E24 多 worker 写库复测（2026-11-20）**：Python 3.12 下 1/2/4 worker 各 200 请求，
+  **0 错误、0 丢写**；4 worker 相对 1 worker 为 **2.61×**，与 Python 3.13 快照的 **0.52×**
+  不一致。主要混杂是解释器不同（3.12.4 vs 3.13.14），不能直接比较；旧快照保留，复测见
+  [docs/write-lock-retest.md](docs/write-lock-retest.md)。
+
 - **E23 确认：styling 比例改用四舍五入，3 小时档不再丢 1 分钟（2026-11-20）**：
   `180 * 0.35` 的浮点结果是 62.999…，原来的 `int()` 把它截成 62；改成 `int(round(...))`
   后是 63。80 条主集 hard_pass 仍 80/80、avg_score 0.9796 不变（E23 confirmed）。
