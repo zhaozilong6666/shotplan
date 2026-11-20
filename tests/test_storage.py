@@ -170,3 +170,41 @@ def test_summary_quality_metrics_ignore_provider_outages(tmp_path):
     assert summary["error_runs"] == 1
     assert summary["hard_pass_rate"] == 1.0, "the outage must not lower the pass rate"
     assert summary["error_rate"] == 0.5
+
+
+def test_init_retries_a_transient_readonly_error(tmp_path, monkeypatch):
+    """4 uvicorn workers can race schema creation; a transient error must retry."""
+    db = tmp_path / "race" / "runs.db"
+    store = RunStore.__new__(RunStore)
+    store.path = db
+    calls = {"n": 0}
+    real = RunStore._connect
+
+    def flaky(self):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise sqlite3.OperationalError("attempt to write a read-only database")
+        return real(self)
+
+    monkeypatch.setattr(RunStore, "_connect", flaky)
+    store._init()
+
+    assert calls["n"] == 2
+    assert db.exists()
+
+
+def test_init_does_not_retry_a_permanent_error(tmp_path, monkeypatch):
+    from shotplan.domain.errors import StorageError
+
+    store = RunStore.__new__(RunStore)
+    store.path = tmp_path / "bad" / "runs.db"
+    calls = {"n": 0}
+
+    def broken(self):
+        calls["n"] += 1
+        raise sqlite3.OperationalError("unable to open database file")
+
+    monkeypatch.setattr(RunStore, "_connect", broken)
+    with pytest.raises(StorageError):
+        store._init()
+    assert calls["n"] == 1

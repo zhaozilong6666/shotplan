@@ -99,44 +99,71 @@ class RunStore:
         return conn
 
     def _init(self) -> None:
+        """Create the schema, tolerating a concurrent worker doing it first.
+
+        uvicorn starts N workers at once; on a fresh database they all run
+        `PRAGMA journal_mode=WAL` and `executescript`. SQLite can answer one of
+        them with "attempt to write a read-only database" while another holds
+        the creation lock. That is a transient startup race, not a read-only
+        filesystem, so retry briefly instead of failing the first request with
+        a 503. The error was observed at 4 workers in `evals/http_load.py`.
+        """
         key = str(self.path.resolve())
         with self._INIT_LOCK:
             if key in self._INITIALISED and self.path.exists():
                 return
-            try:
-                self.path.parent.mkdir(parents=True, exist_ok=True)
-                with contextlib.closing(self._connect()) as conn:
-                    # WAL lets readers proceed during a write and removes the
-                    # rollback-journal fsync from the commit path. Measured by
-                    # evals/loadtest.py: at 4 concurrent writers p95 fell from
-                    # ~209ms to ~55ms and throughput roughly doubled. See
-                    # docs/loadtest.md for the full table.
-                    conn.execute("PRAGMA journal_mode=WAL")
-                    version = int(conn.execute("PRAGMA user_version").fetchone()[0])
-                    if version > _SCHEMA_VERSION:
-                        raise StorageError(
-                            f"database {self.path} was written by a newer schema "
-                            f"(v{version} > v{_SCHEMA_VERSION}); upgrade shotplan"
-                        )
-                    conn.executescript(_SCHEMA)
-                    columns = {
-                        row[1] for row in conn.execute("PRAGMA table_info(runs)").fetchall()
-                    }
-                    if "status" not in columns:
-                        # v1 databases predate the status column. The whole
-                        # payload is already stored, so the backfill is exact.
-                        conn.execute(
-                            "ALTER TABLE runs ADD COLUMN status TEXT NOT NULL DEFAULT 'ok'"
-                        )
-                    if version < _SCHEMA_VERSION:
-                        conn.execute(f"PRAGMA user_version = {_SCHEMA_VERSION}")
-                    # closing() does not commit; the migration must survive.
-                    conn.commit()
-                self._INITIALISED.add(key)
-            except (OSError, sqlite3.Error) as exc:
+            last: Exception | None = None
+            for attempt in range(self._RETRIES):
+                try:
+                    self._init_once()
+                    self._INITIALISED.add(key)
+                    return
+                except sqlite3.OperationalError as exc:
+                    last = exc
+                    message = str(exc).lower()
+                    retryable = any(
+                        token in message
+                        for token in ("locked", "readonly", "read-only", "busy")
+                    )
+                    if not retryable:
+                        break
+                    time.sleep(0.05 * (attempt + 1))
+                except (OSError, sqlite3.Error) as exc:
+                    last = exc
+                    break
+            raise StorageError(
+                f"cannot initialise database at {self.path}: {last}"
+            ) from last
+
+    def _init_once(self) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        with contextlib.closing(self._connect()) as conn:
+            # WAL lets readers proceed during a write and removes the
+            # rollback-journal fsync from the commit path. Measured by
+            # evals/loadtest.py: at 4 concurrent writers p95 fell from
+            # ~209ms to ~55ms and throughput roughly doubled. See
+            # docs/loadtest.md for the full table.
+            conn.execute("PRAGMA journal_mode=WAL")
+            version = int(conn.execute("PRAGMA user_version").fetchone()[0])
+            if version > _SCHEMA_VERSION:
                 raise StorageError(
-                    f"cannot initialise database at {self.path}: {exc}"
-                ) from exc
+                    f"database {self.path} was written by a newer schema "
+                    f"(v{version} > v{_SCHEMA_VERSION}); upgrade shotplan"
+                )
+            conn.executescript(_SCHEMA)
+            columns = {
+                row[1] for row in conn.execute("PRAGMA table_info(runs)").fetchall()
+            }
+            if "status" not in columns:
+                # v1 databases predate the status column. The whole payload is
+                # already stored, so the backfill is exact.
+                conn.execute(
+                    "ALTER TABLE runs ADD COLUMN status TEXT NOT NULL DEFAULT 'ok'"
+                )
+            if version < _SCHEMA_VERSION:
+                conn.execute(f"PRAGMA user_version = {_SCHEMA_VERSION}")
+            # closing() does not commit; the migration must survive.
+            conn.commit()
 
     def save(self, result: PlanResult) -> str:
         self.save_many([result])

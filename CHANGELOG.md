@@ -6,10 +6,15 @@
 
 ### Added
 
-- **E24 多 worker 写库复测（2026-11-20）**：Python 3.12 下 1/2/4 worker 各 200 请求，
-  **0 错误、0 丢写**；4 worker 相对 1 worker 为 **2.61×**，与 Python 3.13 快照的 **0.52×**
-  不一致。主要混杂是解释器不同（3.12.4 vs 3.13.14），不能直接比较；旧快照保留，复测见
-  [docs/write-lock-retest.md](docs/write-lock-retest.md)。
+- **E24 多 worker 写库复测（2026-11-20）**：1/2/4 worker 各 200 请求，两个解释器下丢写均为 0；
+  但 v0.8.0 记录的 4 worker **0.52×** 回落不再复现（3.13 为 **2.99×**、3.12 为 **2.61×**），
+  单 worker 绝对吞吐从 250/s 降到 29–48/s。旧快照是历史，当前快照由本次 3.13 运行生成；
+  见 [docs/write-lock-retest.md](docs/write-lock-retest.md)。
+
+- **修复 4 worker 冷启动的 SQLite 建表竞争（2026-11-20）**：复测中出现过 1 个 503
+  `attempt to write a read-only database`。`RunStore._init` 对 `locked/readonly/busy`
+  重试 3 次（50/100/150 ms），对永久错误不重试。修复后一轮 5 场景 0 错误；只有一轮，
+  不能算统计证明；`http_load --check` 只跑 1 worker，覆盖不到这个竞争。
 
 - **E23 确认：styling 比例改用四舍五入，3 小时档不再丢 1 分钟（2026-11-20）**：
   `180 * 0.35` 的浮点结果是 62.999…，原来的 `int()` 把它截成 62；改成 `int(round(...))`

@@ -388,9 +388,9 @@ def build_report(scenarios: list[Scenario], cpu_count: int) -> str:
         "",
         "- `docs/loadtest.md`：进程内线程并发 8 约 **310/s**，p95 约 **27ms**。",
         "- `docs/scaling.md`：进程池纯函数吞吐约 **数千次/秒**。",
-        "- 这里单 worker 并发 8 的吞吐与进程内同量级但略低（多了 HTTP/JSON/网络栈与一次"
-        "完整 SQLite 提交），P95 则从约 27ms 变成几十到上百 ms；"
-        "这才是对外提供服务时真正能拿到的量级。",
+        "- 这里单 worker 并发 8 的吞吐比进程内线程低约一个量级（HTTP/JSON/网络栈与一次"
+        "完整 SQLite 提交都要算），P95 也从约 27ms 变成数百毫秒；"
+        "这才是对外提供服务时真正能拿到的量级，绝对值随代码版本与机器负载变化。",
         "",
     ]
     one_worker = by_key.get((1, 8))

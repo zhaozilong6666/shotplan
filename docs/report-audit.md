@@ -8,7 +8,7 @@
 
 | 指标 | 值 |
 | --- | --- |
-| 扫描报告 | 79 份（427 KB） |
+| 扫描报告 | 79 份（428 KB） |
 | 脚本生成 | 40 份，来自 30 个生成器 |
 | 人写报告 | 39 份 |
 | 人写报告冗余对（≥ 0.55） | 3 对 |
@@ -72,7 +72,7 @@
 
 | 报告 | 边际信息量 | 最近邻 | 相似度 |
 | --- | ---: | --- | ---: |
-| `multi-turn-attribution.md` | 0.903 | `ROADMAP.md` | 0.097 |
+| `multi-turn-attribution.md` | 0.904 | `ROADMAP.md` | 0.096 |
 | `ingest.md` | 0.895 | `knowledge-contract.md` | 0.105 |
 | `generality.md` | 0.881 | `ROADMAP.md` | 0.119 |
 | `repair-experiment.md` | 0.877 | `evaluation.md` | 0.123 |
@@ -80,13 +80,13 @@
 | `cost-latency-simulation.md` | 0.871 | `real-model-light-fix-2026-11-16.md` | 0.129 |
 | `knowledge-contract.md` | 0.869 | `architecture.md` | 0.131 |
 | `city-coverage.md` | 0.868 | `evaluation.md` | 0.132 |
-| `write-lock-retest.md` | 0.859 | `evaluation.md` | 0.141 |
 | `rule-map.md` | 0.846 | `problem-and-metrics.md` | 0.154 |
+| `budget-vs-concurrency.md` | 0.843 | `real-model-baseline-2026-11-16.md` | 0.157 |
 
 末位（信息量最低）：
 
-- `ROADMAP.md` — 0.668，最近邻 `evaluation.md`（0.332）
-- `evaluation.md` — 0.668，最近邻 `ROADMAP.md`（0.332）
+- `ROADMAP.md` — 0.669，最近邻 `evaluation.md`（0.331）
+- `evaluation.md` — 0.669，最近邻 `ROADMAP.md`（0.331）
 - `real-model-baseline-2026-11-16.md` — 0.349，最近邻 `real-model-light-fix-2026-11-16.md`（0.651）
 - `real-model-light-fix-2026-11-16.md` — 0.332，最近邻 `real-model-smoke-2026-11-16.md`（0.668）
 - `real-model-smoke-2026-11-16.md` — 0.332，最近邻 `real-model-light-fix-2026-11-16.md`（0.668）
@@ -127,4 +127,4 @@
 - **本文件自身不参与**审计，否则每次运行都会把自己报成 100% 重复。
 - **提交动作会改变语料**：语料取的是 git 索引，`git add` 一份新文档就会让统计数 +1。新增文档后要**先 add、再 `--write`**，否则本地算的是旧份数，CI 算的是新份数——这个陷阱已经踩过两次（一次是未跟踪的草稿被算进来，一次是刚 add 的新文档没重新生成）。
 
-_语料指纹：`f138cc6e2c746c9b`（内容变化时此值必变）_
+_语料指纹：`919aac2aaed5cba9`（内容变化时此值必变）_
