@@ -67,8 +67,9 @@ attempt to write a read-only database"}
 
 修法：`RunStore._init` 对 `locked / readonly / read-only / busy` 三类瞬时错误重试 3 次
 （50 / 100 / 150 ms），对「unable to open database file」这类永久错误不重试。
-修复后一轮 5 场景 0 错误；但 `http_load --check` 只跑 1 worker，覆盖不到这个竞争，
-所以只能算「已观察到一次修复后正常」，不能算统计证明。
+修复后先跑一轮 5 场景 0 错误；随后用 `startup_race_lab` 做了 **20 轮 × 4 worker 冷启动**
+复测（E25）：**0 启动失败、0 个 503、0 丢写**，启动中位数 2.26s（[startup-race.md](startup-race.md)）。
+这仍不能证明概率为零；`http_load --check` 只跑 1 worker，覆盖不到这个竞争。
 
 ## 为什么会出现吞吐差异
 

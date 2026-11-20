@@ -13,8 +13,9 @@
 
 - **修复 4 worker 冷启动的 SQLite 建表竞争（2026-11-20）**：复测中出现过 1 个 503
   `attempt to write a read-only database`。`RunStore._init` 对 `locked/readonly/busy`
-  重试 3 次（50/100/150 ms），对永久错误不重试。修复后一轮 5 场景 0 错误；只有一轮，
-  不能算统计证明；`http_load --check` 只跑 1 worker，覆盖不到这个竞争。
+  重试 3 次（50/100/150 ms），对永久错误不重试。修复后一轮 5 场景 0 错误；再用
+  `startup_race_lab` 做 **20 轮 × 4 worker 冷启动**（E25）：**0 启动失败、0 个 503、
+  0 丢写**。这仍不能证明概率为零；`http_load --check` 只跑 1 worker，覆盖不到这个竞争。
 
 - **E23 确认：styling 比例改用四舍五入，3 小时档不再丢 1 分钟（2026-11-20）**：
   `180 * 0.35` 的浮点结果是 62.999…，原来的 `int()` 把它截成 62；改成 `int(round(...))`
