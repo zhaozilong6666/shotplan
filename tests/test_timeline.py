@@ -85,7 +85,7 @@ def test_styling_cap_scales_with_the_booking():
     """C46: an 85-minute styling block cannot fit a 1.5h booking."""
     assert styling_minutes_for(85, 1.5) == 60   # 31 min proportional -> floor
     assert styling_minutes_for(85, 2.0) == 60   # 42 -> floor
-    assert styling_minutes_for(85, 3.0) == 62   # 180*0.35 is 62.999... -> 62
+    assert styling_minutes_for(85, 3.0) == 63   # 180*0.35 rounds to 63
     assert styling_minutes_for(85, 4.0) == 84   # 84 -> share applies
     assert styling_minutes_for(85, 5.0) == 85   # cap exceeds the style's standard
     assert styling_minutes_for(40, 1.5) == 40   # never longer than standard

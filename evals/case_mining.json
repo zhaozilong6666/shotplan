@@ -41,10 +41,10 @@
   ],
   "failure_records": 527,
   "good": {
-    "avg_score": 0.9885,
+    "avg_score": 0.9884,
     "cases": 320,
     "hard_pass_rate": 1.0,
-    "min_score": 0.9525
+    "min_score": 0.9513
   },
   "grid": {
     "cities": 8,
@@ -62,7 +62,7 @@
     "seasons": 4,
     "styles": 5
   },
-  "min_gap": 0.7625,
+  "min_gap": 0.7613,
   "min_gap_required": 0.3,
   "naive": {
     "avg_score": 0.1771,

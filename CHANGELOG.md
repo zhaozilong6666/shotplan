@@ -6,6 +6,10 @@
 
 ### Added
 
+- **E23 确认：styling 比例改用四舍五入，3 小时档不再丢 1 分钟（2026-11-20）**：
+  `180 * 0.35` 的浮点结果是 62.999…，原来的 `int()` 把它截成 62；改成 `int(round(...))`
+  后是 63。80 条主集 hard_pass 仍 80/80、avg_score 0.9796 不变（E23 confirmed）。
+
 - **Prometheus 抓取与告警配置（2026-11-19）**：新增 `deploy/prometheus/shotplan.yml`
   （15s 抓取 `/metrics`）与由 `docs/slo.md` 生成的 `shotplan.rules.yml`（5 条告警）。
   `scripts/check_deploy_config.py` 校验规则与文档同源、每条告警有 `expr/for/severity/summary`、

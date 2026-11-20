@@ -49,7 +49,9 @@ def styling_minutes_for(standard_minutes: int, available_hours: float) -> int:
     floor. Shared by the offline planner and the post-generation repair so the
     two cannot disagree about what "compressed" means.
     """
-    cap = max(STYLING_FLOOR_MINUTES, int(available_hours * 60 * STYLING_SHARE))
+    # `round`, not truncation: 3h * 35% is 63 minutes, but the float result is
+    # 62.999... and `int()` would silently take one minute away from styling.
+    cap = max(STYLING_FLOOR_MINUTES, int(round(available_hours * 60 * STYLING_SHARE)))
     return min(standard_minutes, cap)
 
 # Below this, makeup + one transfer + one shoot cannot fit at all.
