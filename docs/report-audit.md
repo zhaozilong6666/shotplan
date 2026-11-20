@@ -8,14 +8,14 @@
 
 | 指标 | 值 |
 | --- | --- |
-| 扫描报告 | 80 份（430 KB） |
+| 扫描报告 | 80 份（431 KB） |
 | 脚本生成 | 41 份，来自 31 个生成器 |
 | 人写报告 | 39 份 |
 | 人写报告冗余对（≥ 0.55） | 3 对 |
 | 同名前缀家族（≥ 3 份） | 4 个 |
 | 失效引用 | 0 处 |
 | 孤儿报告（无入链） | 8 份 |
-| 人写报告平均边际信息量 | 0.754 |
+| 人写报告平均边际信息量 | 0.752 |
 
 ## 1. 同源实例：报告为什么会堆积
 
@@ -78,10 +78,10 @@
 | `repair-experiment.md` | 0.877 | `evaluation.md` | 0.123 |
 | `intelligence-roadmap.md` | 0.872 | `architecture.md` | 0.128 |
 | `cost-latency-simulation.md` | 0.871 | `real-model-light-fix-2026-11-16.md` | 0.129 |
-| `knowledge-contract.md` | 0.869 | `architecture.md` | 0.131 |
 | `city-coverage.md` | 0.868 | `evaluation.md` | 0.132 |
-| `rule-map.md` | 0.846 | `problem-and-metrics.md` | 0.154 |
+| `knowledge-contract.md` | 0.859 | `problem-and-metrics.md` | 0.141 |
 | `budget-vs-concurrency.md` | 0.843 | `real-model-baseline-2026-11-16.md` | 0.157 |
+| `rule-map.md` | 0.835 | `problem-and-metrics.md` | 0.165 |
 
 末位（信息量最低）：
 
@@ -127,4 +127,4 @@
 - **本文件自身不参与**审计，否则每次运行都会把自己报成 100% 重复。
 - **提交动作会改变语料**：语料取的是 git 索引，`git add` 一份新文档就会让统计数 +1。新增文档后要**先 add、再 `--write`**，否则本地算的是旧份数，CI 算的是新份数——这个陷阱已经踩过两次（一次是未跟踪的草稿被算进来，一次是刚 add 的新文档没重新生成）。
 
-_语料指纹：`be18c7e4833e00f7`（内容变化时此值必变）_
+_语料指纹：`10a5a20313a27e3b`（内容变化时此值必变）_

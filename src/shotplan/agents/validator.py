@@ -320,7 +320,7 @@ def validate(
         last_end = max(end for _, end in parsed)
         if last_end > deadline:
             add(
-                "END_AFTER_DEADLINE", "soft",
+                "END_AFTER_DEADLINE", "hard",
                 f"方案 {fmt_minutes(last_end)} 结束，晚于承诺的 {fmt_minutes(deadline)} 前结束",
                 actual=f"{fmt_minutes(last_end)} 结束",
                 expected=f"<= {fmt_minutes(deadline)}",

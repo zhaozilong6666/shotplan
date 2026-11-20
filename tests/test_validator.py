@@ -177,7 +177,8 @@ def test_a_stated_departure_time_is_checked_not_just_recorded(valid_plan, brief,
     report = validate(valid_plan, brief, tools)
     found = [i for i in report.issues if i.code == "END_AFTER_DEADLINE"]
     assert len(found) == 1
-    assert found[0].severity == "soft", "late by an hour is bad, but not undeliverable"
+    assert found[0].severity == "hard", "missing a train is not deliverable"
+    assert report.hard_pass is False
     assert found[0].expected == "<= 17:00"
 
 

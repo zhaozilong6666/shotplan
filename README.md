@@ -3,7 +3,7 @@
 > 把一句模糊的「想去西安拍汉服」，变成一份**能执行、能核对、能追溯**的小时级方案。
 > 这是一个可评测的 Agent 系统，不是又一个聊天框。
 
-[English README](README.en.md) · [在线展示](https://zhaozilong6666.github.io/shotplan/) · ![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![CI](https://github.com/zhaozilong6666/shotplan/actions/workflows/ci.yml/badge.svg) ![coverage](https://img.shields.io/badge/coverage-93.28%25-brightgreen)
+[English README](README.en.md) · [在线展示](https://zhaozilong6666.github.io/shotplan/) · ![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![CI](https://github.com/zhaozilong6666/shotplan/actions/workflows/ci.yml/badge.svg) ![coverage](https://img.shields.io/badge/coverage-93.19%25-brightgreen)
 
 ---
 
@@ -16,8 +16,8 @@
 场景选的是汉服旅拍，因为约束足够真实：光线有时段、景点之间要转场、妆造必须先于拍摄、预算是硬上限、天气要有备选。而且这个领域的好坏，人是能判断的——这是定义「什么算好结果」的前提。
 
 **但内核不是旅拍。** 真正可迁移的是「预判可行性 → 独立校验 → 受控修复 → 盲测证明」这套骨架：
-`pipeline.py` 655 行里只有 6 处提到旅拍，16 条规则中有 **15 条的逻辑**可直接用于排班、会议室排期、
-物流调度等任何约束规划域——**文案层面却只有 4/15 不含领域词**，差别说明换领域的工作量主要在
+`pipeline.py` 688 行里只有 8 处提到旅拍，16 条规则中有 **15 条的逻辑**可直接用于排班、会议室排期、
+物流调度等任何约束规划域——**文案层面却只有 5/16 不含领域词**，差别说明换领域的工作量主要在
 改名和换数据，不在重写推理（实测：`python -m evals.domain_portability`）。
 旅拍只是载体：它约束最密、对错最好判定。详见 [docs/generality.md](docs/generality.md)。
 
@@ -277,7 +277,7 @@ docker compose up --build          # http://127.0.0.1:8000
 
 ## 面试怎么讲
 
-> 「我做了一个旅拍方案 Agent。核心不是调模型，而是先把『一份能执行的方案』写成 16 条可测试的规则（10 条硬约束 + 6 项软评分），再在生成之前判断需求到底可不可满足；生成之后用不经过模型的校验器打分，把报告反馈给模型做修复，并且拒绝接受更差的结果。为了让质量可比较，我建了 80 个用例、覆盖八座城市的评测集，和一个故意犯错的对照 provider。更有意思的是我没有停在『80/80 全绿』：我给门禁本身做了变异测试，注入 9 处受控故障，发现旧门禁漏掉了 4 处『悄悄删掉一条校验规则』的改动——因为对照组方案太烂，少一条问题均分也不动。补上规则级覆盖后 9/9 全部拦截。我又从失败案例库聚类出 320 个主集没见过的组合做盲测，独立存放以免污染 v1–v6 基线。最后把服务真正跑起来压测，发现多 worker 反而变慢；我没有停在「听起来合理的解释」，而是加了个开关做开/关对照，验证写库是不是主因，并且允许实验给出「不确定」。另外用模糊测试保证任何垃圾输入都不会让服务崩。」
+> 「我做了一个旅拍方案 Agent。核心不是调模型，而是先把『一份能执行的方案』写成 16 条可测试的规则（11 条硬约束 + 5 项软评分），再在生成之前判断需求到底可不可满足；生成之后用不经过模型的校验器打分，把报告反馈给模型做修复，并且拒绝接受更差的结果。为了让质量可比较，我建了 80 个用例、覆盖五座城市的主评测集（另加 12 条三城补盲），和一个故意犯错的对照 provider。更有意思的是我没有停在『80/80 全绿』：我给门禁本身做了变异测试，注入 9 处受控故障，发现旧门禁漏掉了 4 处『悄悄删掉一条校验规则』的改动——因为对照组方案太烂，少一条问题均分也不动。补上规则级覆盖后 9/9 全部拦截。我又从失败案例库聚类出 320 个主集没见过的组合做盲测，独立存放以免污染 v1–v6 基线。最后把服务真正跑起来压测，发现多 worker 反而变慢；我没有停在「听起来合理的解释」，而是加了个开关做开/关对照，验证写库是不是主因，并且允许实验给出「不确定」。另外用模糊测试保证任何垃圾输入都不会让服务崩。」
 
 深挖问答（为什么不把判定交给模型、怎么处理幻觉、怎么定义指标、修复循环如何避免回归）见 [docs/portfolio/interview-notes.md](docs/portfolio/interview-notes.md)；现场可用的一页版在 [docs/portfolio/interview-onepager.md](docs/portfolio/interview-onepager.md)。
 

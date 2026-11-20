@@ -237,7 +237,7 @@ RULES: list[dict[str, str]] = [
     },
     {
         "code": "END_AFTER_DEADLINE",
-        "severity": "soft",
+        "severity": "hard",
         "rule": "方案结束时间不得晚于用户承诺的离开时刻（如「17:00前结束」）",
         "why": "赶高铁/飞机是真实硬约束；识别到却不校验，等于没识别",
     },

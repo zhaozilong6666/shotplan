@@ -68,7 +68,7 @@ flowchart TB
 2. `KnowledgeTools.context_for()` 做结构化检索，产出**紧凑、可引用**的上下文：候选地点、风格详情、黄金光线窗口、室内兜底、转场最短时长。
 3. `PlanProvider.generate()` 返回原始 payload。真实 provider 走 urllib 调 OpenAI 兼容接口，并按版本取系统提示词；离线 provider 用确定性规则生成。
 4. `parse_plan()` 是信任边界：抽取 JSON（容忍 markdown 围栏和前后解释）、校验字段、统一时间格式、按时间排序、计算成本。任何不合法都抛 `ParseError`。
-5. `validate()` 执行 15 条规则（10 硬 + 5 软），产出问题清单、5 个维度分与用 `math.fsum` 聚合的加权总分。
+5. `validate()` 执行 16 条规则（11 硬 + 5 软），产出问题清单、5 个维度分与用 `math.fsum` 聚合的加权总分。
    - 校验之前，`grounding.sanitize_source_refs()` 先丢弃无法解析的引用，并把丢弃数量写进 `validate` 阶段的 trace（`dropped_source_refs`）。直接调用 `validate()` 时伪造引用仍是硬失败（ADR 0016）；流水线选择「降级为缺失」而不是让一条坏指针毁掉整份方案，但不再静默处理。
    - 校验后若出现 `LIGHT_MISUSE`，`light.align_light_window()` 再试一次**纯代码的光线排程**：把整条时间轴整体平移，让最后一段外景落进黄金窗口，总时长与活动顺序不变。只有对齐后 `(hard_pass, score)` 不劣化才采纳。真实模型 80 例实测里 `LIGHT_MISUSE`（soft）占全部问题 47 条中的 31 条，说明「让模型排光线」本身就是错的分工。
    - 若用户明确要求「上午收工」，黄金窗口空着是**正确**结果：校验器与对齐器共用 `constraints.wants_morning_finish()`，不会为了凑光线而违背 brief。

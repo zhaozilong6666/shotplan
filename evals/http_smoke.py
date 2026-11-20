@@ -22,6 +22,7 @@ from typing import Any
 import httpx
 
 from evals.http_load import server
+from shotplan.domain.constraints import RULES
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "docs" / "http-smoke.md"
@@ -66,9 +67,10 @@ def walk(base_url: str) -> list[Check]:
                       str(p)[:100] if p else f"status={r.status_code}"))
     get("/api/config", "masked config exposes provider",
         lambda r, p: (r.status_code == 200 and isinstance(p, dict) and "provider" in p, ""))
-    get("/api/rules", "at least 15 rules",
+    rule_count = len(RULES)
+    get("/api/rules", f"all {rule_count} rules",
         lambda r, p: (r.status_code == 200 and isinstance(p, dict)
-                      and len(p.get("rules", p if isinstance(p, list) else [])) >= 15, ""))
+                      and len(p.get("rules", p if isinstance(p, list) else [])) >= rule_count, ""))
 
     post("/api/plan", "feasible brief -> status ok",
          {"city": "xian", "date": "2026-10-04", "hours": 6, "budget_cny": 1500,

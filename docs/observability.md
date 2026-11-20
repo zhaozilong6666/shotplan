@@ -61,7 +61,7 @@ request_id=4f1c2a7d9e0b4c11 method=POST path=/api/plan status=200 duration_ms=31
 
 ## 不在规则表里的运维码
 
-`/api/rules` 返回的是**方案质量规则**（15 条：10 硬 + 5 软），全部由 `domain/constraints.py` 的 `RULES` 定义，用于判定一份行程能不能执行。
+`/api/rules` 返回的是**方案质量规则**（16 条：11 硬 + 5 软），全部由 `domain/constraints.py` 的 `RULES` 定义，用于判定一份行程能不能执行。
 
 有一个码故意不进去：`PERSISTENCE_FAILED`。它由流水线在写库失败时追加为 **soft** issue——磁盘满、库被锁、路径无权限都属于运维事件，和行程本身对不对无关。把它塞进规则表会让客户端误以为这是一条可被模型修复的校验规则，所以它只出现在运行结果的 `validation.issues` 里，语义是「这次结果有效，但没存下来」。
 

@@ -193,7 +193,7 @@ STAGES: tuple[Stage, ...] = (
         outputs={"report": "{issues: [...], scores: {...}, score: float, hard_pass: bool}"},
         on_success="ok",
         on_failure="repair",
-        notes="15 条规则（10 硬 + 5 软）。hard_pass=True 时直接终止，不进入修复。",
+        notes="16 条规则（11 硬 + 5 软）。hard_pass=True 时直接终止，不进入修复。",
     ),
     Stage(
         name="repair",

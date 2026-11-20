@@ -142,7 +142,7 @@ flowchart TD
   "report": "{issues: [...], scores: {...}, score: float, hard_pass: bool}"
 }
 ```
-- 说明：15 条规则（10 硬 + 5 软）。hard_pass=True 时直接终止，不进入修复。
+- 说明：16 条规则（11 硬 + 5 软）。hard_pass=True 时直接终止，不进入修复。
 
 ### `repair` — 定向修复（有界）
 

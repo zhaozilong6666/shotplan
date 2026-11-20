@@ -1,6 +1,6 @@
 """How much of the rule set survives a different domain? Measure, don't guess.
 
-`docs/generality.md` claims 9 of the 15 rules are portable and 6 are
+`docs/generality.md` claims 15 of the 16 rules are logically portable and 1 is
 domain-specific. That claim should be checkable, not asserted -- so this script
 classifies every rule from the single rule table (`constraints.RULES`) by
 looking for domain vocabulary in its own text.

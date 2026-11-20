@@ -22,7 +22,7 @@
 | `NO_ALTERNATIVE` | soft | 0 | 0 | `test_validator.py::test_soft_rules_fire`, `test_constant_checklist.py::test_rule_table_reads_the_fstrings_not_a_second_list` | 户外拍摄受天气与客流影响，必须有 Plan B |
 | `NO_SOURCE_REF` | soft | 0 | 0 | `test_validator.py::test_soft_rules_fire` | 可溯源是判断输出是否可信的前提 |
 | `STYLE_MISMATCH` | soft | 0 | 2 | `test_domain_portability.py::test_only_style_matching_is_declared_domain_specific`, `test_validator.py::test_soft_rules_fire` | 唐制配现代极简场景会显得违和 |
-| `END_AFTER_DEADLINE` | soft | 0 | 0 | `test_validator.py::test_a_stated_departure_time_is_checked_not_just_recorded`, `test_validator.py::test_a_deadline_the_plan_already_meets_raises_nothing` | 赶高铁/飞机是真实硬约束；识别到却不校验，等于没识别 |
+| `END_AFTER_DEADLINE` | hard | 0 | 0 | `test_validator.py::test_a_stated_departure_time_is_checked_not_just_recorded`, `test_validator.py::test_a_deadline_the_plan_already_meets_raises_nothing` | 赶高铁/飞机是真实硬约束；识别到却不校验，等于没识别 |
 
 ## 缺口
 

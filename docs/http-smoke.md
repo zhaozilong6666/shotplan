@@ -7,7 +7,7 @@
 | --- | --- | ---: | --- | --- |
 | `/api/health` | GET | 200 | 200 + status ok | PASS |
 | `/api/config` | GET | 200 | masked config exposes provider | PASS |
-| `/api/rules` | GET | 200 | at least 15 rules | PASS |
+| `/api/rules` | GET | 200 | all 16 rules | PASS |
 | `/api/plan` | POST | 200 | feasible brief -> status ok | PASS |
 | `/api/plan` | POST | 200 | budget 100 -> structured infeasible | PASS |
 | `/api/runs` | GET | 200 | both runs persisted | PASS |
