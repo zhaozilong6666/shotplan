@@ -13,7 +13,7 @@
 | good **0.9796** / naive **0.2974** | 评测对照，`docs/eval-report.md` |
 | 80 主集 + **320** 盲测 brief + **527** 条失败记录聚类 | `evals/cases/`、`evals/challenge/` |
 | 变异门禁 **9/9** 拦截（旧门禁只 **4/8**，漏的全是校验端削弱） | `docs/mutation-report.md` |
-| **637** 单测 / 93.19% 覆盖 / **39** 道 CI 门禁 / Python 3.10–3.13 | `.github/workflows/ci.yml` |
+| **638** 单测 / 93.20% 覆盖 / **39** 道 CI 门禁 / Python 3.10–3.13 | `.github/workflows/ci.yml` |
 | 真实 uvicorn 压测 **1000** 请求 **0 错误 0 丢写** | `docs/http-load.md` |
 | 写入异步化：vs 同步 **2.96×**（同批关写库对照 5.13×）、P95 **186→93ms**、**0 丢写** | `docs/persistence.md` |
 | 硬杀丢失窗口：`os._exit` 实测，先 flush→N 条全在，不 flush→N−pending | `tests/test_write_behind.py` |

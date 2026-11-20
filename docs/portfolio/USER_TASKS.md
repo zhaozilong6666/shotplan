@@ -61,7 +61,7 @@ git ls-files | grep -E "\.env$|\.db$|evals/out/" || echo "没有敏感文件被�
 
 | 检查 | 结果 |
 | --- | --- |
-| `pytest` | 637 passed（Python 3.12），覆盖率 93.19% |
+| `pytest` | 638 passed（Python 3.12），覆盖率 93.20% |
 | `ruff check src tests evals scripts` | All checks passed |
 | `evals.run_eval --compare v6` | 80/80，均分 0.9796，对照组 0.2974，差值 0.6822，退出码 0 |
 | `evals.mutation_lab --check` | 9/9 受控变异被门禁拦截、0 存活、9/9 回滚后与基线一致（旧门禁仅 4/8） |
