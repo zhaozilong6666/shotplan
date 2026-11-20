@@ -39,7 +39,9 @@ class Check:
 
 def walk(base_url: str) -> list[Check]:
     checks: list[Check] = []
-    client = httpx.Client(base_url=base_url, timeout=20.0)
+    # trust_env=False: a system HTTP proxy can turn every loopback request into
+    # an empty 502 and make this gate fail for a reason unrelated to the app.
+    client = httpx.Client(base_url=base_url, timeout=20.0, trust_env=False)
 
     def get(path: str, contract: str, verify) -> Any:
         response = client.get(path)
@@ -121,7 +123,7 @@ def walk(base_url: str) -> list[Check]:
                        and all(s.get("metrics", {}).get("status") == "ok"
                                and s.get("metrics", {}).get("hard_pass") is True
                                for s in p.get("strategies", [])),
-                       str(p.get("recommendation", {}))[:120]))
+                       str((p or {}).get("recommendation", {}))[:120]))
 
     def verify_metrics(r, p):
         text = r.text

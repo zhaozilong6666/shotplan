@@ -63,11 +63,11 @@ python -m evals.worker_lab --check      # 对照实验：验证瓶颈归因
 ```
 方案 plan_a1b2...  |  xian  2026-10-04  |  provider=mock
 ------------------------------------------------------------------------------
-  12:26-14:31  makeup  唐制妆造               indoor_studio              400 元
-  14:31-14:51  travel  转场至青龙寺             qinglong_temple             50 元
-  14:51-16:28  shoot   青龙寺拍摄              qinglong_temple              0 元
-  16:28-16:48  travel  转场至广仁寺             guangren_temple              0 元
-  16:48-18:26  shoot   广仁寺拍摄              guangren_temple            300 元
+  12:26-14:32  makeup  唐制妆造               indoor_studio              400 元
+  14:32-14:52  travel  转场至青龙寺             qinglong_temple             50 元
+  14:52-16:29  shoot   青龙寺拍摄              qinglong_temple              0 元
+  16:29-16:49  travel  转场至广仁寺             guangren_temple              0 元
+  16:49-18:26  shoot   广仁寺拍摄              guangren_temple            300 元
 ------------------------------------------------------------------------------
   总花费 750 元 / 预算 1500 元
   得分 0.975  硬约束 通过

@@ -137,6 +137,22 @@ def test_negating_one_style_and_naming_another_swaps_them():
     assert "去掉 唐制" in result.changes[0]
 
 
+def test_a_swap_cue_replaces_instead_of_appending():
+    result = apply_followup(_previous(styles=["tang"]), "换成宋制")
+    assert result.request.styles == ["song"]
+    assert "去掉 唐制" in result.changes[0]
+
+
+def test_adding_a_style_without_a_swap_cue_keeps_both():
+    result = apply_followup(_previous(styles=["tang"]), "再加个宋制")
+    assert result.request.styles == ["tang", "song"]
+
+
+def test_a_date_word_containing_改_is_not_a_style_swap():
+    result = apply_followup(_previous(styles=["tang"]), "改天拍宋制")
+    assert result.request.styles == ["tang", "song"]
+
+
 def test_removing_the_only_style_is_refused_rather_than_applied():
     """An empty style list is not a plan; refusing is the honest answer."""
     result = apply_followup(_previous(styles=["tang"]), "别要唐制了")

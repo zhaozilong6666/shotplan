@@ -47,6 +47,10 @@ _GENERIC = {
     "test_failure_records_are_complete",
     "test_rules_config_history_and_persistence",
     "test_soft_rules_fire",
+    # Enumerates codes to prove the generated constant checklist reads the rule
+    # table; it does not exercise the rules, so it must not outrank a behavioural
+    # test just because it mentions the code.
+    "test_rule_table_reads_the_fstrings_not_a_second_list",
 }
 
 

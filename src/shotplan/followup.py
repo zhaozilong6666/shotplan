@@ -49,6 +49,7 @@ RELAX_WORDS = ("松一点", "再松", "轻松", "别太累", "不要太累", "�
 QUIET_WORDS = ("人少", "安静", "清净")
 
 NEGATIONS = ("不要", "不想要", "不喜欢", "别要", "去掉", "换掉", "不穿", "不拍", "不想")
+SWAP_CUES = ("换成", "改穿", "改成", "改用", "换")
 DEADLINE_CUES = (
     "赶",
     "高铁",
@@ -250,13 +251,15 @@ def _apply_verbal(
 
 def _style_mentions(
     text: str, tools: KnowledgeTools
-) -> list[tuple[int, str, bool]]:
-    """Every style name in the sentence, with whether it was negated.
+) -> list[tuple[int, str, bool, bool]]:
+    """Every style name, whether it was negated, and whether it replaces.
 
     Position decides. "不要唐制了，换宋制" mentions 唐制 after a negation and 宋制
-    after 换; reading the whole sentence for "不要" would reject both.
+    after 换; reading the whole sentence for "不要" would reject both. A swap cue
+    immediately before a positive mention means the old styles are replaced, not
+    merely extended -- otherwise "换成宋制" would silently return both.
     """
-    mentions: list[tuple[int, str, bool]] = []
+    mentions: list[tuple[int, str, bool, bool]] = []
     for style in tools.styles():
         style_id = str(style.get("id") or "")
         names = [str(style.get("name") or "")] + [
@@ -268,7 +271,8 @@ def _style_mentions(
             for match in re.finditer(re.escape(name), text):
                 prefix = text[max(0, match.start() - 4) : match.start()]
                 negated = any(word in prefix for word in NEGATIONS)
-                mentions.append((match.start(), style_id, negated))
+                replaces = any(cue in prefix for cue in SWAP_CUES)
+                mentions.append((match.start(), style_id, negated, replaces))
     mentions.sort(key=lambda item: item[0])
     return mentions
 
@@ -285,11 +289,13 @@ def _apply_styles(
         return request
 
     final: dict[str, bool] = {}
-    for _, style_id, negated in mentions:
+    for _, style_id, negated, _ in mentions:
         if style_id:
             final[style_id] = not negated
+    replaces = any(replaces and not negated for _, _, negated, replaces in mentions)
 
-    wanted = [style_id for style_id in request.styles if final.get(style_id, True)]
+    base = [] if replaces else request.styles
+    wanted = [style_id for style_id in base if final.get(style_id, True)]
     for style_id, keep in final.items():
         if keep and style_id not in wanted:
             wanted.append(style_id)

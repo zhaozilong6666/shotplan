@@ -19,7 +19,7 @@
 | `UNKNOWN_SOURCE_REF` | hard | 0 | 0 | `test_validator.py::test_unknown_source_ref_is_hard`, `test_validator.py::test_valid_source_refs_are_accepted` | 引用不存在的来源等于伪造溯源，比不引用更糟 |
 | `SHOOT_TOO_SHORT` | soft | 0 | 0 | `test_kb.py::test_why_on_a_rule_reports_the_experiments_that_probed_it`, `test_timeline.py::test_a_physically_short_block_is_not_flagged` | 过短的拍摄块性价比低；但短预约在物理上装不下 60 分钟，门槛需随时长缩放 |
 | `LIGHT_MISUSE` | soft | 0 | 1 | `test_light.py::test_the_validator_stops_flagging_morning_finish_briefs`, `test_light.py::test_pipeline_repairs_the_light_without_asking_the_model_again` | 光线是成片质量的主要变量 |
-| `NO_ALTERNATIVE` | soft | 0 | 0 | `test_validator.py::test_soft_rules_fire` | 户外拍摄受天气与客流影响，必须有 Plan B |
+| `NO_ALTERNATIVE` | soft | 0 | 0 | `test_validator.py::test_soft_rules_fire`, `test_constant_checklist.py::test_rule_table_reads_the_fstrings_not_a_second_list` | 户外拍摄受天气与客流影响，必须有 Plan B |
 | `NO_SOURCE_REF` | soft | 0 | 0 | `test_validator.py::test_soft_rules_fire` | 可溯源是判断输出是否可信的前提 |
 | `STYLE_MISMATCH` | soft | 0 | 2 | `test_domain_portability.py::test_only_style_matching_is_declared_domain_specific`, `test_validator.py::test_soft_rules_fire` | 唐制配现代极简场景会显得违和 |
 | `END_AFTER_DEADLINE` | soft | 0 | 0 | `test_validator.py::test_a_stated_departure_time_is_checked_not_just_recorded`, `test_validator.py::test_a_deadline_the_plan_already_meets_raises_nothing` | 赶高铁/飞机是真实硬约束；识别到却不校验，等于没识别 |
