@@ -100,7 +100,7 @@
     <h1>shotplan</h1>
     <p class="lede">把一句模糊的「想去西安拍汉服」，变成<strong>能执行、能核对、能追溯</strong>的小时级方案。</p>
     <p class="sub">
-      核心不是调模型，而是让质量可被测量：生成前先判定需求是否可满足，生成后用一层<strong>不经过模型</strong>的硬约束校验器判定，并以带<strong>对照组</strong>的 80 个用例守住回归；再用 8 处受控变异验证门禁本身有效，用 320 个盲测 brief 检验没见过的组合。
+      核心不是调模型，而是让质量可被测量：生成前先判定需求是否可满足，生成后用一层<strong>不经过模型</strong>的硬约束校验器判定，并以带<strong>对照组</strong>的 80 个用例守住回归；再用 9 处受控变异验证门禁本身有效，用 320 个盲测 brief 检验没见过的组合。
       技术栈 Python / FastAPI / SQLite；核心引擎仅标准库，无 API key 也能完整跑通。
     </p>
     <div class="links">
@@ -157,8 +157,8 @@
       </thead>
       <tbody>
         <tr><td>normal</td><td class="num">30</td><td class="num pass">100%</td><td class="num">0.9894</td><td class="num">30 / 30</td></tr>
-        <tr><td>conflict</td><td class="num">23</td><td class="num pass">100%</td><td class="num">0.9725</td><td class="num">23 / 23</td></tr>
-        <tr><td>edge</td><td class="num">16</td><td class="num pass">100%</td><td class="num">0.9577</td><td class="num">16 / 16</td></tr>
+        <tr><td>conflict</td><td class="num">23</td><td class="num pass">100%</td><td class="num">0.9724</td><td class="num">23 / 23</td></tr>
+        <tr><td>edge</td><td class="num">16</td><td class="num pass">100%</td><td class="num">0.9576</td><td class="num">16 / 16</td></tr>
         <tr><td>infeasible</td><td class="num">11</td><td class="num pass">100%</td><td class="num">1.0000</td><td class="num">11 / 11</td></tr>
         <tr><td><strong>合计</strong></td><td class="num"><strong>80</strong></td><td class="num pass"><strong>100%</strong></td><td class="num"><strong>0.9796</strong></td><td class="num"><strong>80 / 80</strong></td></tr>
       </tbody>
@@ -173,10 +173,10 @@
     <h2>门禁有效性：变异测试</h2>
     <p class="section-note">80/80 全绿只能说明「当前代码通过了当前检查」。在进程内注入受控故障、跑同一套用例、要求真实门禁拒绝，再回滚逐字段比对——检验的是检查本身。<a href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/mutation-report.md">完整实验报告 →</a></p>
     <div class="metrics mutation">
-      <div class="metric good"><b>8 / 8</b><span>受控变异被门禁拦截</span></div>
-      <div class="metric bad"><b>4 / 8</b><span>旧门禁只能拦住的数量</span></div>
+      <div class="metric good"><b>9 / 9</b><span>受控变异被门禁拦截</span></div>
+      <div class="metric bad"><b>5 / 9</b><span>旧门禁只能拦住的数量</span></div>
       <div class="metric good"><b>0</b><span>存活变异</span></div>
-      <div class="metric good"><b>8 / 8</b><span>回滚后与基线一致</span></div>
+      <div class="metric good"><b>9 / 9</b><span>回滚后与基线一致</span></div>
     </div>
   </section>
 
@@ -221,10 +221,10 @@
     <h2>性能基准（离线 provider）</h2>
     <p class="section-note">不含模型延迟：测的是检索、解析、校验、修复循环与 trace 的常数成本。用 <code>tracemalloc</code> 单独一轮统计 Python 堆峰值，避免把内存开销算成延迟。</p>
     <div class="metrics perf">
-      <div class="metric good"><b>1.77 ms</b><span>P95 延迟</span></div>
-      <div class="metric good"><b>0.74 ms</b><span>P50 延迟</span></div>
-      <div class="metric good"><b>1121 /s</b><span>单核吞吐</span></div>
-      <div class="metric good"><b>0.04 MB</b><span>堆峰值（80 用例扫一遍 0.07s）</span></div>
+      <div class="metric good"><b>1.29 ms</b><span>P95 延迟</span></div>
+      <div class="metric good"><b>0.85 ms</b><span>P50 延迟</span></div>
+      <div class="metric good"><b>1084 /s</b><span>单核吞吐</span></div>
+      <div class="metric good"><b>0.03 MB</b><span>堆峰值（80 用例扫一遍 0.06s）</span></div>
     </div>
   </section>
 
@@ -232,13 +232,13 @@
     <h2>真实 HTTP 服务压测</h2>
     <p class="section-note">前面的吞吐都是直接调 Python 函数。这一层启动真正的 uvicorn（1 / 2 / 4 worker），用 httpx 走 loopback 发 <code>POST /api/plan</code>，把 HTTP 解析、JSON 序列化、网络栈与多进程同时写 SQLite 的成本一起算进来。</p>
     <div class="metrics http-load">
-      <div class="metric good"><b>251 /s</b><span>真实 HTTP 单 worker 并发 8</span></div>
-      <div class="metric good"><b>2 worker · 280 /s</b><span>本机最佳吞吐</span></div>
-      <div class="metric good"><b>39.9 ms</b><span>单 worker P95</span></div>
+      <div class="metric good"><b>38 /s</b><span>真实 HTTP 单 worker 并发 8</span></div>
+      <div class="metric good"><b>4 worker · 114 /s</b><span>本机最佳吞吐</span></div>
+      <div class="metric good"><b>239.9 ms</b><span>单 worker P95</span></div>
       <div class="metric good"><b>1000 / 1000</b><span>真实请求 / 成功落库</span></div>
     </div>
     <p class="section-note http-note">
-      4 个 worker 的吞吐只有单 worker 的 0.52×：真实服务里每个请求都要写一条运行记录，多进程共享同一个 SQLite 文件，本机最佳是 2 worker。下节的对照实验显示关掉同步写库可让 1 worker 提速 2.48×，写锁归因在本批数据下得到支持，但结论依赖负载稳定复现。吞吐与 P95 只写进报告，不进 CI 门禁；门禁只查 0 错误、0 丢写与服务没挂住。
+      4 个 worker 的吞吐只有单 worker 的 2.99×：真实服务里每个请求都要写一条运行记录，多进程共享同一个 SQLite 文件，本机最佳是 4 worker。下节的对照实验显示关掉同步写库可让 1 worker 提速 2.48×，写锁归因在本批数据下得到支持，但结论依赖负载稳定复现。吞吐与 P95 只写进报告，不进 CI 门禁；门禁只查 0 错误、0 丢写与服务没挂住。
     </p>
   </section>
 
@@ -301,7 +301,7 @@
       <div class="metric bad"><b>0%</b><span>盲测集 naive 硬约束通过率</span></div>
     </div>
     <p class="section-note challenge-note">
-      360 个候选中 40 个「同一地点既指定又排除」被生成前可行性判定挡下；其余全部与主集不重复。good 均分 0.9885、naive 0.1771，最小差值 0.7625。挑战集独立存放，不影响 v1–v6 基线的可比性。
+      360 个候选中 40 个「同一地点既指定又排除」被生成前可行性判定挡下；其余全部与主集不重复。good 均分 0.9884、naive 0.1771，最小差值 0.7613。挑战集独立存放，不影响 v1–v6 基线的可比性。
     </p>
   </section>
 

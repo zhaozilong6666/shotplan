@@ -1,14 +1,14 @@
 {
   "single": {
     "iterations": 200,
-    "p50_ms": 0.736,
-    "p95_ms": 1.769,
-    "p99_ms": 2.029,
-    "mean_ms": 0.89,
-    "max_ms": 2.069,
-    "throughput_rps": 1121.21,
-    "peak_kb": 36.4,
-    "wall_s": 0.178
+    "p50_ms": 0.849,
+    "p95_ms": 1.289,
+    "p99_ms": 1.596,
+    "mean_ms": 0.921,
+    "max_ms": 1.872,
+    "throughput_rps": 1084.44,
+    "peak_kb": 30.2,
+    "wall_s": 0.184
   },
   "corpus": {
     "cases": 80,
@@ -16,18 +16,18 @@
       "infeasible": 11,
       "ok": 69
     },
-    "p50_ms": 0.679,
-    "p95_ms": 1.608,
-    "mean_ms": 0.799,
-    "max_ms": 2.165,
-    "wall_s": 0.065
+    "p50_ms": 0.743,
+    "p95_ms": 0.807,
+    "mean_ms": 0.704,
+    "max_ms": 0.83,
+    "wall_s": 0.058
   },
   "steps_ms_total": {
-    "preflight": 7.55,
-    "retrieve": 7.79,
-    "generate": 37.6,
-    "parse": 7.21,
-    "validate": 16.22
+    "preflight": 7.57,
+    "retrieve": 7.65,
+    "generate": 36.61,
+    "parse": 6.89,
+    "validate": 17.1
   },
   "environment": {
     "python": "3.12.4",
