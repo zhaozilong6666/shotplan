@@ -74,14 +74,14 @@
 | --- | ---: | --- | ---: |
 | `multi-turn-attribution.md` | 0.903 | `ROADMAP.md` | 0.097 |
 | `ingest.md` | 0.895 | `knowledge-contract.md` | 0.105 |
-| `generality.md` | 0.881 | `ROADMAP.md` | 0.119 |
+| `generality.md` | 0.880 | `problem-and-metrics.md` | 0.120 |
 | `repair-experiment.md` | 0.877 | `evaluation.md` | 0.123 |
 | `intelligence-roadmap.md` | 0.872 | `architecture.md` | 0.128 |
 | `cost-latency-simulation.md` | 0.871 | `real-model-light-fix-2026-11-16.md` | 0.129 |
 | `city-coverage.md` | 0.868 | `evaluation.md` | 0.132 |
-| `knowledge-contract.md` | 0.859 | `problem-and-metrics.md` | 0.141 |
+| `knowledge-contract.md` | 0.860 | `problem-and-metrics.md` | 0.140 |
 | `budget-vs-concurrency.md` | 0.843 | `real-model-baseline-2026-11-16.md` | 0.157 |
-| `rule-map.md` | 0.835 | `problem-and-metrics.md` | 0.165 |
+| `rule-map.md` | 0.833 | `problem-and-metrics.md` | 0.167 |
 
 末位（信息量最低）：
 
@@ -127,4 +127,4 @@
 - **本文件自身不参与**审计，否则每次运行都会把自己报成 100% 重复。
 - **提交动作会改变语料**：语料取的是 git 索引，`git add` 一份新文档就会让统计数 +1。新增文档后要**先 add、再 `--write`**，否则本地算的是旧份数，CI 算的是新份数——这个陷阱已经踩过两次（一次是未跟踪的草稿被算进来，一次是刚 add 的新文档没重新生成）。
 
-_语料指纹：`5b799144d5e4d058`（内容变化时此值必变）_
+_语料指纹：`c5bae731adb2d9f8`（内容变化时此值必变）_
