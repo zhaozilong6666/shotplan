@@ -54,6 +54,14 @@ def test_custom_brief_is_honoured():
     assert result.validation.hard_pass is True
 
 
+def test_a_promised_departure_time_shapes_the_plan_not_just_the_score():
+    brief = PlanRequest(hours=6, preferences=["17:00前结束"])
+    result = run_plan(brief, provider=MockProvider("good"), max_repairs=0)
+    assert result.validation.hard_pass is True
+    assert result.plan.slots[-1].end == "17:00"
+    assert result.plan.slots[0].start == "11:00", "the plan backs off from the deadline"
+
+
 def test_as_summary_is_compact():
     result = run_plan(PlanRequest(), provider=MockProvider("good"), max_repairs=0)
     summary = as_summary(result)

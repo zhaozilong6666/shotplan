@@ -114,7 +114,7 @@
 
 - 定义：`src/shotplan/domain/constraints.py:61`
 - 注释：Minimum transport cost of any executable plan (shared by the offline planner).
-- 按名绑定（3 个模块 / 5 处使用）：`src/shotplan/agents/mock.py`（L33）；`src/shotplan/domain/feasibility.py`（L73, L195）；`src/shotplan/knowledge/tools.py`（L125, L135）
+- 按名绑定（3 个模块 / 5 处使用）：`src/shotplan/agents/mock.py`（L34）；`src/shotplan/domain/feasibility.py`（L73, L195）；`src/shotplan/knowledge/tools.py`（L125, L135）
 - 同文件内使用：L262
 - 规则：`—`
 - 探针：`budget-floor`（4 条 brief）
@@ -125,7 +125,7 @@
 
 - 定义：`src/shotplan/domain/constraints.py:18`
 - 注释：Minimum buffer between two different shooting locations.
-- 按名绑定（7 个模块 / 15 处使用）：`src/shotplan/agents/mock.py`（L42, L43, L279, L291…）；`src/shotplan/agents/validator.py`（L153, L159）；`src/shotplan/domain/feasibility.py`（L173）；`src/shotplan/domain/transfer.py`（L38）；`src/shotplan/knowledge/tools.py`（L98, L167）；`tests/test_knowledge.py`（L144）；`tests/test_transfer.py`（L37）
+- 按名绑定（7 个模块 / 15 处使用）：`src/shotplan/agents/mock.py`（L43, L44, L287, L299…）；`src/shotplan/agents/validator.py`（L153, L159）；`src/shotplan/domain/feasibility.py`（L173）；`src/shotplan/domain/transfer.py`（L38）；`src/shotplan/knowledge/tools.py`（L98, L167）；`tests/test_knowledge.py`（L144）；`tests/test_transfer.py`（L37）
 - 同文件内使用：L172, L259
 - 规则：`hard:TRANSFER_BUFFER`
 - 探针：`transfer`（12 条 brief）

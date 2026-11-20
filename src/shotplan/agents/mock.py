@@ -21,6 +21,7 @@ from typing import Any
 from ..domain.constraints import (
     MIN_TRANSFER_COST_CNY,
     MIN_TRANSFER_MINUTES,
+    deadline_minutes,
     styling_minutes_for,
 )
 from ..domain.models import PlanRequest, fmt_minutes
@@ -243,7 +244,14 @@ class MockProvider:
         total_minutes = int(req.hours * 60)
 
         light_start, light_end = kb.light_window(req.date, req.city)
-        cursor = max(EARLIEST_START, _to_minutes(light_end) - total_minutes)
+        latest_end = _to_minutes(light_end)
+        deadline = deadline_minutes(req.preferences)
+        if deadline is not None:
+            # A promised train is a hard rule in the validator. The reference
+            # planner must not hand back a plan the validator would reject, so
+            # it schedules backwards from the earlier of sunset and the deadline.
+            latest_end = min(latest_end, deadline)
+        cursor = max(EARLIEST_START, latest_end - total_minutes)
         end_limit = cursor + total_minutes
 
         # Shorten the styling block when the booking is short, and say so.
