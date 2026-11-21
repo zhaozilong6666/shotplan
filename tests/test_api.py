@@ -344,3 +344,25 @@ def test_no_cors_headers_for_foreign_origin(client):
     response = client.get("/api/health", headers={"Origin": "https://evil.example"})
     assert response.status_code == 200
     assert "access-control-allow-origin" not in response.headers
+
+
+def test_batch_mode_persists_before_it_responds(client_for):
+    with client_for("batch", SHOTPLAN_PERSIST_MODE="batch") as client:
+        response = client.post("/api/plan", json={"mock_mode": "good"})
+        assert response.status_code == 200
+        assert client.get("/api/summary").json()["total_runs"] == 1
+
+
+def test_batch_write_failure_is_reported(client_for, monkeypatch):
+    from shotplan.domain.errors import StorageError
+    from shotplan.storage import RunStore
+
+    def broken(self, results):
+        raise StorageError("disk full")
+
+    monkeypatch.setattr(RunStore, "save_many", broken)
+    with client_for("batchfail", SHOTPLAN_PERSIST_MODE="batch") as client:
+        response = client.post("/api/plan", json={"mock_mode": "good"})
+    assert response.status_code == 200
+    codes = {issue["code"] for issue in response.json()["validation"]["issues"]}
+    assert "PERSISTENCE_FAILED" in codes
