@@ -7,6 +7,9 @@
 [worker-bottleneck.md](worker-bottleneck.md)（v0.9.0）用开/关对照实验确认了「同步写运行历史是请求关键路径上最大的单项开销」，并给出建议：**把写入异步化，而不是删掉历史**。建议当时没有实现，也没有验证。
 这一版实现了，并且用同一个压测框架量它到底还回多少。
 
+2026-11-21 的单请求拆解（E26，[stage-profile.md](stage-profile.md)）量到：sync 27.31 ms 里
+同步写库占 20.39 ms（75%），与「最大单项开销」一致；但这只适用于 mock provider 与离线环境。
+
 ## 三个实验组
 
 同一份产品代码，只改 `SHOTPLAN_PERSIST_MODE`：

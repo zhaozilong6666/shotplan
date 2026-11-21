@@ -6,6 +6,11 @@
 
 ### Added
 
+- **E26 单请求阶段拆解（2026-11-21）**：同一 brief 各跑 50 次，in-process 3.64 ms、
+  HTTP off 6.92 ms、HTTP sync 27.31 ms；**同步写库 20.39 ms（75%）**、HTTP/JSON 3.27 ms
+  （12%）、pipeline 3.64 ms（13%），`preflight` 是最大的 pipeline 阶段（1.56 ms）。
+  预测「sync 慢 2–3×」实测 3.95×，E26 判 partial；见 [docs/stage-profile.md](docs/stage-profile.md)。
+
 - **E24 多 worker 写库复测（2026-11-20）**：1/2/4 worker 各 200 请求，两个解释器下丢写均为 0；
   但 v0.8.0 记录的 4 worker **0.52×** 回落不再复现（3.13 为 **2.99×**、3.12 为 **2.61×**），
   单 worker 绝对吞吐从 250/s 降到 29–48/s。旧快照是历史，当前快照由本次 3.13 运行生成；

@@ -8,8 +8,8 @@
 
 | 指标 | 值 |
 | --- | --- |
-| 扫描报告 | 80 份（431 KB） |
-| 脚本生成 | 41 份，来自 31 个生成器 |
+| 扫描报告 | 81 份（433 KB） |
+| 脚本生成 | 42 份，来自 32 个生成器 |
 | 人写报告 | 39 份 |
 | 人写报告冗余对（≥ 0.55） | 3 对 |
 | 同名前缀家族（≥ 3 份） | 4 个 |
@@ -19,7 +19,7 @@
 
 ## 1. 同源实例：报告为什么会堆积
 
-`evals.real_model_lab` 一个脚本产出 **9 份**，占全部脚本生成报告的 22%。
+`evals.real_model_lab` 一个脚本产出 **9 份**，占全部脚本生成报告的 21%。
 
 - `real-model-full-2026-11-16.md`
 - `real-model-repeat3.md`
@@ -41,7 +41,7 @@
 
 **命名即契约**：`X.md` 是默认输出路径，每次覆盖，代表当前结论；`X-<日期>.md` 是一次快照，代表当时的状态。同源实例超过 2 份时，新增的一份要能回答「这次与上次的假设有什么不同」，否则它只是又一个需要归档的文件。
 
-其余 29 个生成器各产出 1 份，属正常。
+其余 30 个生成器各产出 1 份，属正常。
 
 ## 2. 人写报告的冗余对：每一行是一次决定
 
@@ -50,8 +50,8 @@
 | 报告 A | 报告 B | 相似度 | 建议 |
 | --- | --- | ---: | --- |
 | `real-model-light-fix-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.669 | 部分重叠：只核对数字是否互相矛盾 |
-| `real-model-baseline-2026-11-16.md` | `real-model-light-fix-2026-11-16.md` | 0.652 | 部分重叠：只核对数字是否互相矛盾 |
-| `real-model-baseline-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.574 | 部分重叠：只核对数字是否互相矛盾 |
+| `real-model-baseline-2026-11-16.md` | `real-model-light-fix-2026-11-16.md` | 0.653 | 部分重叠：只核对数字是否互相矛盾 |
+| `real-model-baseline-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.575 | 部分重叠：只核对数字是否互相矛盾 |
 
 **不要直接删**：这些文件记录的是「当时为什么那么判断」。保留边际信息量最高的一份作为当前结论，其余在首行加一行`> 已被 <新文件> 取代（<日期>）；本文保留为历史记录`。
 
@@ -76,18 +76,18 @@
 | `ingest.md` | 0.895 | `knowledge-contract.md` | 0.105 |
 | `generality.md` | 0.880 | `problem-and-metrics.md` | 0.120 |
 | `repair-experiment.md` | 0.877 | `evaluation.md` | 0.123 |
+| `cost-latency-simulation.md` | 0.872 | `real-model-light-fix-2026-11-16.md` | 0.128 |
 | `intelligence-roadmap.md` | 0.872 | `architecture.md` | 0.128 |
-| `cost-latency-simulation.md` | 0.871 | `real-model-light-fix-2026-11-16.md` | 0.129 |
-| `city-coverage.md` | 0.868 | `evaluation.md` | 0.132 |
+| `city-coverage.md` | 0.867 | `evaluation.md` | 0.133 |
 | `knowledge-contract.md` | 0.860 | `problem-and-metrics.md` | 0.140 |
 | `budget-vs-concurrency.md` | 0.843 | `real-model-baseline-2026-11-16.md` | 0.157 |
 | `rule-map.md` | 0.833 | `problem-and-metrics.md` | 0.167 |
 
 末位（信息量最低）：
 
-- `ROADMAP.md` — 0.669，最近邻 `evaluation.md`（0.331）
-- `evaluation.md` — 0.669，最近邻 `ROADMAP.md`（0.331）
-- `real-model-baseline-2026-11-16.md` — 0.348，最近邻 `real-model-light-fix-2026-11-16.md`（0.652）
+- `ROADMAP.md` — 0.668，最近邻 `evaluation.md`（0.332）
+- `evaluation.md` — 0.668，最近邻 `ROADMAP.md`（0.332）
+- `real-model-baseline-2026-11-16.md` — 0.347，最近邻 `real-model-light-fix-2026-11-16.md`（0.653）
 - `real-model-light-fix-2026-11-16.md` — 0.331，最近邻 `real-model-smoke-2026-11-16.md`（0.669）
 - `real-model-smoke-2026-11-16.md` — 0.331，最近邻 `real-model-light-fix-2026-11-16.md`（0.669）
 
@@ -127,4 +127,4 @@
 - **本文件自身不参与**审计，否则每次运行都会把自己报成 100% 重复。
 - **提交动作会改变语料**：语料取的是 git 索引，`git add` 一份新文档就会让统计数 +1。新增文档后要**先 add、再 `--write`**，否则本地算的是旧份数，CI 算的是新份数——这个陷阱已经踩过两次（一次是未跟踪的草稿被算进来，一次是刚 add 的新文档没重新生成）。
 
-_语料指纹：`c5bae731adb2d9f8`（内容变化时此值必变）_
+_语料指纹：`85dc42cc2a84345f`（内容变化时此值必变）_
