@@ -198,6 +198,9 @@ def test_persist_mode_parsing(tmp_path, monkeypatch):
     assert Settings.from_env().persist_runs is True
 
     # v0.9.0 boolean switch keeps working.
+    monkeypatch.setenv("SHOTPLAN_PERSIST_MODE", "batch")
+    assert Settings.from_env().persist_mode == "batch"
+
     monkeypatch.delenv("SHOTPLAN_PERSIST_MODE")
     monkeypatch.setenv("SHOTPLAN_PERSIST_RUNS", "0")
     assert Settings.from_env().persist_mode == "off"
@@ -297,3 +300,28 @@ def test_a_submit_after_close_is_written_inline_not_lost(tmp_path):
     assert store.get(late.trace.run_id) is not None
     assert writer.stats.sync_fallbacks == 1
     assert writer.pending == 0
+
+
+def test_batch_save_waits_for_commit(tmp_path):
+    """`batch` keeps sync's promise: the row is visible when save returns."""
+    store = RunStore(tmp_path / "batch.db")
+    writer = RunWriter(store, flush_interval=0.005)
+    try:
+        writer.save_wait(_results(1)[0])
+        assert store.summary()["total_runs"] == 1
+    finally:
+        writer.close()
+
+
+def test_batch_save_surfaces_a_write_failure(tmp_path):
+    class FailingStore(RunStore):
+        def save_many(self, results):
+            raise StorageError("disk full")
+
+    store = FailingStore(tmp_path / "fail.db")
+    writer = RunWriter(store, flush_interval=0.005)
+    try:
+        with pytest.raises(StorageError):
+            writer.save_wait(_results(1)[0])
+    finally:
+        writer.close()

@@ -14,7 +14,7 @@ from pathlib import Path
 from .domain.errors import ConfigError
 
 ROOT = Path(__file__).resolve().parents[2]
-PERSIST_MODES = ("off", "sync", "async")
+PERSIST_MODES = ("off", "sync", "async", "batch")
 
 
 def _default_db_path() -> Path:
@@ -93,11 +93,12 @@ class Settings:
     max_repairs: int = 1
     eval_min_score: float = 0.80
     log_level: str = "INFO"
-    # off | sync | async. `sync` stays the default because the project promises
+    # off | sync | async | batch. `sync` stays the default because the project promises
     # "every accepted request is stored" and that promise must not silently
     # become "mostly stored". `async` moves the write off the request path and
     # is measurably faster; it is opt-in because it trades a bounded, measured
-    # loss window on a hard kill. See ADR 0012 and docs/persistence.md.
+    # loss window on a hard kill. `batch` keeps the durable promise but shares
+    # one commit across concurrent requests (see docs/batch-write.md).
     persist_mode: str = "sync"
     # Wall-clock ceiling for one plan request, repairs included. 0 disables it.
     # Must exceed the provider's P99, not its P95, and that P99 depends on load,

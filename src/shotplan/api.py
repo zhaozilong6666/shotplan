@@ -50,7 +50,13 @@ from .knowledge.loader import knowledge_version
 from .knowledge.tools import get_tools
 from .negotiation import headroom, negotiate
 from .pipeline import run_plan
-from .storage import RunSink, RunStore, close_all_writers, get_writer
+from .storage import (
+    RunSink,
+    RunStore,
+    WaitingRunWriter,
+    close_all_writers,
+    get_writer,
+)
 
 
 @asynccontextmanager
@@ -262,7 +268,11 @@ def _sink(cfg: Settings) -> RunSink | None:
     if cfg.persist_mode == "off":
         return None
     store = _store(cfg)
-    return get_writer(store) if cfg.persist_mode == "async" else store
+    if cfg.persist_mode == "async":
+        return get_writer(store)
+    if cfg.persist_mode == "batch":
+        return WaitingRunWriter(get_writer(store))
+    return store
 
 
 @app.get("/api/health")
@@ -273,7 +283,7 @@ def health(cfg: SettingsDep) -> dict[str, Any]:
 @app.get("/api/config")
 def config(cfg: SettingsDep) -> dict[str, Any]:
     payload = cfg.masked()
-    if cfg.persist_mode == "async":
+    if cfg.persist_mode in ("async", "batch"):
         # Make the queue observable: pending rows are the honest answer to
         # "did my write land?", and sync_fallbacks means it is saturated.
         payload["writer"] = get_writer(_store(cfg)).stats.to_dict()

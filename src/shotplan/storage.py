@@ -403,6 +403,15 @@ class WriterStats:
         }
 
 
+@dataclass
+class _Pending:
+    """A queued run plus an optional completion event for `batch` mode."""
+
+    result: PlanResult
+    done: threading.Event | None = None
+    error: BaseException | None = None
+
+
 class RunWriter:
     """Write-behind queue with batching, for the run-history table.
 
@@ -430,13 +439,15 @@ class RunWriter:
         flush_interval: float = 0.02,
         max_queue: int = 2048,
         enqueue_timeout: float = 0.05,
+        wait_timeout: float = 15.0,
     ) -> None:
         self.store = store
         self.batch_size = max(1, batch_size)
         self.flush_interval = max(0.001, flush_interval)
         self.enqueue_timeout = max(0.0, enqueue_timeout)
+        self.wait_timeout = max(0.1, wait_timeout)
         self.stats = WriterStats()
-        self._queue: queue.Queue[PlanResult] = queue.Queue(maxsize=max(1, max_queue))
+        self._queue: queue.Queue[_Pending] = queue.Queue(maxsize=max(1, max_queue))
         self._stopping = threading.Event()
         self._closed = False
         self._lock = threading.Lock()
@@ -451,32 +462,61 @@ class RunWriter:
         self.submit(result)
         return result.trace.run_id
 
-    def submit(self, result: PlanResult) -> bool:
-        """Enqueue a run. Returns False when it had to be written synchronously."""
+    def submit(self, result: PlanResult, wait: bool = False) -> bool:
+        """Enqueue a run. Returns False when it had to be written synchronously.
+
+        `wait=True` is the `batch` persistence mode: the caller blocks until the
+        queued row is committed (or the write fails), so the durability promise
+        still holds while concurrent requests share one commit.
+        """
+        pending = _Pending(result, threading.Event() if wait else None)
         with self._lock:
             closed = self._closed
         if closed:
             # A late submit (shutdown race, background task) would sit in a
             # queue whose thread has already exited — accepted, never written,
             # and invisible. Write it inline instead: slower, but durable.
-            self.store.save(result)
-            with self._lock:
-                self.stats.submitted += 1
-                self.stats.written += 1
-                self.stats.sync_fallbacks += 1
-            return False
+            return self._write_inline(pending)
         try:
-            self._queue.put(result, timeout=self.enqueue_timeout)
+            self._queue.put(pending, timeout=self.enqueue_timeout)
         except queue.Full:
-            self.store.save(result)
-            with self._lock:
-                self.stats.sync_fallbacks += 1
-                self.stats.submitted += 1
-                self.stats.written += 1
-            return False
+            return self._write_inline(pending)
         with self._lock:
             self.stats.submitted += 1
+        if wait:
+            assert pending.done is not None
+            if not pending.done.wait(timeout=self.wait_timeout):
+                raise StorageError(
+                    f"timed out after {self.wait_timeout:g}s waiting for run write"
+                )
+            if pending.error is not None:
+                raise StorageError(f"run write failed: {pending.error}") from pending.error
         return True
+
+    def _write_inline(self, pending: _Pending) -> bool:
+        """Queue is closed/full: write now, and still satisfy a waiting caller."""
+        try:
+            self.store.save(pending.result)
+        except StorageError as exc:
+            with self._lock:
+                self.stats.submitted += 1
+                self.stats.failed += 1
+            if pending.done is not None:
+                pending.error = exc
+                pending.done.set()
+            raise
+        with self._lock:
+            self.stats.sync_fallbacks += 1
+            self.stats.submitted += 1
+            self.stats.written += 1
+        if pending.done is not None:
+            pending.done.set()
+        return False
+
+    def save_wait(self, result: PlanResult) -> str:
+        """Durable batched save: returns only after the row is committed."""
+        self.submit(result, wait=True)
+        return result.trace.run_id
 
     def flush(self, timeout: float = 5.0) -> bool:
         """Block until every submitted row is committed (or timeout)."""
@@ -516,8 +556,8 @@ class RunWriter:
             if self._stopping.is_set() and self._queue.empty():
                 return
 
-    def _collect(self) -> list[PlanResult]:
-        batch: list[PlanResult] = []
+    def _collect(self) -> list[_Pending]:
+        batch: list[_Pending] = []
         try:
             # The first item waits up to flush_interval: that is the batching
             # window which turns N commits into one. Everything after it is
@@ -532,18 +572,22 @@ class RunWriter:
                 break
         return batch
 
-    def _write(self, batch: list[PlanResult]) -> None:
+    def _write(self, batch: list[_Pending]) -> None:
         # One retry, then give up on this batch: most failures here are a
         # transient lock or a momentarily unavailable disk, and retrying is
         # cheaper than losing rows. A persistent failure must not kill the
         # thread — the API stays up and the count is exposed via /api/config.
         for attempt in range(2):
             try:
-                self.store.save_many(batch)
+                self.store.save_many([pending.result for pending in batch])
             except StorageError as exc:
                 if attempt:
                     with self._lock:
                         self.stats.failed += len(batch)
+                    for pending in batch:
+                        if pending.done is not None:
+                            pending.error = exc
+                            pending.done.set()
                     logger.warning(
                         "write-behind batch of %d run(s) failed: %s", len(batch), exc
                     )
@@ -554,7 +598,20 @@ class RunWriter:
                 self.stats.written += len(batch)
                 self.stats.batches += 1
                 self.stats.max_batch = max(self.stats.max_batch, len(batch))
+            for pending in batch:
+                if pending.done is not None:
+                    pending.done.set()
             return
+
+
+class WaitingRunWriter:
+    """Adapter for `batch` mode: same `save()` as a store, but waits for commit."""
+
+    def __init__(self, writer: RunWriter) -> None:
+        self.writer = writer
+
+    def save(self, result: PlanResult) -> str:
+        return self.writer.save_wait(result)
 
 
 _WRITERS: dict[str, RunWriter] = {}
