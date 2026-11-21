@@ -7,8 +7,8 @@
 ### Added
 
 - **新增 `batch` 持久化模式（2026-11-21）**：每个请求仍等到 commit 再返回，但并发请求
-  共享一次提交。1 worker、并发 8、200 请求：**3.98×** sync 吞吐（137.74 vs 34.63/s），
-  P95 **80ms vs 306ms**，0 丢写（E27，[docs/batch-write.md](docs/batch-write.md)）。
+  共享一次提交。并发 8、200 请求：1 worker **3.24×**、4 worker **1.34×** sync 吞吐，
+  P95 分别 139→54ms、138→69ms，0 丢写（E27，[docs/batch-write.md](docs/batch-write.md)）。
   默认仍是 `sync`；单请求没有可合并对象，batch 不给单请求提速。
 
 - **E26 单请求阶段拆解（2026-11-21）**：同一 brief 各跑 50 次，in-process 1.09 ms、
