@@ -73,9 +73,9 @@ attempt to write a read-only database"}
 
 ## 为什么会出现吞吐差异
 
-已做一次单请求阶段拆解（E26，[stage-profile.md](stage-profile.md)）：sync 27.31 ms、
-off 6.92 ms、in-process 3.64 ms，**同步写库 20.39 ms（75%）**、HTTP/JSON 3.27 ms（12%）、
-pipeline 3.64 ms（13%）；`preflight` 是最大的 pipeline 阶段（1.56 ms）。这解释了
+已做一次单请求阶段拆解（E26，[stage-profile.md](stage-profile.md)）：sync 25.89 ms、
+off 3.32 ms、in-process 1.09 ms，**同步写库 22.58 ms（87%）**、HTTP/JSON 2.22 ms（9%）、
+pipeline 1.09 ms（4%）；`generate` 是最大的 pipeline 阶段（0.17 ms）。这解释了
 「单请求为什么慢」，但**没有**解释「v0.8.0 为什么能到 250/s」——那需要按历史提交做对照，
 不能拿现在的拆分去反推过去。真实模型请求里 `generate` 会主导，本表比例不适用于线上延迟。
 
