@@ -226,18 +226,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--mode", choices=["off", "sync", "async", "batch"], default="batch")
     parser.add_argument("--interval", type=float, default=1.5)
     parser.add_argument("--write", action="store_true")
+    parser.add_argument("--report", type=Path, default=REPORT)
     args = parser.parse_args(argv)
     result = run(args.minutes, args.workers, args.mode, args.interval)
     text = report(result)
     print(text)
     if args.write:
-        REPORT.write_text(text, encoding="utf-8", newline="\n")
+        args.report.write_text(text, encoding="utf-8", newline="\n")
         SNAPSHOT.parent.mkdir(parents=True, exist_ok=True)
         SNAPSHOT.write_text(
             json.dumps(result, ensure_ascii=False, indent=2) + "\n",
             encoding="utf-8",
         )
-        print(f"report: {REPORT}")
+        print(f"report: {args.report}")
     return 0 if result["errors"] == 0 and result["lost"] == 0 else 1
 
 

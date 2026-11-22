@@ -6,6 +6,10 @@
 
 ### Added
 
+- **sync 模式 30 分钟长跑（2026-11-22）**：4 worker、每 1.0s 一请求；
+  **1722/1722 成功、0 错误、0 重启、0 丢写**，P50/P95 43.37/62.01ms
+  （[docs/soak-sync-30.md](docs/soak-sync-30.md)）。`soak.py` 支持 `--report` 指定报告路径。
+
 - **无人值守长跑 + systemd（2026-11-22）**：新增 `evals/soak.py` 与 `make soak`；
   30.0 分钟、4 worker、batch、每 1.5s 一请求：**1165/1165 成功、0 错误、0 重启、
   0 丢写**，P95 61ms（[docs/soak.md](docs/soak.md)）。`deploy/shotplan.service` 提供
