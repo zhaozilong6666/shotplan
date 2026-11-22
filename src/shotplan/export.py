@@ -54,6 +54,7 @@ def plan_to_markdown(payload: dict[str, Any]) -> str:
     validation = payload.get("validation") or {}
     slots = plan.get("slots") or []
     title = f"{_city(payload)} · {_date(payload)} 拍摄行程".strip(" ·")
+    feasibility = payload.get("feasibility") or {}
     lines = [
         f"# {title}",
         "",
@@ -62,6 +63,21 @@ def plan_to_markdown(payload: dict[str, Any]) -> str:
         f"（{validation.get('score', 0):.3f} 分）",
         f"- 时间块：{len(slots)} 个",
         "",
+    ]
+    if feasibility and not feasibility.get("feasible", True):
+        lines += [
+            "## 不可行原因",
+            "",
+            f"{feasibility.get('headline') or '当前需求无法满足'}",
+            "",
+        ]
+        for reason in feasibility.get("reasons") or []:
+            lines.append(
+                f"- `{reason.get('code', '?')}` {reason.get('message', '')}"
+                f"（缺口：{reason.get('shortfall', '—')}；建议：{reason.get('suggestion', '—')}）"
+            )
+        lines.append("")
+    lines += [
         "## 时间线",
         "",
         "| 时间 | 安排 | 地点 | 费用 | 备注 |",

@@ -75,3 +75,29 @@ def test_ics_folds_long_utf8_lines():
         assert len(line.encode("utf-8")) <= 75
     unfolded = text.replace("\r\n ", "")
     assert "很长的备注" * 40 in unfolded
+
+
+def test_markdown_explains_an_infeasible_brief():
+    payload = {
+        "status": "infeasible",
+        "request": {"city": "xian", "date": "2026-10-04", "budget_cny": 200},
+        "plan": {},
+        "validation": {"hard_pass": False, "score": 0.0, "issues": []},
+        "feasibility": {
+            "feasible": False,
+            "headline": "预算低于最低可行线",
+            "reasons": [
+                {
+                    "code": "budget",
+                    "message": "预算不足",
+                    "shortfall": "至少还差 150 元",
+                    "suggestion": "把预算提到 350 元",
+                }
+            ],
+        },
+        "trace": {"run_id": "run_bad"},
+    }
+    text = plan_to_markdown(payload)
+    assert "## 不可行原因" in text
+    assert "预算低于最低可行线" in text
+    assert "把预算提到 350 元" in text
