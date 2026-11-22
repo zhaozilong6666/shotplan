@@ -19,6 +19,7 @@ import json
 import os
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 from typing import Any
@@ -32,6 +33,24 @@ from shotplan.storage import RunStore
 ROOT = Path(__file__).resolve().parents[1]
 REPORT = ROOT / "docs" / "soak.md"
 SNAPSHOT = ROOT / "evals" / "out" / "soak.json"
+
+
+def keep_awake():
+    """Ask Windows not to suspend the machine while the soak runs.
+
+    A 16-minute gap in an earlier run was a system sleep, not a service stall.
+    ES_CONTINUOUS | ES_SYSTEM_REQUIRED keeps the system awake; the display may
+    still turn off. No-op on POSIX.
+    """
+    if os.name != "nt":
+        return lambda: None
+    import ctypes
+
+    continuous = 0x80000000
+    system_required = 0x00000001
+    kernel32 = ctypes.windll.kernel32
+    kernel32.SetThreadExecutionState(continuous | system_required)
+    return lambda: kernel32.SetThreadExecutionState(continuous)
 
 
 def start_server(workers: int, db_path: Path, mode: str) -> tuple[subprocess.Popen, str]:
@@ -70,7 +89,27 @@ def start_server(workers: int, db_path: Path, mode: str) -> tuple[subprocess.Pop
 
 
 def run(
-    minutes: float, workers: int, mode: str, interval: float, kill_at: float = 0.0
+    minutes: float,
+    workers: int,
+    mode: str,
+    interval: float,
+    kill_at: float = 0.0,
+    concurrency: int = 1,
+) -> dict[str, Any]:
+    release_awake = keep_awake()
+    try:
+        return _run(minutes, workers, mode, interval, kill_at, concurrency)
+    finally:
+        release_awake()
+
+
+def _run(
+    minutes: float,
+    workers: int,
+    mode: str,
+    interval: float,
+    kill_at: float = 0.0,
+    concurrency: int = 1,
 ) -> dict[str, Any]:
     with tempfile_dir() as tmp:
         db_path = Path(tmp) / "soak.db"
@@ -88,6 +127,23 @@ def run(
         health_failures = 0
         samples: list[dict[str, Any]] = []
         last_health = started
+        lock = threading.Lock()
+
+        def next_index() -> int:
+            nonlocal index
+            with lock:
+                value = index
+                index += 1
+                return value
+
+        def record(result) -> None:
+            nonlocal ok
+            with lock:
+                latencies.append(result.elapsed_ms)
+                if result.kind == "ok":
+                    ok += 1
+                else:
+                    errors.append(result.detail)
 
         def restart() -> None:
             nonlocal proc, base_url, client, restarts, health_failures
@@ -100,6 +156,14 @@ def run(
             proc, base_url = start_server(workers, db_path, mode)
             client = httpx.Client(base_url=base_url, timeout=30.0, trust_env=False)
             health_failures = 0
+
+        def traffic_round(round_end: float) -> None:
+            while time.monotonic() < round_end:
+                item = next_index()
+                result = one(client, item)
+                record(result)
+                if interval > 0:
+                    time.sleep(interval)
 
         try:
             while time.monotonic() < deadline:
@@ -116,15 +180,23 @@ def run(
                     continue
                 if proc.poll() is not None:
                     restart()
-                result = one(client, index)
-                index += 1
-                latencies.append(result.elapsed_ms)
-                if result.kind == "ok":
-                    ok += 1
+                if concurrency <= 1:
+                    result = one(client, next_index())
+                    record(result)
+                    if interval > 0:
+                        time.sleep(interval)
                 else:
-                    errors.append(result.detail)
+                    round_end = min(time.monotonic() + 30, deadline)
+                    threads = [
+                        threading.Thread(target=traffic_round, args=(round_end,))
+                        for _ in range(concurrency)
+                    ]
+                    for thread in threads:
+                        thread.start()
+                    for thread in threads:
+                        thread.join()
                 now = time.monotonic()
-                if now - last_health >= 30:
+                if now - last_health >= 30 or concurrency > 1:
                     healthy = False
                     try:
                         healthy = client.get("/api/health", timeout=5).status_code == 200
@@ -151,7 +223,6 @@ def run(
                         flush=True,
                     )
                     last_health = now
-                time.sleep(interval)
         finally:
             try:
                 client.close()
@@ -165,6 +236,7 @@ def run(
             "workers": workers,
             "mode": mode,
             "interval_s": interval,
+            "concurrency": concurrency,
             "requests": index,
             "ok": ok,
             "errors": len(errors),
@@ -200,7 +272,8 @@ def report(result: dict[str, Any]) -> str:
         "# 无人值守长跑",
         "",
         f"{result['minutes']:.1f} 分钟，{result['workers']} worker，"
-        f"`{result['mode']}` 持久化，每 {result['interval_s']}s 一个请求；"
+        f"`{result['mode']}` 持久化，并发 {result.get('concurrency', 1)}，"
+        f"每 {result['interval_s']}s 一个请求；"
         "每 30s 探活，连续失败 3 次或进程退出则重启。",
         "",
         "## 结果",
@@ -210,6 +283,7 @@ def report(result: dict[str, Any]) -> str:
         f"| 请求 | {result['requests']} |",
         f"| 成功 | {result['ok']} |",
         f"| 错误 | {result['errors']} |",
+        f"| 并发 | {result.get('concurrency', 1)} |",
         f"| 重启 | {result['restarts']} |",
         f"| 人为杀进程 | {result.get('chaos_kills', 0)} |",
         f"| 落库 | {result['rows']} |",
@@ -231,10 +305,15 @@ def report(result: dict[str, Any]) -> str:
                 f"| {sample['errors']} | {sample['restarts']} | {sample['rows']} |"
             )
         lines.append("")
+    if result["error_samples"]:
+        lines += ["## 错误样本", ""]
+        lines += [f"- `{sample}`" for sample in result["error_samples"]]
+        lines.append("")
     lines += [
         "## 边界",
         "",
-        "mock provider、单机 loopback、固定 1 请求/间隔；这是稳定性长跑，不是容量压测。"
+        f"mock provider、单机 loopback；并发 {result.get('concurrency', 1)}，"
+        f"每个 worker 每 {result['interval_s']}s 一个请求。这是稳定性长跑，不是容量压测；"
         "错误样本与重启原因都在 JSON 快照里，不掩盖失败。",
         "",
     ]
@@ -247,6 +326,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--mode", choices=["off", "sync", "async", "batch"], default="batch")
     parser.add_argument("--interval", type=float, default=1.5)
+    parser.add_argument("--concurrency", type=int, default=1)
     parser.add_argument(
         "--kill-at-minutes", type=float, default=0.0,
         help="hard-kill the service once at this minute to test unattended restart",
@@ -255,7 +335,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--report", type=Path, default=REPORT)
     args = parser.parse_args(argv)
     result = run(
-        args.minutes, args.workers, args.mode, args.interval, args.kill_at_minutes
+        args.minutes,
+        args.workers,
+        args.mode,
+        args.interval,
+        args.kill_at_minutes,
+        args.concurrency,
     )
     text = report(result)
     print(text)
