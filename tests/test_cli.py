@@ -123,3 +123,31 @@ def test_serve_persist_mode_reaches_the_app_environment(monkeypatch):
     monkeypatch.setenv("SHOTPLAN_PERSIST_MODE", "sync")
     assert cli.main(["serve", "--persist-mode", "async"]) == 0
     assert os.environ["SHOTPLAN_PERSIST_MODE"] == "async"
+
+
+def test_export_command_writes_a_calendar(tmp_path, monkeypatch):
+    from shotplan.agents import MockProvider
+    from shotplan.domain.models import PlanRequest
+    from shotplan.pipeline import run_plan
+    from shotplan.storage import RunStore
+
+    monkeypatch.setenv("SHOTPLAN_DB_PATH", str(tmp_path / "cli.db"))
+    store = RunStore(tmp_path / "cli.db")
+    result = run_plan(
+        PlanRequest(hours=6), provider=MockProvider("good"), store=store
+    )
+    target = tmp_path / "out.ics"
+    code = cli.main(
+        [
+            "export",
+            "--run-id",
+            result.trace.run_id,
+            "--format",
+            "ics",
+            "--out",
+            str(target),
+        ]
+    )
+    assert code == 0
+    assert target.read_text(encoding="utf-8").startswith("BEGIN:VCALENDAR")
+    assert cli.main(["export", "--run-id", "missing", "--format", "md"]) == 1

@@ -122,6 +122,30 @@ def _ics_time(date: str, clock: str) -> datetime:
     return datetime.strptime(f"{date} {clock}", "%Y-%m-%d %H:%M")
 
 
+def _fold(line: str, limit: int = 75) -> str:
+    """RFC 5545 folding: max 75 octets, continuation starts with one space.
+
+    Chinese descriptions are multi-byte, so splitting by characters (or by
+    Python string length) would exceed the octet limit. Encode each character,
+    fill the current line to 75 bytes, then use 74 + the leading space.
+    """
+    if len(line.encode("utf-8")) <= limit:
+        return line
+    chunks: list[str] = []
+    current = bytearray()
+    while line:
+        char = line[0]
+        encoded = char.encode("utf-8")
+        if len(current) + len(encoded) > limit:
+            chunks.append(current.decode("utf-8"))
+            current = bytearray()
+            limit = 74
+        current.extend(encoded)
+        line = line[1:]
+    chunks.append(current.decode("utf-8"))
+    return "\r\n ".join(chunks)
+
+
 def plan_to_ics(payload: dict[str, Any]) -> str:
     plan = payload.get("plan") or {}
     slots = plan.get("slots") or []
@@ -164,7 +188,7 @@ def plan_to_ics(payload: dict[str, Any]) -> str:
             "END:VEVENT",
         ]
     lines.append("END:VCALENDAR")
-    return "\r\n".join(lines) + "\r\n"
+    return "\r\n".join(_fold(line) for line in lines) + "\r\n"
 
 
 def safe_filename(value: str) -> str:

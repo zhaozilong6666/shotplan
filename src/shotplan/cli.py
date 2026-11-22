@@ -6,6 +6,7 @@ import argparse
 import json
 import os
 import sys
+from pathlib import Path
 from typing import Any
 
 from .agents import MockProvider, PlanProvider, build_provider
@@ -173,6 +174,24 @@ def cmd_stats(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_export(args: argparse.Namespace) -> int:
+    from .export import plan_to_ics, plan_to_markdown
+
+    settings = get_settings()
+    store = RunStore(settings.db_path)
+    payload = store.get(args.run_id)
+    if payload is None:
+        print(f"run not found: {args.run_id}", file=sys.stderr)
+        return 1
+    text = plan_to_ics(payload) if args.format == "ics" else plan_to_markdown(payload)
+    if args.out:
+        Path(args.out).write_text(text, encoding="utf-8", newline="\n")
+        print(f"wrote {args.out}")
+    else:
+        sys.stdout.write(text)
+    return 0
+
+
 def cmd_serve(args: argparse.Namespace) -> int:
     try:
         import uvicorn
@@ -237,12 +256,18 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--limit", type=int, default=200)
     p.set_defaults(func=cmd_stats)
 
+    p = sub.add_parser("export", help="把已存方案导出为 Markdown / ICS")
+    p.add_argument("--run-id", required=True)
+    p.add_argument("--format", choices=["md", "ics"], default="md")
+    p.add_argument("--out", help="输出文件；不填则写到 stdout")
+    p.set_defaults(func=cmd_export)
+
     p = sub.add_parser("serve", help="启动 Web / API")
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=8000)
     p.add_argument("--reload", action="store_true")
     p.add_argument(
-        "--persist-mode", choices=["off", "sync", "async"],
+        "--persist-mode", choices=["off", "sync", "async", "batch"],
         help="运行历史写入策略；async 时「运行统计」页可视化写入积压",
     )
     p.set_defaults(func=cmd_serve)

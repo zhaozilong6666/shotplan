@@ -55,3 +55,23 @@ def test_ics_has_one_event_per_slot_and_shanghai_time():
 def test_filename_is_boring():
     assert safe_filename("run/../../etc") == "run-etc"
     assert safe_filename("") == "shotplan"
+
+
+def test_ics_folds_long_utf8_lines():
+    payload = {
+        **PAYLOAD,
+        "plan": {
+            **PAYLOAD["plan"],
+            "slots": [
+                {
+                    **PAYLOAD["plan"]["slots"][0],
+                    "notes": "很长的备注" * 40,
+                }
+            ],
+        },
+    }
+    text = plan_to_ics(payload)
+    for line in text.split("\r\n"):
+        assert len(line.encode("utf-8")) <= 75
+    unfolded = text.replace("\r\n ", "")
+    assert "很长的备注" * 40 in unfolded

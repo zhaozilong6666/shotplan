@@ -6,6 +6,10 @@
 
 ### Added
 
+- **导出补齐（2026-11-22）**：CLI 新增 `shotplan export --run-id <id> --format md|ics`；
+  ICS 按 RFC 5545 折行（每行 ≤75 字节，UTF-8 字符不被截断）；`serve --persist-mode`
+  补上 `batch` 选项。新增 2 个测试。
+
 - **方案导出（2026-11-22）**：新增 `GET /api/runs/{run_id}/export.md` 与 `export.ics`，
   Web 结果区加下载链接。Markdown 是可直接转发的行程单；ICS 每个时间块一个 `VEVENT`，
   使用 `Asia/Shanghai` 时区。导出只读存储的 payload，不重跑规则。新增 4 个测试。
