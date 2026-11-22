@@ -6,6 +6,10 @@
 
 ### Added
 
+- **120 分钟无人值守长跑（2026-11-22）**：4 worker、batch、每 1.0s 一请求；
+  **120.03 分钟、6784/6784 成功、0 错误、0 重启、0 丢写**，P50/P95 55.33/89.09ms
+  （[docs/soak-batch-120.md](docs/soak-batch-120.md)）。
+
 - **自动重启验证（2026-11-22）**：`soak.py` 新增 `--kill-at-minutes`；30 分钟、4 worker、
   batch，第 10 分钟 `taskkill /F` 杀掉服务后自动重启。**1730/1730 成功、0 错误、
   0 丢写、1 次重启**，P50/P95 32.44/59.92ms（[docs/soak-restart-30.md](docs/soak-restart-30.md)）。
