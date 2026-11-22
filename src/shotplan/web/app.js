@@ -289,6 +289,8 @@
     html += '<div class="summary"><div class="stat"><b>' + esc(m.min_budget_cny) +
       ' 元</b><span>最低预算</span></div><div class="stat"><b>' + esc(m.min_hours) +
       ' 小时</b><span>最短时长</span></div></div>';
+    html += '<div class="export-links"><span>导出：</span><a href="/api/runs/' +
+      encodeURIComponent(r.trace.run_id) + '/export.md">Markdown（含原因）</a></div>';
     return html;
   }
 

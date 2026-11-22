@@ -386,3 +386,14 @@ def test_run_exports_are_downloadable(client):
 
     assert client.get("/api/runs/nope/export.md").status_code == 404
     assert client.get("/api/runs/nope/export.ics").status_code == 404
+
+
+def test_infeasible_export_explains_the_reasons(client):
+    data = client.post(
+        "/api/plan", json={"hours": 1, "budget_cny": 0, "mock_mode": "good"}
+    ).json()
+    assert data["status"] == "infeasible"
+    markdown = client.get(f"/api/runs/{data['trace']['run_id']}/export.md")
+    assert markdown.status_code == 200
+    assert "## 不可行原因" in markdown.text
+    assert "建议：" in markdown.text
