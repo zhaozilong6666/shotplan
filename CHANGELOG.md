@@ -6,6 +6,9 @@
 
 ### Added
 
+- **batch 硬杀验证（2026-11-22）**：3 轮 × 20 请求，`taskkill /F /T` 硬杀 uvicorn 后
+  重新打开库，**60/60 行都在，0 丢写**（E28，[docs/batch-kill.md](docs/batch-kill.md)）。
+
 - **新增 `batch` 持久化模式（2026-11-21）**：每个请求仍等到 commit 再返回，但并发请求
   共享一次提交。并发 8、200 请求：1 worker **3.24×**、4 worker **1.34×** sync 吞吐，
   P95 分别 139→54ms、138→69ms，0 丢写（E27，[docs/batch-write.md](docs/batch-write.md)）。
