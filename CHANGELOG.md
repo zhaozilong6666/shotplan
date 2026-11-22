@@ -6,6 +6,9 @@
 
 ### Added
 
+- **batch 契约进 CI（2026-11-22）**：`evals.batch_lab --check` 跑 1 worker、40 请求，
+  断言 sync / async / batch 三组都是 0 错误、0 丢写；第 **40** 道门禁。
+
 - **batch 硬杀验证（2026-11-22）**：3 轮 × 20 请求，`taskkill /F /T` 硬杀 uvicorn 后
   重新打开库，**60/60 行都在，0 丢写**（E28，[docs/batch-kill.md](docs/batch-kill.md)）。
 

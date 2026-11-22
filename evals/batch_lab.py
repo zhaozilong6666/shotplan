@@ -113,12 +113,24 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--concurrency", type=int, default=8)
     parser.add_argument("--workers", nargs="+", type=int, default=[1, 4])
     parser.add_argument("--write", action="store_true")
+    parser.add_argument("--check", action="store_true", help="short contract check")
     args = parser.parse_args(argv)
+    if args.check:
+        args.requests = min(args.requests, 40)
+        args.concurrency = min(args.concurrency, 4)
+        args.workers = [1]
     results = run(args.requests, args.concurrency, args.workers)
     text = report(results, args.requests, args.concurrency)
     if args.write:
         REPORT.write_text(text, encoding="utf-8", newline="\n")
         print(f"report: {REPORT}")
+    errors = sum(row["errors"] for rows in results.values() for row in rows)
+    lost = sum(row["lost_writes"] for rows in results.values() for row in rows)
+    if args.check:
+        if errors or lost:
+            print(f"BATCH GATE FAILED: errors={errors} lost={lost}")
+            return 1
+        print("batch gate: OK")
     return 0
 
 

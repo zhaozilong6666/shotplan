@@ -124,6 +124,7 @@ gates:
 	$(PYTHON) -m evals.examples --check
 	$(PYTHON) scripts/build_constant_checklist.py --check
 	$(PYTHON) scripts/check_deploy_config.py --check
+	$(PYTHON) -m evals.batch_lab --check
 
 kb:
 	$(PYTHON) scripts/kb.py --write
