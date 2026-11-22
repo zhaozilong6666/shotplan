@@ -1,4 +1,4 @@
-.PHONY: help install test lint typecheck check eval mutation mine report fuzz bench load httpload workerlab persistlab pipelinedoc scale examples gates kb citygap sweep transfer probes sample thresholds analysis showcase serve plan smoke clean
+.PHONY: help install test lint typecheck check soak eval mutation mine report fuzz bench load httpload workerlab persistlab pipelinedoc scale examples gates kb citygap sweep transfer probes sample thresholds analysis showcase serve plan smoke clean
 
 PYTHON ?= python
 
@@ -19,6 +19,7 @@ help:
 	@echo "  httpload  真实 uvicorn 服务 + 多 worker 的 HTTP 压测"
 	@echo "  workerlab 持久化开/关对照实验，验证多 worker 瓶颈归因"
 	@echo "  persistlab 写入 off/sync/async 三组对照，验证异步化收益与不丢写"
+	@echo "  soak      无人值守长跑：默认 30 分钟、4 worker、batch 持久化"
 	@echo "  pipelinedoc 从代码里的状态表重新生成流水线契约文档"
 	@echo "  productlab 产品层测量（一句话理解 / 三策略 / 协商）"
 	@echo "  scale     线程 vs 进程扩展性对比"
@@ -84,6 +85,10 @@ workerlab:
 persistlab:
 	$(PYTHON) -m evals.persist_lab --write
 	$(PYTHON) -m evals.persist_lab --check
+
+# Unattended stability run: 30 minutes, 4 workers, batch persistence.
+soak:
+	$(PYTHON) -m evals.soak --minutes 30 --workers 4 --mode batch --write
 
 pipelinedoc:
 	$(PYTHON) scripts/build_pipeline_doc.py --write

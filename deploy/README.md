@@ -3,6 +3,26 @@
 这里只放**能被 CI 检查**的部署物；不能检查的（真实 Prometheus、TLS、反向代理）
 写在 [docs/release-readiness.md](../docs/release-readiness.md)，不在这里假装完成。
 
+## systemd（无人值守）
+
+`deploy/shotplan.service` 是一个可直接启用的 unit：`Restart=always`、`RestartSec=5`，
+崩溃或 OOM 后由 systemd 拉起；`StateDirectory=shotplan` 把数据库放在
+`/var/lib/shotplan`，`EnvironmentFile=/etc/shotplan.env` 注入密钥与配置。
+
+```bash
+sudo useradd --system --home /opt/shotplan --shell /usr/sbin/nologin shotplan
+sudo install -d -o shotplan -g shotplan /opt/shotplan
+# 把仓库放到 /opt/shotplan，建好 .venv 并安装 .[api]
+sudo cp deploy/shotplan.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now shotplan
+systemctl status shotplan
+```
+
+长跑验证：`make soak`（默认 30 分钟、4 worker、batch 持久化），报告写到
+`docs/soak.md`；它每 30 秒探活、连续失败 3 次或进程退出会自动重启，并在结束时
+核对「成功请求数 = 落库行数」。
+
 ## Prometheus
 
 | 文件 | 作用 |

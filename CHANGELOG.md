@@ -6,6 +6,11 @@
 
 ### Added
 
+- **无人值守长跑 + systemd（2026-11-22）**：新增 `evals/soak.py` 与 `make soak`；
+  30.0 分钟、4 worker、batch、每 1.5s 一请求：**1165/1165 成功、0 错误、0 重启、
+  0 丢写**，P95 61ms（[docs/soak.md](docs/soak.md)）。`deploy/shotplan.service` 提供
+  `Restart=always` 的无人值守 unit。
+
 - **导出补齐（2026-11-22）**：CLI 新增 `shotplan export --run-id <id> --format md|ics`；
   ICS 按 RFC 5545 折行（每行 ≤75 字节，UTF-8 字符不被截断）；Markdown 也渲染不可行原因（页面不可行视图加入口）；
   `serve --persist-mode` 补上 `batch` 选项。新增 3 个测试。
