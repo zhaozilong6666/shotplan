@@ -86,6 +86,13 @@ button { font: inherit; cursor: pointer; }
 .summary {
   display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px;
 }
+.export-links {
+  display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+  margin: -6px 0 18px; font-size: 13px; color: var(--muted);
+}
+.export-links a {
+  color: var(--accent); text-decoration: none; border-bottom: 1px dashed var(--accent);
+}
 .stat {
   flex: 1 1 130px; padding: 12px 14px; border-radius: 10px;
   background: var(--accent-soft); border: 1px solid #cfe1f5;

@@ -1,4 +1,4 @@
-.PHONY: help install test lint typecheck eval mutation mine report fuzz bench load httpload workerlab persistlab pipelinedoc scale examples gates kb citygap sweep transfer probes sample thresholds analysis showcase serve plan smoke clean
+.PHONY: help install test lint typecheck check eval mutation mine report fuzz bench load httpload workerlab persistlab pipelinedoc scale examples gates kb citygap sweep transfer probes sample thresholds analysis showcase serve plan smoke clean
 
 PYTHON ?= python
 
@@ -8,6 +8,7 @@ help:
 	@echo "  test      运行单元测试（含覆盖率门槛）"
 	@echo "  lint      ruff 静态检查"
 	@echo "  typecheck mypy 类型检查（src/shotplan）"
+	@echo "  check     快速回路：lint + 类型 + 单测（日常改动用这个，不跑 40 道门禁）"
 	@echo "  eval      运行评测集并生成报告"
 	@echo "  mutation  变异测试：注入受控故障验证门禁有效，并刷新报告"
 	@echo "  mine      从失败案例库挖掘盲测挑战集并刷新报告"
@@ -58,6 +59,10 @@ mutation:
 mine:
 	$(PYTHON) -m evals.case_miner --write
 	$(PYTHON) -m evals.case_miner --check
+
+# Daily loop: fast enough to run before every commit. Full evidence gates are
+# `make gates`, reserved for milestones and CI.
+check: lint typecheck test
 
 report:
 	$(PYTHON) -m evals.run_eval --write-report --compare evals/baselines/v6-naive.json

@@ -303,6 +303,11 @@
       '<div class="stat"><b>' + esc(r.validation.score.toFixed(3)) + '</b><span>综合得分</span></div>' +
       '</div>';
 
+    var downloadBase = "/api/runs/" + encodeURIComponent(r.trace.run_id);
+    html += '<div class="export-links"><span>下载行程：</span>' +
+      '<a href="' + downloadBase + '/export.ics">日历 (.ics)</a>' +
+      '<a href="' + downloadBase + '/export.md">Markdown</a></div>';
+
     html += '<div class="timeline">';
     plan.slots.forEach(function (slot) {
       html += '<div class="slot">' +

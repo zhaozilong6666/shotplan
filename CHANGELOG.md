@@ -6,6 +6,10 @@
 
 ### Added
 
+- **方案导出（2026-11-22）**：新增 `GET /api/runs/{run_id}/export.md` 与 `export.ics`，
+  Web 结果区加下载链接。Markdown 是可直接转发的行程单；ICS 每个时间块一个 `VEVENT`，
+  使用 `Asia/Shanghai` 时区。导出只读存储的 payload，不重跑规则。新增 4 个测试。
+
 - **batch 契约进 CI（2026-11-22）**：`evals.batch_lab --check` 跑 1 worker、40 请求，
   断言 sync / async / batch 三组都是 0 错误、0 丢写；第 **40** 道门禁。
 

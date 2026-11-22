@@ -20,7 +20,7 @@ from typing import Annotated, Any
 
 try:
     from fastapi import Depends, FastAPI, HTTPException, Request
-    from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
+    from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Response
     from starlette.concurrency import run_in_threadpool
 except ImportError as exc:  # pragma: no cover
     raise ImportError(
@@ -482,6 +482,39 @@ def run_detail(run_id: str, cfg: SettingsDep) -> dict[str, Any]:
     if found is None:
         raise HTTPException(status_code=404, detail="run not found")
     return found
+
+
+def _export_payload(run_id: str, cfg: Settings) -> dict[str, Any]:
+    payload = _store(cfg).get(run_id)
+    if payload is None:
+        raise HTTPException(status_code=404, detail="run not found")
+    return payload
+
+
+@app.get("/api/runs/{run_id}/export.md", dependencies=[Depends(require_api_key)])
+def export_markdown(run_id: str, cfg: SettingsDep) -> Response:
+    from .export import plan_to_markdown, safe_filename
+
+    text = plan_to_markdown(_export_payload(run_id, cfg))
+    filename = f"shotplan-{safe_filename(run_id)}.md"
+    return Response(
+        text,
+        media_type="text/markdown; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@app.get("/api/runs/{run_id}/export.ics", dependencies=[Depends(require_api_key)])
+def export_ics(run_id: str, cfg: SettingsDep) -> Response:
+    from .export import plan_to_ics, safe_filename
+
+    text = plan_to_ics(_export_payload(run_id, cfg))
+    filename = f"shotplan-{safe_filename(run_id)}.ics"
+    return Response(
+        text,
+        media_type="text/calendar; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @app.get("/api/summary", dependencies=[Depends(require_api_key)])

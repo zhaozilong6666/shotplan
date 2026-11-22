@@ -366,3 +366,23 @@ def test_batch_write_failure_is_reported(client_for, monkeypatch):
     assert response.status_code == 200
     codes = {issue["code"] for issue in response.json()["validation"]["issues"]}
     assert "PERSISTENCE_FAILED" in codes
+
+
+def test_run_exports_are_downloadable(client):
+    data = client.post("/api/plan", json={"mock_mode": "good"}).json()
+    run_id = data["trace"]["run_id"]
+
+    markdown = client.get(f"/api/runs/{run_id}/export.md")
+    assert markdown.status_code == 200
+    assert "text/markdown" in markdown.headers["content-type"]
+    assert "attachment" in markdown.headers["content-disposition"]
+    assert "拍摄行程" in markdown.text
+
+    calendar = client.get(f"/api/runs/{run_id}/export.ics")
+    assert calendar.status_code == 200
+    assert "text/calendar" in calendar.headers["content-type"]
+    assert calendar.text.startswith("BEGIN:VCALENDAR")
+    assert "BEGIN:VEVENT" in calendar.text
+
+    assert client.get("/api/runs/nope/export.md").status_code == 404
+    assert client.get("/api/runs/nope/export.ics").status_code == 404
