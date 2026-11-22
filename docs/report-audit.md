@@ -8,8 +8,8 @@
 
 | 指标 | 值 |
 | --- | --- |
-| 扫描报告 | 86 份（447 KB） |
-| 脚本生成 | 47 份，来自 35 个生成器 |
+| 扫描报告 | 87 份（450 KB） |
+| 脚本生成 | 48 份，来自 35 个生成器 |
 | 人写报告 | 39 份 |
 | 人写报告冗余对（≥ 0.55） | 3 对 |
 | 同名前缀家族（≥ 3 份） | 5 个 |
@@ -31,17 +31,18 @@
 - `router-holdout-off.md`
 - `router-holdout-on.md`
 
+`evals.soak` 一个脚本产出 **4 份**，占全部脚本生成报告的 8%。
+
+- `soak-batch-60.md`
+- `soak-restart-30.md`
+- `soak-sync-30.md`
+- `soak.md`
+
 `scripts/kb.py` 一个脚本产出 **3 份**，占全部脚本生成报告的 6%。
 
 - `HANDOFF.md`
 - `kb-health.md`
 - `next.md`
-
-`evals.soak` 一个脚本产出 **3 份**，占全部脚本生成报告的 6%。
-
-- `soak-batch-60.md`
-- `soak-sync-30.md`
-- `soak.md`
 
 这些文件的高相似度是模板的必然结果，**不是冗余**——它们记录了不同的数字。真正的问题是读者无法从文件名判断哪份是当前结论。
 
@@ -55,9 +56,9 @@
 
 | 报告 A | 报告 B | 相似度 | 建议 |
 | --- | --- | ---: | --- |
-| `real-model-light-fix-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.673 | 部分重叠：只核对数字是否互相矛盾 |
+| `real-model-light-fix-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.674 | 部分重叠：只核对数字是否互相矛盾 |
 | `real-model-baseline-2026-11-16.md` | `real-model-light-fix-2026-11-16.md` | 0.657 | 部分重叠：只核对数字是否互相矛盾 |
-| `real-model-baseline-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.579 | 部分重叠：只核对数字是否互相矛盾 |
+| `real-model-baseline-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.580 | 部分重叠：只核对数字是否互相矛盾 |
 
 **不要直接删**：这些文件记录的是「当时为什么那么判断」。保留边际信息量最高的一份作为当前结论，其余在首行加一行`> 已被 <新文件> 取代（<日期>）；本文保留为历史记录`。
 
@@ -67,8 +68,8 @@
 | --- | ---: | --- |
 | real | 8 | `real-model-baseline-2026-11-16.md`、`real-model-comparison.md`、`real-model-full-2026-11-16.md`、`real-model-light-fix-2026-11-16.md`、`real-model-repeat3.md`、`real-model-replication.md`、`real-model-smoke-2026-11-16.md`、`real-model.md` |
 | redteam | 4 | `redteam-analysis.md`、`redteam-soft-v3.md`、`redteam-soft.md`、`redteam.md` |
+| soak | 4 | `soak-batch-60.md`、`soak-restart-30.md`、`soak-sync-30.md`、`soak.md` |
 | router | 3 | `router-holdout-off.md`、`router-holdout-on.md`、`router-validation.md` |
-| soak | 3 | `soak-batch-60.md`、`soak-sync-30.md`、`soak.md` |
 | transfer | 3 | `transfer-budget.md`、`transfer-by-city.md`、`transfer-model.md` |
 
 家族大不一定是坏事（脚本生成的就该成组），但人写的部分若也在膨胀，通常说明同一问题被反复回答。
@@ -83,7 +84,7 @@
 | `ingest.md` | 0.894 | `knowledge-contract.md` | 0.106 |
 | `generality.md` | 0.878 | `problem-and-metrics.md` | 0.122 |
 | `repair-experiment.md` | 0.875 | `evaluation.md` | 0.125 |
-| `cost-latency-simulation.md` | 0.871 | `real-model-light-fix-2026-11-16.md` | 0.129 |
+| `cost-latency-simulation.md` | 0.870 | `real-model-light-fix-2026-11-16.md` | 0.130 |
 | `intelligence-roadmap.md` | 0.870 | `architecture.md` | 0.130 |
 | `city-coverage.md` | 0.866 | `evaluation.md` | 0.134 |
 | `knowledge-contract.md` | 0.858 | `problem-and-metrics.md` | 0.142 |
@@ -95,8 +96,8 @@
 - `ROADMAP.md` — 0.666，最近邻 `evaluation.md`（0.334）
 - `evaluation.md` — 0.666，最近邻 `ROADMAP.md`（0.334）
 - `real-model-baseline-2026-11-16.md` — 0.343，最近邻 `real-model-light-fix-2026-11-16.md`（0.657）
-- `real-model-light-fix-2026-11-16.md` — 0.327，最近邻 `real-model-smoke-2026-11-16.md`（0.673）
-- `real-model-smoke-2026-11-16.md` — 0.327，最近邻 `real-model-light-fix-2026-11-16.md`（0.673）
+- `real-model-light-fix-2026-11-16.md` — 0.326，最近邻 `real-model-smoke-2026-11-16.md`（0.674）
+- `real-model-smoke-2026-11-16.md` — 0.326，最近邻 `real-model-light-fix-2026-11-16.md`（0.674）
 
 ## 5. 失效引用：读者点开就是 404
 
@@ -134,4 +135,4 @@
 - **本文件自身不参与**审计，否则每次运行都会把自己报成 100% 重复。
 - **提交动作会改变语料**：语料取的是 git 索引，`git add` 一份新文档就会让统计数 +1。新增文档后要**先 add、再 `--write`**，否则本地算的是旧份数，CI 算的是新份数——这个陷阱已经踩过两次（一次是未跟踪的草稿被算进来，一次是刚 add 的新文档没重新生成）。
 
-_语料指纹：`a7b8c69c8d2accbb`（内容变化时此值必变）_
+_语料指纹：`b369a0a496008d0f`（内容变化时此值必变）_

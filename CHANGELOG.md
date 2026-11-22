@@ -6,6 +6,10 @@
 
 ### Added
 
+- **自动重启验证（2026-11-22）**：`soak.py` 新增 `--kill-at-minutes`；30 分钟、4 worker、
+  batch，第 10 分钟 `taskkill /F` 杀掉服务后自动重启。**1730/1730 成功、0 错误、
+  0 丢写、1 次重启**，P50/P95 32.44/59.92ms（[docs/soak-restart-30.md](docs/soak-restart-30.md)）。
+
 - **60 分钟无人值守长跑（2026-11-22）**：4 worker、batch、每 1.0s 一请求；
   **60.03 分钟、3402/3402 成功、0 错误、0 重启、0 丢写**，P50/P95 56.58/85.21ms
   （[docs/soak-batch-60.md](docs/soak-batch-60.md)）。

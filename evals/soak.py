@@ -69,7 +69,9 @@ def start_server(workers: int, db_path: Path, mode: str) -> tuple[subprocess.Pop
     raise RuntimeError("uvicorn did not become ready in 30s")
 
 
-def run(minutes: float, workers: int, mode: str, interval: float) -> dict[str, Any]:
+def run(
+    minutes: float, workers: int, mode: str, interval: float, kill_at: float = 0.0
+) -> dict[str, Any]:
     with tempfile_dir() as tmp:
         db_path = Path(tmp) / "soak.db"
         proc, base_url = start_server(workers, db_path, mode)
@@ -81,11 +83,39 @@ def run(minutes: float, workers: int, mode: str, interval: float) -> dict[str, A
         errors: list[str] = []
         latencies: list[float] = []
         restarts = 0
+        chaos_kills = 0
+        chaos_done = False
         health_failures = 0
         samples: list[dict[str, Any]] = []
         last_health = started
+
+        def restart() -> None:
+            nonlocal proc, base_url, client, restarts, health_failures
+            restarts += 1
+            _stop(proc)
+            try:
+                client.close()
+            except Exception:  # noqa: BLE001 - old client is gone
+                pass
+            proc, base_url = start_server(workers, db_path, mode)
+            client = httpx.Client(base_url=base_url, timeout=30.0, trust_env=False)
+            health_failures = 0
+
         try:
             while time.monotonic() < deadline:
+                elapsed_now = time.monotonic() - started
+                if kill_at and not chaos_done and elapsed_now >= kill_at * 60:
+                    chaos_done = True
+                    chaos_kills += 1
+                    print(
+                        f"chaos: hard-killing the service at {elapsed_now / 60:.1f}m",
+                        flush=True,
+                    )
+                    _stop(proc)
+                    restart()
+                    continue
+                if proc.poll() is not None:
+                    restart()
                 result = one(client, index)
                 index += 1
                 latencies.append(result.elapsed_ms)
@@ -103,17 +133,7 @@ def run(minutes: float, workers: int, mode: str, interval: float) -> dict[str, A
                     if not healthy:
                         health_failures += 1
                     if proc.poll() is not None or health_failures >= 3:
-                        restarts += 1
-                        _stop(proc)
-                        try:
-                            client.close()
-                        except Exception:  # noqa: BLE001 - old client is gone
-                            pass
-                        proc, base_url = start_server(workers, db_path, mode)
-                        client = httpx.Client(
-                            base_url=base_url, timeout=30.0, trust_env=False
-                        )
-                        health_failures = 0
+                        restart()
                     rows = RunStore(db_path).summary()["total_runs"]
                     samples.append(
                         {
@@ -150,6 +170,7 @@ def run(minutes: float, workers: int, mode: str, interval: float) -> dict[str, A
             "errors": len(errors),
             "error_samples": errors[:5],
             "restarts": restarts,
+            "chaos_kills": chaos_kills,
             "rows": rows,
             "lost": max(0, ok - rows),
             "rps": round(index / elapsed, 2) if elapsed else 0.0,
@@ -190,6 +211,7 @@ def report(result: dict[str, Any]) -> str:
         f"| 成功 | {result['ok']} |",
         f"| 错误 | {result['errors']} |",
         f"| 重启 | {result['restarts']} |",
+        f"| 人为杀进程 | {result.get('chaos_kills', 0)} |",
         f"| 落库 | {result['rows']} |",
         f"| 丢写 | {result['lost']} |",
         f"| 吞吐 | {result['rps']} /s |",
@@ -225,10 +247,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--mode", choices=["off", "sync", "async", "batch"], default="batch")
     parser.add_argument("--interval", type=float, default=1.5)
+    parser.add_argument(
+        "--kill-at-minutes", type=float, default=0.0,
+        help="hard-kill the service once at this minute to test unattended restart",
+    )
     parser.add_argument("--write", action="store_true")
     parser.add_argument("--report", type=Path, default=REPORT)
     args = parser.parse_args(argv)
-    result = run(args.minutes, args.workers, args.mode, args.interval)
+    result = run(
+        args.minutes, args.workers, args.mode, args.interval, args.kill_at_minutes
+    )
     text = report(result)
     print(text)
     if args.write:
