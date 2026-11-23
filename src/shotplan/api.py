@@ -508,7 +508,10 @@ def export_markdown(run_id: str, cfg: SettingsDep) -> Response:
 def export_ics(run_id: str, cfg: SettingsDep) -> Response:
     from .export import plan_to_ics, safe_filename
 
-    text = plan_to_ics(_export_payload(run_id, cfg))
+    try:
+        text = plan_to_ics(_export_payload(run_id, cfg))
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     filename = f"shotplan-{safe_filename(run_id)}.ics"
     return Response(
         text,

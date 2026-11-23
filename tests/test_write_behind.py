@@ -325,3 +325,23 @@ def test_batch_save_surfaces_a_write_failure(tmp_path):
             writer.save_wait(_results(1)[0])
     finally:
         writer.close()
+
+
+def test_batch_timeout_says_the_row_may_still_land(tmp_path, monkeypatch):
+    """A timeout means "unknown", not "lost": the queued row is not cancelled."""
+    gate = threading.Event()
+    store = RunStore(tmp_path / "slow.db")
+    original = store.save_many
+
+    def blocked(results):
+        gate.wait(5)
+        return original(results)
+
+    monkeypatch.setattr(store, "save_many", blocked)
+    writer = RunWriter(store, flush_interval=0.005, wait_timeout=0.1)
+    try:
+        with pytest.raises(StorageError, match="may still be committed"):
+            writer.save_wait(_results(1)[0])
+    finally:
+        gate.set()
+        writer.close()

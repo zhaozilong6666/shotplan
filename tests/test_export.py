@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from shotplan.export import plan_to_ics, plan_to_markdown, safe_filename
 
 PAYLOAD = {
@@ -75,6 +77,31 @@ def test_ics_folds_long_utf8_lines():
         assert len(line.encode("utf-8")) <= 75
     unfolded = text.replace("\r\n ", "")
     assert "很长的备注" * 40 in unfolded
+
+
+def test_markdown_keeps_a_multiline_note_inside_one_table_row():
+    payload = {
+        **PAYLOAD,
+        "plan": {
+            **PAYLOAD["plan"],
+            "slots": [{**PAYLOAD["plan"]["slots"][0], "notes": "第一行\n第二行"}],
+        },
+    }
+    text = plan_to_markdown(payload)
+    assert "第一行 第二行" in text
+    assert "第一行\n第二行" not in text
+
+
+def test_ics_refuses_an_infeasible_run_without_slots():
+    payload = {
+        "status": "infeasible",
+        "request": {"city": "xian", "date": "2026-10-04"},
+        "plan": {},
+        "validation": {"hard_pass": False, "score": 0.0, "issues": []},
+        "trace": {"run_id": "run_bad"},
+    }
+    with pytest.raises(ValueError, match="no itinerary"):
+        plan_to_ics(payload)
 
 
 def test_markdown_explains_an_infeasible_brief():

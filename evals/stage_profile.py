@@ -130,7 +130,8 @@ def report(
         f"- SQLite 同步提交（sync − off）：**{db:.2f} ms/请求**",
         f"- HTTP/JSON 与客户端（off − in-process）：**{http:.2f} ms/请求**",
         f"- pipeline（in-process）：**{total(inproc):.2f} ms/请求**",
-        f"- 三部分合计与 sync 的差（噪声）：{total(inproc) + http + db - total(sync):.2f} ms",
+        f"- 注意：{total(inproc):.2f} + {http:.2f} + {db:.2f} 恰好等于 sync 总量——"
+        "这是上面两个差值的定义式，不是独立校验",
         "",
         "## 阶段均值",
         "",

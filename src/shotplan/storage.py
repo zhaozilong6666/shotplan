@@ -487,7 +487,8 @@ class RunWriter:
             assert pending.done is not None
             if not pending.done.wait(timeout=self.wait_timeout):
                 raise StorageError(
-                    f"timed out after {self.wait_timeout:g}s waiting for run write"
+                    f"timed out after {self.wait_timeout:g}s waiting for run write; "
+                    "the row may still be committed later, so check /api/runs"
                 )
             if pending.error is not None:
                 raise StorageError(f"run write failed: {pending.error}") from pending.error

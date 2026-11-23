@@ -397,3 +397,6 @@ def test_infeasible_export_explains_the_reasons(client):
     assert markdown.status_code == 200
     assert "## 不可行原因" in markdown.text
     assert "建议：" in markdown.text
+    calendar = client.get(f"/api/runs/{data['trace']['run_id']}/export.ics")
+    assert calendar.status_code == 409, "an empty calendar is not a valid export"
+    assert "Markdown" in calendar.json()["detail"]

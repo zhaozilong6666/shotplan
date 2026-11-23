@@ -84,7 +84,12 @@ def plan_to_markdown(payload: dict[str, Any]) -> str:
         "| --- | --- | --- | ---: | --- |",
     ]
     for slot in slots:
-        notes = str(slot.get("notes") or "—").replace("|", "\\|")
+        notes = (
+            str(slot.get("notes") or "—")
+            .replace("|", "\\|")
+            .replace("\r", " ")
+            .replace("\n", " ")
+        )
         lines.append(
             f"| {slot.get('start')}–{slot.get('end')} | {_slot_title(slot)} "
             f"| `{slot.get('location_id')}` | ¥{slot.get('cost_cny', 0)} | {notes} |"
@@ -165,6 +170,13 @@ def _fold(line: str, limit: int = 75) -> str:
 def plan_to_ics(payload: dict[str, Any]) -> str:
     plan = payload.get("plan") or {}
     slots = plan.get("slots") or []
+    if not slots:
+        # An infeasible brief has reasons, not an itinerary. Exporting an empty
+        # calendar would look like a successful, silently blank plan.
+        raise ValueError(
+            "no itinerary to export: this run has no time slots (likely infeasible); "
+            "use the Markdown export for the reasons"
+        )
     date = _date(payload)
     run_id = str((payload.get("trace") or {}).get("run_id") or "plan")
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")

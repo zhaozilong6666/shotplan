@@ -183,7 +183,11 @@ def cmd_export(args: argparse.Namespace) -> int:
     if payload is None:
         print(f"run not found: {args.run_id}", file=sys.stderr)
         return 1
-    text = plan_to_ics(payload) if args.format == "ics" else plan_to_markdown(payload)
+    try:
+        text = plan_to_ics(payload) if args.format == "ics" else plan_to_markdown(payload)
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
     if args.out:
         Path(args.out).write_text(text, encoding="utf-8", newline="\n")
         print(f"wrote {args.out}")
