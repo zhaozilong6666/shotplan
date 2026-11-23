@@ -6,6 +6,13 @@
 
 ### Added
 
+- **E29 交替长跑：长尾与 worker 数相关（2026-11-23）**：新增 `evals.soak_ab` 与 `make soakab`，
+  同一会话内 1/4 worker 交替各 2 轮 × 10 分钟、并发 8。4 worker 两轮都出现 30s 级停顿
+  （11 个 `ReadTimeout`、31 次 >5s、最大 30.0s），1 worker 两轮 0 次、最大 0.84s，判定 confirmed
+  （[docs/soak-ab.md](docs/soak-ab.md)）。`soak.py` 报告新增 P99.9 / 最大 / >1s / >5s；
+  `deploy/shotplan.service` 的 worker 数改为 `${SHOTPLAN_WORKERS}`，batch 建议设 1；
+  长跑报告索引见 [docs/soak-index.md](docs/soak-index.md)。
+
 - **单 worker 高强度 120 分钟（2026-11-23）**：1 worker、batch、并发 6、0.25s；
   **120.03 分钟、142751/142751 成功、0 错误、0 重启、0 丢写**；19.82 req/s，
   P50/P95 42.34/83.57ms（[docs/soak-high-120-1w.md](docs/soak-high-120-1w.md)）。

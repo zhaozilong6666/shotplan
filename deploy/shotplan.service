@@ -9,10 +9,14 @@ Type=simple
 User=shotplan
 Group=shotplan
 WorkingDirectory=/opt/shotplan
+# Default worker count. Put SHOTPLAN_WORKERS=1 in /etc/shotplan.env when running
+# SHOTPLAN_PERSIST_MODE=batch: 4 processes sharing one SQLite file produced
+# 30s stalls in a 40-minute alternating run, 1 worker produced none (E29).
+Environment=SHOTPLAN_WORKERS=4
 EnvironmentFile=/etc/shotplan.env
 Environment=SHOTPLAN_DB_PATH=/var/lib/shotplan/shotplan.db
 StateDirectory=shotplan
-ExecStart=/opt/shotplan/.venv/bin/python -m uvicorn shotplan.api:app --host 127.0.0.1 --port 8000 --workers 4
+ExecStart=/opt/shotplan/.venv/bin/python -m uvicorn shotplan.api:app --host 127.0.0.1 --port 8000 --workers ${SHOTPLAN_WORKERS}
 Restart=always
 RestartSec=5
 TimeoutStopSec=20

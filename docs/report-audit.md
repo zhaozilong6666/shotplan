@@ -8,7 +8,7 @@
 
 | 指标 | 值 |
 | --- | --- |
-| 扫描报告 | 91 份（485 KB） |
+| 扫描报告 | 91 份（486 KB） |
 | 脚本生成 | 52 份，来自 35 个生成器 |
 | 人写报告 | 39 份 |
 | 人写报告冗余对（≥ 0.55） | 3 对 |
@@ -86,7 +86,7 @@
 | --- | ---: | --- | ---: |
 | `multi-turn-attribution.md` | 0.900 | `ROADMAP.md` | 0.100 |
 | `ingest.md` | 0.894 | `knowledge-contract.md` | 0.106 |
-| `generality.md` | 0.876 | `problem-and-metrics.md` | 0.124 |
+| `generality.md` | 0.879 | `ROADMAP.md` | 0.121 |
 | `repair-experiment.md` | 0.874 | `failure-taxonomy.md` | 0.126 |
 | `cost-latency-simulation.md` | 0.869 | `real-model-light-fix-2026-11-16.md` | 0.131 |
 | `intelligence-roadmap.md` | 0.868 | `architecture.md` | 0.132 |
@@ -139,4 +139,4 @@
 - **本文件自身不参与**审计，否则每次运行都会把自己报成 100% 重复。
 - **提交动作会改变语料**：语料取的是 git 索引，`git add` 一份新文档就会让统计数 +1。新增文档后要**先 add、再 `--write`**，否则本地算的是旧份数，CI 算的是新份数——这个陷阱已经踩过两次（一次是未跟踪的草稿被算进来，一次是刚 add 的新文档没重新生成）。
 
-_语料指纹：`5834f96de9d702f0`（内容变化时此值必变）_
+_语料指纹：`7661a5fd96e8ee1e`（内容变化时此值必变）_

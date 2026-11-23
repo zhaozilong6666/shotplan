@@ -21,7 +21,21 @@ systemctl status shotplan
 
 长跑验证：`make soak`（默认 30 分钟、4 worker、batch 持久化），报告写到
 `docs/soak.md`；它每 30 秒探活、连续失败 3 次或进程退出会自动重启，并在结束时
-核对「成功请求数 = 落库行数」。
+核对「成功请求数 = 落库行数」。全部长跑报告的配置与结论见
+[docs/soak-index.md](../docs/soak-index.md)。
+
+### worker 数怎么选
+
+unit 通过 `SHOTPLAN_WORKERS` 控制 worker 数（默认 4，可在 `/etc/shotplan.env` 覆盖）：
+
+| 持久化模式 | 建议 | 依据 |
+| --- | --- | --- |
+| `sync`（默认） | 4 worker | 真实 HTTP 压测里 4 worker 是单 worker 的 2.99×（[docs/http-load.md](../docs/http-load.md)） |
+| `batch` | **1 worker** | 4 worker 两轮交替长跑都出现 30s 级停顿（11 个 ReadTimeout、31 次 >5s），1 worker 两轮 0 次、最大 0.84s（[E29](../docs/soak-ab.md)） |
+| `async` | 短压测里多 worker 更快，但没有长跑对照 | 不要把 200 请求的吞吐当成耐久性证据 |
+
+长尾不随平均延迟出现：4 worker 的 P99 与 1 worker 接近（约 120–130ms），差异在 P99.9 之后。
+
 
 ## Prometheus
 

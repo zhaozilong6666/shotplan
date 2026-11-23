@@ -231,6 +231,8 @@ def _run(
             _stop(proc)
         elapsed = time.monotonic() - started
         rows = RunStore(db_path).summary()["total_runs"]
+        p99 = percentile(latencies, 99) if latencies else 0.0
+        p999 = percentile(latencies, 99.9) if latencies else 0.0
         return {
             "minutes": round(elapsed / 60, 2),
             "workers": workers,
@@ -248,6 +250,13 @@ def _run(
             "rps": round(index / elapsed, 2) if elapsed else 0.0,
             "p50_ms": round(percentile(latencies, 50), 2) if latencies else 0.0,
             "p95_ms": round(percentile(latencies, 95), 2) if latencies else 0.0,
+            # Rare 30s stalls are invisible in P95. Keep the tail explicit so a
+            # "0 errors" claim cannot hide a 1-in-7000 freeze.
+            "p99_ms": round(p99, 2),
+            "p999_ms": round(p999, 2),
+            "max_ms": round(max(latencies), 2) if latencies else 0.0,
+            "slow_1s": sum(1 for value in latencies if value > 1000),
+            "slow_5s": sum(1 for value in latencies if value > 5000),
             "samples": samples,
         }
 
@@ -290,6 +299,9 @@ def report(result: dict[str, Any]) -> str:
         f"| 丢写 | {result['lost']} |",
         f"| 吞吐 | {result['rps']} /s |",
         f"| P50 / P95 | {result['p50_ms']} / {result['p95_ms']} ms |",
+        f"| P99 / P99.9 / 最大 | {result['p99_ms']} / {result['p999_ms']} / "
+        f"{result['max_ms']} ms |",
+        f"| 慢请求 >1s / >5s | {result['slow_1s']} / {result['slow_5s']} |",
         "",
     ]
     if result["samples"]:

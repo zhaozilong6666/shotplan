@@ -1,4 +1,4 @@
-.PHONY: help install test lint typecheck check soak eval mutation mine report fuzz bench load httpload workerlab persistlab pipelinedoc scale examples gates kb citygap sweep transfer probes sample thresholds analysis showcase serve plan smoke clean
+.PHONY: help install test lint typecheck check soak soakab eval mutation mine report fuzz bench load httpload workerlab persistlab pipelinedoc scale examples gates kb citygap sweep transfer probes sample thresholds analysis showcase serve plan smoke clean
 
 PYTHON ?= python
 
@@ -20,6 +20,7 @@ help:
 	@echo "  workerlab 持久化开/关对照实验，验证多 worker 瓶颈归因"
 	@echo "  persistlab 写入 off/sync/async 三组对照，验证异步化收益与不丢写"
 	@echo "  soak      无人值守长跑：默认 30 分钟、4 worker、batch 持久化"
+	@echo "  soakab    1 vs 4 worker 交替长跑，比较长尾（默认 2 轮 × 10 分钟）"
 	@echo "  pipelinedoc 从代码里的状态表重新生成流水线契约文档"
 	@echo "  productlab 产品层测量（一句话理解 / 三策略 / 协商）"
 	@echo "  scale     线程 vs 进程扩展性对比"
@@ -89,6 +90,11 @@ persistlab:
 # Unattended stability run: 30 minutes, 4 workers, batch persistence.
 soak:
 	$(PYTHON) -m evals.soak --minutes 30 --workers 4 --mode batch --write
+
+# Interleaved 1w/4w comparison at higher write pressure. Re-render without
+# re-running: python -m evals.soak_ab --rerender
+soakab:
+	$(PYTHON) -m evals.soak_ab --minutes 10 --write
 
 pipelinedoc:
 	$(PYTHON) scripts/build_pipeline_doc.py --write

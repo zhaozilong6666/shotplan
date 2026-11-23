@@ -174,6 +174,8 @@ python -m evals.run_eval --min-score 0.85                         # 提高回归
 
 14. **[流水线契约：状态表、墙钟预算与信任边界](docs/pipeline-contract.md)** —— 流程图原来只存在于文档里，改代码不改图没人发现；修复循环也只有次数上限，没有时间上限，最坏墙钟可达 **183s**（2 次生成 × 3 次 HTTP 尝试 × 30s 超时 + 退避）。这一版把 6 个节点写成 `STAGES` 表，图与每节点输入/输出**由代码生成**，`--check` 比对漂移；测试断言运行时 trace 里的每个事件名都来自这张表；并加 `SHOTPLAN_PIPELINE_BUDGET_S` 墙钟预算，超预算时**带着当前最优草稿降级返回**并记 `REPAIR_BUDGET_EXCEEDED`，而不是丢掉已算出的结果。同时记录为什么**不做**通用 Tool Registry / FSM 框架（见 [ADR 0013](docs/adr/0013-explicit-stage-table-and-budget.md)）。
 
+15. **[无人值守长跑：把「能跑」变成可核对的时间线](docs/soak-index.md)** —— 真实 `uvicorn` + `batch` 跑 120 分钟：134042 请求、0 丢写；同负载 4 worker 有 20 个 `ReadTimeout`（0.015%），1 worker 0 个。为了不把两次单跑当因果，新增交替 A/B（E29）：10 分钟 × 2 轮 × 1/4 worker，4 worker 两轮**都**出现 30s 级停顿（11 个超时、31 次 >5s，最大 30.0s），1 worker 两轮 0 次、最大 0.84s；因此 `deploy` 建议 `batch` 用 1 worker。长跑报告新增 P99.9 / 最大 / >1s / >5s，[docs/soak-index.md](docs/soak-index.md) 负责区分「当前结论」与「历史快照」。
+
 ## 架构与目录
 
 ```
