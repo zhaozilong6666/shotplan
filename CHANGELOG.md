@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+### Added
+
+- **单 worker 高强度 120 分钟（2026-11-23）**：1 worker、batch、并发 6、0.25s；
+  **120.03 分钟、142751/142751 成功、0 错误、0 重启、0 丢写**；19.82 req/s，
+  P50/P95 42.34/83.57ms（[docs/soak-high-120-1w.md](docs/soak-high-120-1w.md)）。
+  对比 4 worker 同负载：134042 请求、20 个 `ReadTimeout`、18.61 req/s——多进程 SQLite
+  写竞争是长尾来源，当前写模型下单 worker 反而更稳、吞吐略高。
+
 ## [0.11.0] - 2026-11-23
 
 ### Added
