@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "shotplan"
-version = "0.10.1"
+version = "0.11.0"
 description = "An evaluable, constraint-aware agent that turns a vague photoshoot brief into an executable plan"
 readme = "README.md"
 requires-python = ">=3.10"

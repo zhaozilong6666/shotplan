@@ -1,6 +1,6 @@
 # shotplan · 面试一页纸
 
-> 用途：打印或存手机，现场照着讲。每一句话、每个数字都能在仓库里被查到出处；被追问时再展开 [interview-notes.md](interview-notes.md) 的完整版。最后更新：v0.10.1。
+> 用途：打印或存手机，现场照着讲。每一句话、每个数字都能在仓库里被查到出处；被追问时再展开 [interview-notes.md](interview-notes.md) 的完整版。最后更新：v0.11.0。
 
 ## 30 秒开场（背这一段）
 
@@ -13,7 +13,7 @@
 | good **0.9796** / naive **0.2974** | 评测对照，`docs/eval-report.md` |
 | 80 主集 + **320** 盲测 brief + **527** 条失败记录聚类 | `evals/cases/`、`evals/challenge/` |
 | 变异门禁 **9/9** 拦截（旧门禁只 **4/8**，漏的全是校验端削弱） | `docs/mutation-report.md` |
-| **638** 单测 / 93.20% 覆盖 / **39** 道 CI 门禁 / Python 3.10–3.13 | `.github/workflows/ci.yml` |
+| **653** 单测 / 93.15% 覆盖 / **40** 道 CI 门禁 / Python 3.10–3.13 | `.github/workflows/ci.yml` |
 | 真实 uvicorn 压测 **1000** 请求 **0 错误 0 丢写** | `docs/http-load.md` |
 | 写入异步化：vs 同步 **2.96×**（同批关写库对照 5.13×）、P95 **186→93ms**、**0 丢写** | `docs/persistence.md` |
 | 硬杀丢失窗口：`os._exit` 实测，先 flush→N 条全在，不 flush→N−pending | `tests/test_write_behind.py` |
@@ -49,5 +49,5 @@ python -m evals.run_eval --write-report                        # 评测报告（
 
 ## 项目在哪
 
-- 仓库：<https://github.com/zhaozilong6666/shotplan>（Release v0.10.1，CI 全绿）
+- 仓库：<https://github.com/zhaozilong6666/shotplan>（Release v0.11.0，CI 全绿）
 - 在线展示页：<https://zhaozilong6666.github.io/shotplan/>（14 份可核查材料，含本页所有数字的出处）
