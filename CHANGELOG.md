@@ -6,6 +6,12 @@
 
 ### Added
 
+- **45 分钟无人值守收口（2026-11-24）**：1 worker、batch、并发 6、0.5s；
+  **45.02 分钟、28816/28816 成功、0 错误、0 重启、0 丢写**；10.67 req/s，
+  P50/P95/P99.9 54.64/87.51/150.75ms，最大 519.14ms，0 个 >1s 慢请求
+  （[docs/soak-45m.md](docs/soak-45m.md)）。原 8 小时计划按 21:00 截止，
+  4h24m 时手动停止，部分记录见 [soak-partial-4h24.md](docs/soak-partial-4h24.md)。
+
 - **长跑实时状态（2026-11-24）**：`evals/soak.py` 新增 `--status/--live`，每 30 秒重写
   `evals/out/soak-*-status.json` 与 `soak-*-live.md`；长跑不用等结束就能看到请求、错误、
   重启、落库行数。已启动 8 小时无人值守运行（1 worker、batch、并发 6、0.5s）。
