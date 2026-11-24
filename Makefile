@@ -89,7 +89,7 @@ persistlab:
 
 # Unattended stability run: 30 minutes, 4 workers, batch persistence.
 soak:
-	$(PYTHON) -m evals.soak --minutes 30 --workers 4 --mode batch --write
+	$(PYTHON) -m evals.soak --minutes 30 --workers 1 --mode batch --write
 
 # Interleaved 1w/4w comparison at higher write pressure. Re-render without
 # re-running: python -m evals.soak_ab --rerender

@@ -9,7 +9,7 @@ It is deliberately boring: no new rules, no new gate. The point is to leave it
 running for 30+ minutes and read the report afterwards.
 
 Usage:
-    python -m evals.soak --minutes 30 --workers 4 --mode batch --write
+    python -m evals.soak --minutes 30 --workers 1 --mode batch --write
 """
 
 from __future__ import annotations
@@ -335,7 +335,7 @@ def report(result: dict[str, Any]) -> str:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="unattended soak run")
     parser.add_argument("--minutes", type=float, default=30)
-    parser.add_argument("--workers", type=int, default=4)
+    parser.add_argument("--workers", type=int, default=1)
     parser.add_argument("--mode", choices=["off", "sync", "async", "batch"], default="batch")
     parser.add_argument("--interval", type=float, default=1.5)
     parser.add_argument("--concurrency", type=int, default=1)
