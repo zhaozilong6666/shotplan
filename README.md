@@ -150,9 +150,9 @@ python -m evals.run_eval --min-score 0.85                         # 提高回归
 
 报告由代码生成并随仓库提交（[docs/eval-report.md](docs/eval-report.md)），包含分组结果、逐用例明细、不可满足需求识别、成本/延迟（P50/P95、token）、对照组规则覆盖，以及一处可复核的「改动 → 分数下降 → 门禁拦截 → 回滚复原」实例——招聘方不用跑代码就能看到结论。方法论见 [docs/evaluation.md](docs/evaluation.md)；统计与样本量规则（区间、配对、可检测下限）见 [docs/measurement.md](docs/measurement.md)；成本结构与降本杠杆见 [docs/cost.md](docs/cost.md)。
 
-## 十四份可核查的材料
+## 十五份可核查的材料
 
-光有评测分数还不够，这个仓库另外提供十四块可核查的证据：
+光有评测分数还不够，这个仓库另外提供十五块可核查的证据：
 
 1. **[修复循环实验](docs/repair-experiment.md)** —— 三种刻意构造的 provider 跑同一批 69 个可满足 brief：`repairable` 一次修复把硬约束通过率从 0% 拉到 100%（69/69）；忽略修复提示的 `naive` 有 69 次候选被拒绝；「越修越差」的 `regressing` 69 次全被单调保护拦下，均分不降。每次接受/拒绝都读 trace 里的 `accepted` 字段，不靠推断。
 2. **[失败案例库](docs/failure-gallery.md)** —— 527 条结构化记录、6 类硬约束违规，每条包含输入 brief、观察到的输出片段、期望规则与修复建议。新增规则之前先在这里找证据；接真实模型后按同样格式追加新错误。
@@ -175,6 +175,8 @@ python -m evals.run_eval --min-score 0.85                         # 提高回归
 14. **[流水线契约：状态表、墙钟预算与信任边界](docs/pipeline-contract.md)** —— 流程图原来只存在于文档里，改代码不改图没人发现；修复循环也只有次数上限，没有时间上限，最坏墙钟可达 **183s**（2 次生成 × 3 次 HTTP 尝试 × 30s 超时 + 退避）。这一版把 6 个节点写成 `STAGES` 表，图与每节点输入/输出**由代码生成**，`--check` 比对漂移；测试断言运行时 trace 里的每个事件名都来自这张表；并加 `SHOTPLAN_PIPELINE_BUDGET_S` 墙钟预算，超预算时**带着当前最优草稿降级返回**并记 `REPAIR_BUDGET_EXCEEDED`，而不是丢掉已算出的结果。同时记录为什么**不做**通用 Tool Registry / FSM 框架（见 [ADR 0013](docs/adr/0013-explicit-stage-table-and-budget.md)）。
 
 15. **[无人值守长跑：把「能跑」变成可核对的时间线](docs/soak-index.md)** —— 真实 `uvicorn` + `batch` 跑 120 分钟：134042 请求、0 丢写；同负载 4 worker 有 20 个 `ReadTimeout`（0.015%），1 worker 0 个。为了不把两次单跑当因果，新增交替 A/B（E29）：10 分钟 × 2 轮 × 1/4 worker，4 worker 两轮**都**出现 30s 级停顿（11 个超时、31 次 >5s，最大 30.0s），1 worker 两轮 0 次、最大 0.84s；因此 `deploy` 建议 `batch` 用 1 worker。长跑报告新增 P99.9 / 最大 / >1s / >5s，[docs/soak-index.md](docs/soak-index.md) 负责区分「当前结论」与「历史快照」。
+
+修错记录（症状/根因/修复/验证/防复发）统一放在 [docs/lessons.md](docs/lessons.md)；每次纠错当次补一条，不靠事后回忆。
 
 ## 架构与目录
 

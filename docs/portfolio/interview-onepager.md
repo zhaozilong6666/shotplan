@@ -50,4 +50,4 @@ python -m evals.run_eval --write-report                        # 评测报告（
 ## 项目在哪
 
 - 仓库：<https://github.com/zhaozilong6666/shotplan>（Release v0.11.0，CI 全绿）
-- 在线展示页：<https://zhaozilong6666.github.io/shotplan/>（14 份可核查材料，含本页所有数字的出处）
+- 在线展示页：<https://zhaozilong6666.github.io/shotplan/>（15 份可核查材料，含本页所有数字的出处）
