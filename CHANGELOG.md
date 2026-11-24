@@ -6,6 +6,10 @@
 
 ### Added
 
+- **长跑实时状态（2026-11-24）**：`evals/soak.py` 新增 `--status/--live`，每 30 秒重写
+  `evals/out/soak-*-status.json` 与 `soak-*-live.md`；长跑不用等结束就能看到请求、错误、
+  重启、落库行数。已启动 8 小时无人值守运行（1 worker、batch、并发 6、0.5s）。
+
 - **默认部署切到 batch + 1 worker（2026-11-24）**：`deploy/shotplan.service` 与
   `.env.example` 默认改为 `SHOTPLAN_PERSIST_MODE=batch`、`SHOTPLAN_WORKERS=1`；
   30 分钟新默认长跑 **1154/1154 成功、0 错误、0 丢写**，P99.9 99.74ms、最大 137.74ms、

@@ -21,6 +21,7 @@ import subprocess
 import sys
 import threading
 import time
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -95,10 +96,21 @@ def run(
     interval: float,
     kill_at: float = 0.0,
     concurrency: int = 1,
+    status_path: Path | None = None,
+    live_path: Path | None = None,
 ) -> dict[str, Any]:
     release_awake = keep_awake()
     try:
-        return _run(minutes, workers, mode, interval, kill_at, concurrency)
+        return _run(
+            minutes,
+            workers,
+            mode,
+            interval,
+            kill_at,
+            concurrency,
+            status_path,
+            live_path,
+        )
     finally:
         release_awake()
 
@@ -110,6 +122,8 @@ def _run(
     interval: float,
     kill_at: float = 0.0,
     concurrency: int = 1,
+    status_path: Path | None = None,
+    live_path: Path | None = None,
 ) -> dict[str, Any]:
     with tempfile_dir() as tmp:
         db_path = Path(tmp) / "soak.db"
@@ -128,6 +142,54 @@ def _run(
         samples: list[dict[str, Any]] = []
         last_health = started
         lock = threading.Lock()
+
+        def publish(final: bool = False) -> None:
+            if not status_path and not live_path:
+                return
+            partial = {
+                "updated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+                "minutes": round((time.monotonic() - started) / 60, 2),
+                "mode": mode,
+                "workers": workers,
+                "concurrency": concurrency,
+                "requests": index,
+                "ok": ok,
+                "errors": len(errors),
+                "restarts": restarts,
+                "rows": RunStore(db_path).summary()["total_runs"],
+                "samples": samples[-12:],
+                "final": final,
+            }
+            if status_path:
+                status_path.parent.mkdir(parents=True, exist_ok=True)
+                status_path.write_text(
+                    json.dumps(partial, ensure_ascii=False, indent=2) + "\n",
+                    encoding="utf-8",
+                )
+            if live_path:
+                lines = [
+                    "# 长跑实时状态",
+                    "",
+                    f"- 更新时间：{partial['updated_at']}",
+                    f"- 已运行：{partial['minutes']:.1f} 分钟",
+                    f"- 配置：{workers} worker / {mode} / 并发 {concurrency}",
+                    f"- 请求 / 成功 / 错误 / 重启：{partial['requests']} / "
+                    f"{partial['ok']} / {partial['errors']} / {partial['restarts']}",
+                    f"- 落库：{partial['rows']}",
+                    "",
+                ]
+                if samples:
+                    lines += [
+                        "| 分钟 | 请求 | 成功 | 错误 | 重启 | 行数 |",
+                        "| ---: | ---: | ---: | ---: | ---: | ---: |",
+                    ]
+                    for item in samples[-8:]:
+                        lines.append(
+                            f"| {item['elapsed_min']} | {item['requests']} | {item['ok']} "
+                            f"| {item['errors']} | {item['restarts']} | {item['rows']} |"
+                        )
+                live_path.parent.mkdir(parents=True, exist_ok=True)
+                live_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
         def next_index() -> int:
             nonlocal index
@@ -222,6 +284,7 @@ def _run(
                         f"err={len(errors)} restarts={restarts} rows={rows}",
                         flush=True,
                     )
+                    publish()
                     last_health = now
         finally:
             try:
@@ -233,6 +296,7 @@ def _run(
         rows = RunStore(db_path).summary()["total_runs"]
         p99 = percentile(latencies, 99) if latencies else 0.0
         p999 = percentile(latencies, 99.9) if latencies else 0.0
+        publish(final=True)
         return {
             "minutes": round(elapsed / 60, 2),
             "workers": workers,
@@ -345,6 +409,18 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--write", action="store_true")
     parser.add_argument("--report", type=Path, default=REPORT)
+    parser.add_argument(
+        "--status",
+        type=Path,
+        default=ROOT / "evals" / "out" / "soak-status.json",
+        help="machine-readable live status, rewritten every sample",
+    )
+    parser.add_argument(
+        "--live",
+        type=Path,
+        default=ROOT / "evals" / "out" / "soak-live.md",
+        help="human-readable live status, rewritten every sample",
+    )
     args = parser.parse_args(argv)
     result = run(
         args.minutes,
@@ -353,6 +429,8 @@ def main(argv: list[str] | None = None) -> int:
         args.interval,
         args.kill_at_minutes,
         args.concurrency,
+        args.status,
+        args.live,
     )
     text = report(result)
     print(text)
