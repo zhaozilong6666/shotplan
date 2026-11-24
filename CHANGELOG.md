@@ -6,6 +6,12 @@
 
 ### Added
 
+- **2 worker 高强度对照（2026-11-24）**：60 分钟、batch、并发 6、0.25s；
+  **69103 请求、69092 成功、11 个错误、0 重启、69099 行、0 丢写**；19.19 req/s，
+  P50/P95/P99.9 40.27/65.32/217.86ms，最大 30.0s，慢请求 >1s 有 20 个
+  （[docs/soak-high-60-2w.md](docs/soak-high-60-2w.md)）。结合 1 worker 2 小时 0 错误、
+  4 worker 2 小时 20 错误：多进程 SQLite 写竞争从 2 worker 就开始出现。
+
 - **E29 交替长跑：长尾与 worker 数相关（2026-11-23）**：新增 `evals.soak_ab` 与 `make soakab`，
   同一会话内 1/4 worker 交替各 2 轮 × 10 分钟、并发 8。4 worker 两轮都出现 30s 级停顿
   （11 个 `ReadTimeout`、31 次 >5s、最大 30.0s），1 worker 两轮 0 次、最大 0.84s，判定 confirmed
