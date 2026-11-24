@@ -22,9 +22,11 @@ def test_store_roundtrip(tmp_path):
 
 def test_summary_aggregates(tmp_path):
     store = RunStore(tmp_path / "runs.db")
+    assert store.count() == 0
     for mode in ("good", "naive"):
         store.save(run_plan(PlanRequest(), provider=MockProvider(mode), max_repairs=0))
     summary = store.summary()
+    assert store.count() == 2
     assert summary["total_runs"] == 2
     assert summary["hard_pass_rate"] == 0.5
     assert 0 < summary["avg_score"] < 1

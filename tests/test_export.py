@@ -47,6 +47,9 @@ def test_ics_has_one_event_per_slot_and_shanghai_time():
     text = plan_to_ics(PAYLOAD)
     assert text.startswith("BEGIN:VCALENDAR")
     assert text.count("BEGIN:VEVENT") == 1
+    assert "BEGIN:VTIMEZONE" in text
+    assert "TZID:Asia/Shanghai" in text
+    assert "TZOFFSETTO:+0800" in text
     assert "DTSTART;TZID=Asia/Shanghai:20261004T162600" in text
     assert "DTEND;TZID=Asia/Shanghai:20261004T182600" in text
     assert "SUMMARY:城墙拍摄（西安）" in text

@@ -186,6 +186,15 @@ def plan_to_ics(payload: dict[str, Any]) -> str:
         "PRODID:-//shotplan//itinerary//CN",
         "CALSCALE:GREGORIAN",
         "METHOD:PUBLISH",
+        "BEGIN:VTIMEZONE",
+        "TZID:Asia/Shanghai",
+        "BEGIN:STANDARD",
+        "DTSTART:19700101T000000",
+        "TZOFFSETFROM:+0800",
+        "TZOFFSETTO:+0800",
+        "TZNAME:CST",
+        "END:STANDARD",
+        "END:VTIMEZONE",
     ]
     for index, slot in enumerate(slots):
         start = _ics_time(date, str(slot.get("start")))

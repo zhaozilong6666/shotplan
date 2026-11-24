@@ -316,6 +316,15 @@ class RunStore:
             raise StorageError(f"cannot read recent payloads: {exc}") from exc
         return [json.loads(row[0]) for row in rows]
 
+    def count(self) -> int:
+        """Cheap row count for live status; avoid the full summary aggregates."""
+        try:
+            with contextlib.closing(self._connect()) as conn:
+                row = conn.execute("SELECT COUNT(*) FROM runs").fetchone()
+        except sqlite3.Error as exc:
+            raise StorageError(f"cannot count runs: {exc}") from exc
+        return int(row[0]) if row else 0
+
     def get(self, run_id: str) -> dict[str, Any] | None:
         try:
             with contextlib.closing(self._connect()) as conn:

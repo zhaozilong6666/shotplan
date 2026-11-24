@@ -17,8 +17,10 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 from datetime import datetime
@@ -52,6 +54,30 @@ def keep_awake():
     kernel32 = ctypes.windll.kernel32
     kernel32.SetThreadExecutionState(continuous | system_required)
     return lambda: kernel32.SetThreadExecutionState(continuous)
+
+
+def cleanup_stale_temp_dirs() -> None:
+    """Remove soak DBs left behind by a hard-killed run.
+
+    A PID file makes this safe: a directory whose PID is still alive is kept.
+    Directories without a PID file are only removed after 12 hours, which is
+    longer than the supported single-run ceiling.
+    """
+    base = Path(tempfile.gettempdir())
+    for path in base.glob("shotplan-soak-*"):
+        if not path.is_dir():
+            continue
+        pid_file = path / "soak.pid"
+        if pid_file.exists():
+            try:
+                pid = int(pid_file.read_text(encoding="utf-8").strip())
+                os.kill(pid, 0)
+                continue
+            except (OSError, ValueError):
+                pass
+        elif time.time() - path.stat().st_mtime < 12 * 3600:
+            continue
+        shutil.rmtree(path, ignore_errors=True)
 
 
 def start_server(workers: int, db_path: Path, mode: str) -> tuple[subprocess.Popen, str]:
@@ -125,8 +151,10 @@ def _run(
     status_path: Path | None = None,
     live_path: Path | None = None,
 ) -> dict[str, Any]:
+    cleanup_stale_temp_dirs()
     with tempfile_dir() as tmp:
         db_path = Path(tmp) / "soak.db"
+        (db_path.parent / "soak.pid").write_text(str(os.getpid()), encoding="utf-8")
         proc, base_url = start_server(workers, db_path, mode)
         client = httpx.Client(base_url=base_url, timeout=30.0, trust_env=False)
         started = time.monotonic()
@@ -156,7 +184,7 @@ def _run(
                 "ok": ok,
                 "errors": len(errors),
                 "restarts": restarts,
-                "rows": RunStore(db_path).summary()["total_runs"],
+                "rows": RunStore(db_path).count(),
                 "samples": samples[-12:],
                 "final": final,
             }
@@ -268,7 +296,7 @@ def _run(
                         health_failures += 1
                     if proc.poll() is not None or health_failures >= 3:
                         restart()
-                    rows = RunStore(db_path).summary()["total_runs"]
+                    rows = RunStore(db_path).count()
                     samples.append(
                         {
                             "elapsed_min": round((now - started) / 60, 1),
