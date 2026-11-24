@@ -26,12 +26,13 @@ systemctl status shotplan
 
 ### worker 数怎么选
 
-unit 通过 `SHOTPLAN_WORKERS` 控制 worker 数（默认 4，可在 `/etc/shotplan.env` 覆盖）：
+unit 的默认是 **`batch` + 1 worker**，这是长跑验证过的稳定组合；worker 数仍由
+`SHOTPLAN_WORKERS` 控制，可在 `/etc/shotplan.env` 覆盖：
 
 | 持久化模式 | 建议 | 依据 |
 | --- | --- | --- |
-| `sync`（默认） | 4 worker | 真实 HTTP 压测里 4 worker 是单 worker 的 2.99×（[docs/http-load.md](../docs/http-load.md)） |
-| `batch` | **1 worker** | 4 worker 两轮交替长跑都出现 30s 级停顿（11 个 ReadTimeout、31 次 >5s），1 worker 两轮 0 次、最大 0.84s（[E29](../docs/soak-ab.md)） |
+| `batch`（unit 默认） | **1 worker** | 2 worker 起就出现 30s 级尾延迟（2w/60m 11 次超时；4w/2h 20 次），1 worker 2h/14.3 万请求 0 超时、0 丢写（[E29](../docs/soak-ab.md)、[120 分钟单 worker](../docs/soak-high-120-1w.md)） |
+| `sync` | 4 worker | 真实 HTTP 压测里 4 worker 是单 worker 的 2.99×（[docs/http-load.md](../docs/http-load.md)）；但每个请求一次 commit，吞吐低于 batch |
 | `async` | 短压测里多 worker 更快，但没有长跑对照 | 不要把 200 请求的吞吐当成耐久性证据 |
 
 长尾不随平均延迟出现：4 worker 的 P99 与 1 worker 接近（约 120–130ms），差异在 P99.9 之后。

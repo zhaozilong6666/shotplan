@@ -6,6 +6,11 @@
 
 ### Added
 
+- **默认部署切到 batch + 1 worker（2026-11-24）**：`deploy/shotplan.service` 与
+  `.env.example` 默认改为 `SHOTPLAN_PERSIST_MODE=batch`、`SHOTPLAN_WORKERS=1`；
+  30 分钟新默认长跑 **1154/1154 成功、0 错误、0 丢写**，P99.9 99.74ms、最大 137.74ms、
+  0 个 >1s 慢请求（[docs/soak.md](docs/soak.md)）。
+
 - **soak 默认改为 1 worker（2026-11-24）**：E29/2 worker 对照显示，`batch` 下从 2 worker
   就开始出现 30s 级尾延迟；`make soak` 与 `soak.py` 的默认 worker 数从 4 改为 **1**，
   `docs/soak-index.md` 把旧的 4 worker 报告标为历史基线。

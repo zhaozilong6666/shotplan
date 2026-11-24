@@ -9,10 +9,12 @@ Type=simple
 User=shotplan
 Group=shotplan
 WorkingDirectory=/opt/shotplan
-# Default worker count. Put SHOTPLAN_WORKERS=1 in /etc/shotplan.env when running
-# SHOTPLAN_PERSIST_MODE=batch: 4 processes sharing one SQLite file produced
-# 30s stalls in a 40-minute alternating run, 1 worker produced none (E29).
-Environment=SHOTPLAN_WORKERS=4
+# Verified default: batch + 1 worker. Batch waits for a shared commit, and one
+# process avoids the multi-process SQLite write contention measured in E29
+# (2 workers already produced 30s tails; 1 worker ran 2h with none).
+# For SHOTPLAN_PERSIST_MODE=sync, override SHOTPLAN_WORKERS=4 in /etc/shotplan.env.
+Environment=SHOTPLAN_WORKERS=1
+Environment=SHOTPLAN_PERSIST_MODE=batch
 EnvironmentFile=/etc/shotplan.env
 Environment=SHOTPLAN_DB_PATH=/var/lib/shotplan/shotplan.db
 StateDirectory=shotplan

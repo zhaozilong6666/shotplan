@@ -5,7 +5,7 @@
 
 ## 当前结论
 
-- [soak.md](soak.md) —— 第一份 30 分钟基线（4 worker、`batch`）。E29 之后，`make soak` 的默认已改为 **1 worker**（batch 的写竞争从 2 worker 就开始出现），下一份 `--write` 会覆盖成新默认。
+- [soak.md](soak.md) —— `make soak` 的默认入口（30 分钟、**1 worker**、`batch`），每次覆盖，代表**当前默认配置**。
 - [soak-ab.md](soak-ab.md) —— 1 vs 4 worker **交替**对照，回答「长尾是否与 worker 数相关」；`--write` 覆盖，`--rerender` 只重算报告。
 
 ## 快照（按时间）
@@ -13,7 +13,7 @@
 | 报告 | 配置 | 结果 | 它回答的问题 |
 | --- | --- | --- | --- |
 | [soak-sync-30.md](soak-sync-30.md) | `sync`、4 worker、1.0s | 1722/1722、0 错误 | sync 模式长跑是否稳定 |
-| [soak.md](soak.md) | `batch`、4 worker、1.5s、30 分钟 | 1165/1165、0 错误 | 第一份基线；当时默认 4 worker，现已改为 1 worker |
+| [soak.md](soak.md) | `batch`、**1 worker**、1.5s、30 分钟 | **1154/1154、0 错误、0 慢请求** | 当前默认配置基线（E29 后从 4 worker 切换） |
 | [soak-batch-60.md](soak-batch-60.md) | `batch`、4 worker、1.0s、60 分钟 | 3402/3402、0 错误 | 时间拉长到 1 小时是否劣化 |
 | [soak-batch-120.md](soak-batch-120.md) | `batch`、4 worker、1.0s、120 分钟 | 6784/6784、0 错误 | 时间拉长到 2 小时是否劣化 |
 | [soak-restart-30.md](soak-restart-30.md) | `batch`、4 worker、第 10 分钟硬杀 | 1730/1730、1 次重启 | 进程死后自动重启是否丢写 |
