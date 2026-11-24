@@ -8,7 +8,7 @@
 
 | 指标 | 值 |
 | --- | --- |
-| 扫描报告 | 96 份（501 KB） |
+| 扫描报告 | 96 份（502 KB） |
 | 脚本生成 | 56 份，来自 36 个生成器 |
 | 人写报告 | 40 份 |
 | 人写报告冗余对（≥ 0.55） | 3 对 |
@@ -63,7 +63,7 @@
 
 | 报告 A | 报告 B | 相似度 | 建议 |
 | --- | --- | ---: | --- |
-| `real-model-light-fix-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.681 | 部分重叠：只核对数字是否互相矛盾 |
+| `real-model-light-fix-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.680 | 部分重叠：只核对数字是否互相矛盾 |
 | `real-model-baseline-2026-11-16.md` | `real-model-light-fix-2026-11-16.md` | 0.663 | 部分重叠：只核对数字是否互相矛盾 |
 | `real-model-baseline-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.587 | 部分重叠：只核对数字是否互相矛盾 |
 
@@ -88,11 +88,11 @@
 | 报告 | 边际信息量 | 最近邻 | 相似度 |
 | --- | ---: | --- | ---: |
 | `multi-turn-attribution.md` | 0.899 | `ROADMAP.md` | 0.101 |
-| `soak-partial-4h24.md` | 0.898 | `write-lock-retest.md` | 0.102 |
 | `ingest.md` | 0.893 | `knowledge-contract.md` | 0.107 |
-| `generality.md` | 0.878 | `ROADMAP.md` | 0.122 |
-| `repair-experiment.md` | 0.872 | `failure-taxonomy.md` | 0.128 |
-| `cost-latency-simulation.md` | 0.868 | `real-model-light-fix-2026-11-16.md` | 0.132 |
+| `generality.md` | 0.879 | `ROADMAP.md` | 0.121 |
+| `soak-partial-4h24.md` | 0.878 | `write-lock-retest.md` | 0.122 |
+| `repair-experiment.md` | 0.873 | `failure-taxonomy.md` | 0.127 |
+| `cost-latency-simulation.md` | 0.869 | `real-model-light-fix-2026-11-16.md` | 0.131 |
 | `intelligence-roadmap.md` | 0.867 | `architecture.md` | 0.133 |
 | `city-coverage.md` | 0.863 | `evaluation.md` | 0.137 |
 | `knowledge-contract.md` | 0.856 | `problem-and-metrics.md` | 0.144 |
@@ -103,8 +103,8 @@
 - `ROADMAP.md` — 0.663，最近邻 `evaluation.md`（0.337）
 - `evaluation.md` — 0.663，最近邻 `ROADMAP.md`（0.337）
 - `real-model-baseline-2026-11-16.md` — 0.337，最近邻 `real-model-light-fix-2026-11-16.md`（0.663）
-- `real-model-light-fix-2026-11-16.md` — 0.319，最近邻 `real-model-smoke-2026-11-16.md`（0.681）
-- `real-model-smoke-2026-11-16.md` — 0.319，最近邻 `real-model-light-fix-2026-11-16.md`（0.681）
+- `real-model-light-fix-2026-11-16.md` — 0.320，最近邻 `real-model-smoke-2026-11-16.md`（0.680）
+- `real-model-smoke-2026-11-16.md` — 0.320，最近邻 `real-model-light-fix-2026-11-16.md`（0.680）
 
 ## 5. 失效引用：读者点开就是 404
 
@@ -142,4 +142,4 @@
 - **本文件自身不参与**审计，否则每次运行都会把自己报成 100% 重复。
 - **提交动作会改变语料**：语料取的是 git 索引，`git add` 一份新文档就会让统计数 +1。新增文档后要**先 add、再 `--write`**，否则本地算的是旧份数，CI 算的是新份数——这个陷阱已经踩过两次（一次是未跟踪的草稿被算进来，一次是刚 add 的新文档没重新生成）。
 
-_语料指纹：`c438ebdaf275e0cf`（内容变化时此值必变）_
+_语料指纹：`b0f3a736df21143d`（内容变化时此值必变）_

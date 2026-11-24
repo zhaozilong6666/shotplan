@@ -23,7 +23,7 @@
 - [ ] `docs/redteam-analysis.md` 被 3 份文档引用 —— 正文含实测数字，但没有编号或数据锚点
 - [ ] `docs/router-validation.md` 被 3 份文档引用 —— 正文含实测数字，但没有编号或数据锚点
 - [ ] `docs/problem-and-metrics.md` 被 2 份文档引用 —— 正文含实测数字，但没有编号或数据锚点
-- [ ] `docs/soak-partial-4h24.md` 被 2 份文档引用
+- [ ] `docs/soak-partial-4h24.md` 被 2 份文档引用 —— 正文含实测数字，但没有编号或数据锚点
 
 ## P3 · 文字里缺的规则
 

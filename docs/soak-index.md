@@ -14,7 +14,7 @@
 | --- | --- | --- | --- |
 | [soak-sync-30.md](soak-sync-30.md) | `sync`、4 worker、1.0s | 1722/1722、0 错误 | sync 模式长跑是否稳定 |
 | [soak.md](soak.md) | `batch`、**1 worker**、1.5s、30 分钟 | **1154/1154、0 错误、0 慢请求** | 当前默认配置基线（E29 后从 4 worker 切换） |
-| [soak-partial-4h24.md](soak-partial-4h24.md) | `batch`、1 worker、并发 6、0.5s | 164932/164932、0 错误、0 丢写 | 8 小时计划被手动截止在 4h24m；保留部分数据 |
+| [soak-partial-4h24.md](soak-partial-4h24.md) | `batch`、1 worker、并发 6、0.5s | 164956/164956、0 错误、0 丢写 | 8 小时计划被手动截止在 4h24m；已从残留 SQLite 补算服务端分位 |
 | [soak-45m.md](soak-45m.md) | `batch`、1 worker、并发 6、0.5s、45 分钟 | **28816/28816、0 错误、0 慢请求** | 按 21:00 截止的完整替代运行 |
 | [soak-batch-60.md](soak-batch-60.md) | `batch`、4 worker、1.0s、60 分钟 | 3402/3402、0 错误 | 时间拉长到 1 小时是否劣化 |
 | [soak-batch-120.md](soak-batch-120.md) | `batch`、4 worker、1.0s、120 分钟 | 6784/6784、0 错误 | 时间拉长到 2 小时是否劣化 |
