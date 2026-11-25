@@ -16,6 +16,7 @@
 | [soak.md](soak.md) | `batch`、**1 worker**、1.5s、30 分钟 | **1154/1154、0 错误、0 慢请求** | 当前默认配置基线（E29 后从 4 worker 切换） |
 | [soak-partial-4h24.md](soak-partial-4h24.md) | `batch`、1 worker、并发 6、0.5s | 164956/164956、0 错误、0 丢写 | 8 小时计划被手动截止在 4h24m；已从残留 SQLite 补算服务端分位 |
 | [soak-45m.md](soak-45m.md) | `batch`、1 worker、并发 6、0.5s、45 分钟 | **28816/28816、0 错误、0 慢请求** | 按 21:00 截止的完整替代运行 |
+| [soak-5h.md](soak-5h.md) | `batch`、1 worker、并发 6、0.5s、304 分钟 | **195454/195454、0 错误、0 慢请求** | 目前最长的完整干净长跑 |
 | [soak-batch-60.md](soak-batch-60.md) | `batch`、4 worker、1.0s、60 分钟 | 3402/3402、0 错误 | 时间拉长到 1 小时是否劣化 |
 | [soak-batch-120.md](soak-batch-120.md) | `batch`、4 worker、1.0s、120 分钟 | 6784/6784、0 错误 | 时间拉长到 2 小时是否劣化 |
 | [soak-restart-30.md](soak-restart-30.md) | `batch`、4 worker、第 10 分钟硬杀 | 1730/1730、1 次重启 | 进程死后自动重启是否丢写 |
