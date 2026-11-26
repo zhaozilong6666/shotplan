@@ -18,15 +18,10 @@
 
 应用记录已创建：`wbapp_fBGl1iycT44ThE1r0xK5T1`（未部署）。平台恢复后重新发布，会复用这条记录和同一条链接。
 
-## 二、可以直接上传的发布包
+## 二、发布包按需生成（不维护第二份源码）
 
-已生成并本地验证：
-
-```
-D:\WorkBuddy\projects\shotplan-demo\
-```
-
-内容（40 个文件，约 246 KB）：
+2026-11-26 删除了 `D:\WorkBuddy\projects\shotplan-demo\`：它是主仓库 0.10.1 的整份拷贝，
+会随主仓库更新而过期（旧包仍写着 15 条规则、0.9778）。发布时直接使用**当前主仓库**的文件：
 
 | 文件/目录 | 作用 |
 | --- | --- |
@@ -34,17 +29,31 @@ D:\WorkBuddy\projects\shotplan-demo\
 | `demo_app.py` | 强制 `SHOTPLAN_PROVIDER=mock`，读取 `$PORT`，监听 `0.0.0.0` |
 | `src/shotplan/` | 服务端代码 + 内置前端页面 |
 | `pyproject.toml` | 依赖声明（`[api]` extra 含 FastAPI/uvicorn） |
-| `README.md` | 含 Hugging Face Space 元数据（`sdk: docker`、`app_port: 7860`） |
 | `requirements.lock` | 锁定版本，供需要时使用 |
 
-已验证：`/api/health` 返回 `provider=mock`，首页 200，`/api/plan` 正常出方案。包内**不含** `.env`、密钥、测试与评测数据（已扫描确认）。
+如果目标平台要求 `README.md` 顶部带元数据（如 Hugging Face Space），发布时临时加上：
+
+```yaml
+---
+title: Shotplan 旅拍方案 Agent
+emoji: 📷
+colorFrom: indigo
+colorTo: purple
+sdk: docker
+app_port: 7860
+pinned: false
+---
+```
+
+不要把这些文件再复制成一个长期存在的目录；需要上传时从主仓库取当前版本，避免出现
+「代码已更新、发布包还停在旧版本」的分叉。
 
 ## 三、Hugging Face Spaces 上传步骤（免费、无需服务器）
 
 1. 登录 <https://huggingface.co>，右上头像 → **New Space**
 2. 填 `shotplan-demo`，**SDK 选 Docker**，Hardware 选 **CPU basic · Free**，可见性选 **Public**，Create
 3. 进入 Space → **Files** 标签 → **Add file → Upload files**
-4. 把 `D:\WorkBuddy\projects\shotplan-demo\` 里的**所有内容**拖进去（必须保留 `src/` 目录层级）
+4. 从当前主仓库取第二节列出的文件上传（必须保留 `src/` 目录层级）
 5. 底部 **Commit changes to main**
 6. 等状态从 `Building` 变成 `Running`（约 3–5 分钟）
 7. 页面顶部 **App** 标签就是公开链接，形如 `https://<用户名>-shotplan-demo.hf.space`
@@ -98,7 +107,7 @@ D:\WorkBuddy\projects\shotplan-demo\
 
 1. <https://github.com/new> → Repository name 填 `shotplan-demo` → Public → Create
 2. 仓库页 → **Add file → Upload files**
-3. 把 `D:\WorkBuddy\projects\shotplan-demo\` 里的**所有内容**拖进去（保留 `src/` 层级）
+3. 从当前主仓库取第二节列出的文件上传（保留 `src/` 层级）
 4. Commit changes
 
 **2. Render 建服务**
