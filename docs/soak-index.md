@@ -23,7 +23,8 @@
 
 单写者 sidecar 的对照见 [single-writer.md](single-writer.md)：它把写者收敛为一个进程，1 worker 下干净，但 **4 worker 仍有 11 次超时/30 分钟**，所以不能把尾延迟全部归因于 SQLite 写竞争。
 进一步用 `off` + `--no-keepalive` 做对照：4 worker 10 分钟 13,449 请求 **0 错误、最大 271ms**，
-把 httpx keep-alive 复用这个混杂因素排除；但 `batch` + `--no-keepalive` 仍有 4 次超时，
+把 httpx keep-alive 复用这个混杂因素排除；但 `batch` + `--no-keepalive` 30 分钟仍有 5 次超时，
+慢请求分段显示 pipeline 2.2ms、其余 30s 在 `store.save`；sidecar + 双端禁复用仍有 2 次/20 分钟，
 说明持久化等待还有独立长尾，不能只归因于 SQLite 写锁。
 
 ## 当前结论
@@ -41,6 +42,8 @@
 | [soak-45m.md](soak-45m.md) | `batch`、1 worker、并发 6、0.5s、45 分钟 | **28816/28816、0 错误、0 慢请求** | 按 21:00 截止的完整替代运行 |
 | [soak-5h.md](soak-5h.md) | `batch`、1 worker、并发 6、0.5s、304 分钟 | **195454/195454、0 错误、0 慢请求** | 目前最长的完整干净长跑 |
 | [soak-off-4w-20m.md](soak-off-4w-20m.md) | `off`、4 worker、并发 6、20 分钟 | 25966 请求、4 个错误、最大 30s | 排除持久化：不落库仍有尾延迟 |
+| [soak-batch-nokeepalive-30.md](soak-batch-nokeepalive-30.md) | `batch`、4 worker、禁 keep-alive、30 分钟 | 33223 请求、5 个错误、最大 30s | 持久化路径仍复现长尾 |
+| [soak-writer-nk-20m.md](soak-writer-nk-20m.md) | 4 worker + sidecar、双端禁复用、20 分钟 | 22622 请求、2 个错误、最大 30s | 单写者未消除长尾 |
 | [soak-batch-60.md](soak-batch-60.md) | `batch`、4 worker、1.0s、60 分钟 | 3402/3402、0 错误 | 时间拉长到 1 小时是否劣化 |
 | [soak-batch-120.md](soak-batch-120.md) | `batch`、4 worker、1.0s、120 分钟 | 6784/6784、0 错误 | 时间拉长到 2 小时是否劣化 |
 | [soak-restart-30.md](soak-restart-30.md) | `batch`、4 worker、第 10 分钟硬杀 | 1730/1730、1 次重启 | 进程死后自动重启是否丢写 |

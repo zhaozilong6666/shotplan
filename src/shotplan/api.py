@@ -272,6 +272,9 @@ async def request_context(request: Request, call_next):
                             "path": request.url.path,
                             "status": response.status_code,
                             "duration_ms": round(elapsed_ms, 1),
+                            "pipeline_ms": response.headers.get(
+                                "X-Pipeline-Duration-Ms", ""
+                            ),
                             "pid": os.getpid(),
                         },
                         ensure_ascii=False,
@@ -498,7 +501,11 @@ async def create_plan(request: Request, cfg: SettingsDep) -> JSONResponse:
                 request_id=request.state.request_id,
             )
         )
-        return JSONResponse(result.to_dict())
+        pipeline_ms = result.trace.wall_duration_ms or result.trace.total_duration_ms
+        return JSONResponse(
+            result.to_dict(),
+            headers={"X-Pipeline-Duration-Ms": f"{pipeline_ms:.1f}"},
+        )
     except ShotplanError as exc:
         raise HTTPException(status_code=_status_for(exc), detail=str(exc)) from exc
     except (ValueError, TypeError) as exc:

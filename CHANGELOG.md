@@ -6,6 +6,11 @@
 
 ### Added
 
+- **写路径分段（2026-11-26）**：`/api/plan` 增加 `X-Pipeline-Duration-Ms`，慢日志同时记录
+  总耗时与 pipeline；复现到 30,352ms 的请求里 pipeline 仅 2.2ms，时间在 `store.save`。
+  4 worker + batch + 禁 keep-alive 30 分钟 33,223 请求/5 错误；sidecar + 双端禁复用
+  20 分钟 22,622/2 错误——单写者仍未消除长尾（L010，[docs/single-writer.md](docs/single-writer.md)）。
+
 - **连接复用对照（2026-11-26）**：`soak --no-keepalive` 显示 4 worker + `off` 在
   **13,449 请求中 0 错误、最大 271ms**；此前的 `off` 4 次超时是 httpx keep-alive
   复用造成的客户端假尾延迟（L009）。`batch` + 禁用复用仍有 4 次超时/10.5 分钟，

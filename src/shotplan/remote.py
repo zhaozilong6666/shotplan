@@ -28,6 +28,9 @@ class RemoteRunSink:
             timeout=timeout,
             trust_env=False,
             transport=transport,
+            # The sidecar is loopback and cheap to reconnect to; reusing a
+            # stale socket here would look like a 30s server stall.
+            limits=httpx.Limits(max_keepalive_connections=0),
         )
 
     def save(self, result: PlanResult) -> str:
