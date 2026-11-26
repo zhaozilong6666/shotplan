@@ -110,7 +110,7 @@
 
 ## L012 · 分段算平后，30s 不在任何应用段内
 
-- **症状**：一个 30,256ms 的慢请求，body 0.8ms、queue 3.8ms、pipeline 1.4ms、sink 2.5ms、persist 20.3ms、post 0.3ms，合计约 29ms，剩余 30.2s 没有归属。
+- **症状**：三个 30.3s 级慢请求，body/queue/pipeline/sink/persist/post 各段合计只有约 26–49ms，剩余约 30.2s 没有归属。
 - **根因**：之前只测了 pipeline 和 persist，把“总时长减去已知段”直接归给下一个猜测（先是 SQLite，再是 writer 队列）；没有把端点前/ASGI 中间件也纳入分段。
 - **修复**：响应头增加 `X-Body-Duration-Ms`、`X-Queue-Duration-Ms`、`X-Persist-Duration-Ms`、`X-Post-Duration-Ms`；慢日志同时记录全部段。
 - **验证**：`docs/single-writer.md` 的分段总账；持久化、SQLite、writer 队列均被排除。
