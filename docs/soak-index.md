@@ -26,7 +26,8 @@
 把 httpx keep-alive 复用这个混杂因素排除；但 `batch` + `--no-keepalive` 30 分钟仍有 5 次超时，
 慢请求分段显示 pipeline 2.2ms、其余 30s 在 `store.save`；再拆 `RunWriter` 内部后，
 20 分钟 4 个错误没有任何 >1s 的 `_write` 日志——等待在写者线程启动前，而不是 commit 内部；
-sidecar + 双端禁复用仍有 2 次/20 分钟。
+加入队 watchdog 后，20 分钟 23,024 请求的 1 个 30s 错误也没有队列年龄 >2s 记录，
+说明卡点在 writer 看到行之前（更可能是进程调度暂停）。
 
 ## 当前结论
 

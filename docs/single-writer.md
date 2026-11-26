@@ -52,9 +52,11 @@ uvicorn worker 4 ─┘                              └─ 单个 RunWriter →
 也不是单条 SQL 的解析/执行。
 
 再往 `RunWriter` 内部加分段（queue_wait / write_ms）后，20 分钟 4 worker 的 4 个错误
-**没有产生任何 >1s 的 `_write` 日志**。也就是说，慢请求没有卡在 `save_rows`/commit 内部，
-而是卡在写者线程开始执行之前（队列等待、线程调度或进程暂停）。这把范围从“SQLite commit”
-又缩小了一层，但仍未定位到具体系统调用；下一步需要 watchdog 记录“入队后多久仍未开始写”。
+**没有产生任何 >1s 的 `_write` 日志**。随后加入入队 watchdog（每 0.5s 查看队列最老项），
+20 分钟 23,024 请求、1 个 30s 错误，**没有一条队列年龄 >2s 的日志，也没有 writer 慢批次**。
+因此 30s 发生在 writer 看到这一行之前：更可能是 API 进程在 pipeline 结束到 `store.save`
+之间被调度暂停，或响应路径卡住；不是 SQLite commit，也不是 writer 队列。
+下一步需要 API 进程心跳/暂停检测，而不是继续改 SQLite。
 
 ## 结论
 

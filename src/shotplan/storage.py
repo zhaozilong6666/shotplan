@@ -493,6 +493,11 @@ class RunWriter:
             target=self._loop, name="shotplan-run-writer", daemon=True
         )
         self._thread.start()
+        self._last_watchdog = 0.0
+        self._watchdog = threading.Thread(
+            target=self._watch, name="shotplan-run-watchdog", daemon=True
+        )
+        self._watchdog.start()
 
     # -- public API ---------------------------------------------------------
     def save(self, result: PlanResult) -> str:
@@ -587,6 +592,7 @@ class RunWriter:
         self._stopping.set()
         drained = self.flush(timeout)
         self._thread.join(timeout=timeout)
+        self._watchdog.join(timeout=1.0)
         with self._lock:
             self._closed = True
         return drained
@@ -597,6 +603,49 @@ class RunWriter:
             return self.stats.pending
 
     # -- internals ----------------------------------------------------------
+    def _watch(self) -> None:
+        """Log when a row sits in the queue far longer than a normal commit.
+
+        The writer thread only measures queue_wait after it picks a batch up.
+        A 30s stall before that point leaves no trace, which is exactly what
+        the 2026-11-26 runs showed. This watchdog sees the queue itself and
+        also records process CPU, so a suspended process is distinguishable
+        from a slow SQLite call.
+        """
+        while not self._stopping.wait(0.5):
+            slow_log = os.environ.get("SHOTPLAN_WRITER_LOG", "")
+            if not slow_log:
+                continue
+            now = time.monotonic()
+            if now - self._last_watchdog < 5.0:
+                continue
+            with self._queue.mutex:
+                pending = list(self._queue.queue)
+            if not pending:
+                continue
+            oldest = max(0.0, (now - min(p.enqueued_at for p in pending)) * 1000)
+            if oldest < 2000:
+                continue
+            self._last_watchdog = now
+            try:
+                with open(f"{slow_log}.{os.getpid()}", "a", encoding="utf-8") as fh:
+                    fh.write(
+                        json.dumps(
+                            {
+                                "watchdog": True,
+                                "queue_age_ms": round(oldest, 1),
+                                "queue_size": len(pending),
+                                "cpu_s": round(time.process_time(), 3),
+                                "threads": threading.active_count(),
+                                "pid": os.getpid(),
+                            },
+                            ensure_ascii=False,
+                        )
+                        + "\n"
+                    )
+            except OSError:
+                pass
+
     def _loop(self) -> None:
         while True:
             batch = self._collect()

@@ -6,6 +6,10 @@
 
 ### Added
 
+- **writer 入队 watchdog（2026-11-26）**：每 0.5s 检查队列最老项，记录 queue age、
+  CPU、线程数；20 分钟 4 worker/23,024 请求的 1 个 30s 错误没有任何 >2s 队列日志，
+  说明卡点在 writer 看到行之前，而不是 SQLite commit（[docs/single-writer.md](docs/single-writer.md)）。
+
 - **RunWriter 内部分段（2026-11-26）**：记录 `queue_wait_ms_max` / `write_ms_max` /
   `slow_events`，`SHOTPLAN_WRITER_LOG` 写慢批次；20 分钟 4 worker 的 4 个错误没有
   任何 >1s 的 `_write` 日志，说明等待在写者线程启动前，而不是 commit 内部（L011）。
