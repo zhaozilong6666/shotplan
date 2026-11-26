@@ -51,6 +51,11 @@ uvicorn worker 4 ─┘                              └─ 单个 RunWriter →
 侧车在 API→sidecar 也禁用复用后仍有 2 次/20 分钟，说明不是 HTTP 连接复用，
 也不是单条 SQL 的解析/执行。
 
+再往 `RunWriter` 内部加分段（queue_wait / write_ms）后，20 分钟 4 worker 的 4 个错误
+**没有产生任何 >1s 的 `_write` 日志**。也就是说，慢请求没有卡在 `save_rows`/commit 内部，
+而是卡在写者线程开始执行之前（队列等待、线程调度或进程暂停）。这把范围从“SQLite commit”
+又缩小了一层，但仍未定位到具体系统调用；下一步需要 watchdog 记录“入队后多久仍未开始写”。
+
 ## 结论
 
 - sidecar **确实**把 SQLite 写者收敛为一个进程，1 worker 下干净、可复现；

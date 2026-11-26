@@ -25,12 +25,13 @@ import atexit
 import contextlib
 import json
 import logging
+import os
 import queue
 import sqlite3
 import threading
 import time
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Protocol
@@ -410,12 +411,19 @@ class WriterStats:
     # Requests whose enqueue timed out and were written synchronously instead.
     # Non-zero means the writer is saturated; it is visible rather than silent.
     sync_fallbacks: int = 0
+    # Critical-path split for a slow write: time waiting for the writer thread
+    # versus time inside save_rows (lock/commit/fsync). Both are milliseconds
+    # and both are maxima, because one 30s event matters more than an average.
+    queue_wait_ms_max: float = 0.0
+    write_ms_max: float = 0.0
+    write_ms_last: float = 0.0
+    slow_events: int = 0
 
     @property
     def pending(self) -> int:
         return max(0, self.submitted - self.written - self.failed)
 
-    def to_dict(self) -> dict[str, int]:
+    def to_dict(self) -> dict[str, int | float]:
         return {
             "submitted": self.submitted,
             "written": self.written,
@@ -424,6 +432,10 @@ class WriterStats:
             "batches": self.batches,
             "max_batch": self.max_batch,
             "sync_fallbacks": self.sync_fallbacks,
+            "queue_wait_ms_max": round(self.queue_wait_ms_max, 2),
+            "write_ms_max": round(self.write_ms_max, 2),
+            "write_ms_last": round(self.write_ms_last, 2),
+            "slow_events": self.slow_events,
         }
 
 
@@ -435,6 +447,7 @@ class _Pending:
     row: tuple[Any, ...] | None = None
     done: threading.Event | None = None
     error: BaseException | None = None
+    enqueued_at: float = field(default_factory=time.monotonic)
 
 
 class RunWriter:
@@ -616,7 +629,11 @@ class RunWriter:
         # thread — the API stays up and the count is exposed via /api/config.
         results = [p.result for p in batch if p.result is not None]
         rows = [p.row for p in batch if p.row is not None]
+        write_started = time.perf_counter()
+        queue_wait_ms = max(0.0, (write_started - min(p.enqueued_at for p in batch)) * 1000)
+        attempts = 0
         for attempt in range(2):
+            attempts = attempt + 1
             try:
                 if rows and not results:
                     self.store.save_rows(rows)
@@ -641,10 +658,39 @@ class RunWriter:
                     return
                 time.sleep(0.05)
                 continue
+            write_ms = (time.perf_counter() - write_started) * 1000
             with self._lock:
                 self.stats.written += len(batch)
                 self.stats.batches += 1
                 self.stats.max_batch = max(self.stats.max_batch, len(batch))
+                self.stats.queue_wait_ms_max = max(
+                    self.stats.queue_wait_ms_max, queue_wait_ms
+                )
+                self.stats.write_ms_max = max(self.stats.write_ms_max, write_ms)
+                self.stats.write_ms_last = write_ms
+                if queue_wait_ms >= 1000 or write_ms >= 1000:
+                    self.stats.slow_events += 1
+                    slow_log = os.environ.get("SHOTPLAN_WRITER_LOG", "")
+                    if slow_log:
+                        try:
+                            with open(
+                                f"{slow_log}.{os.getpid()}", "a", encoding="utf-8"
+                            ) as fh:
+                                fh.write(
+                                    json.dumps(
+                                        {
+                                            "batch": len(batch),
+                                            "queue_wait_ms": round(queue_wait_ms, 1),
+                                            "write_ms": round(write_ms, 1),
+                                            "attempts": attempts,
+                                            "pid": os.getpid(),
+                                        },
+                                        ensure_ascii=False,
+                                    )
+                                    + "\n"
+                                )
+                        except OSError:
+                            pass
             for pending in batch:
                 if pending.done is not None:
                     pending.done.set()

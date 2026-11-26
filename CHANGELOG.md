@@ -6,6 +6,10 @@
 
 ### Added
 
+- **RunWriter 内部分段（2026-11-26）**：记录 `queue_wait_ms_max` / `write_ms_max` /
+  `slow_events`，`SHOTPLAN_WRITER_LOG` 写慢批次；20 分钟 4 worker 的 4 个错误没有
+  任何 >1s 的 `_write` 日志，说明等待在写者线程启动前，而不是 commit 内部（L011）。
+
 - **写路径分段（2026-11-26）**：`/api/plan` 增加 `X-Pipeline-Duration-Ms`，慢日志同时记录
   总耗时与 pipeline；复现到 30,352ms 的请求里 pipeline 仅 2.2ms，时间在 `store.save`。
   4 worker + batch + 禁 keep-alive 30 分钟 33,223 请求/5 错误；sidecar + 双端禁复用

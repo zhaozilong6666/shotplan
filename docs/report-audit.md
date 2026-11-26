@@ -8,14 +8,14 @@
 
 | 指标 | 值 |
 | --- | --- |
-| 扫描报告 | 103 份（553 KB） |
+| 扫描报告 | 103 份（555 KB） |
 | 脚本生成 | 61 份，来自 36 个生成器 |
 | 人写报告 | 42 份 |
 | 人写报告冗余对（≥ 0.55） | 3 对 |
 | 同名前缀家族（≥ 3 份） | 5 个 |
 | 失效引用 | 0 处 |
 | 孤儿报告（无入链） | 9 份 |
-| 人写报告平均边际信息量 | 0.745 |
+| 人写报告平均边际信息量 | 0.744 |
 
 ## 1. 同源实例：报告为什么会堆积
 
@@ -99,14 +99,14 @@
 | `cost-latency-simulation.md` | 0.868 | `real-model-light-fix-2026-11-16.md` | 0.132 |
 | `intelligence-roadmap.md` | 0.866 | `architecture.md` | 0.134 |
 | `city-coverage.md` | 0.862 | `evaluation.md` | 0.138 |
-| `knowledge-contract.md` | 0.856 | `problem-and-metrics.md` | 0.144 |
+| `knowledge-contract.md` | 0.855 | `problem-and-metrics.md` | 0.145 |
 | `budget-vs-concurrency.md` | 0.834 | `real-model-baseline-2026-11-16.md` | 0.166 |
-| `soak-partial-4h24.md` | 0.829 | `lessons.md` | 0.171 |
+| `rule-map.md` | 0.828 | `problem-and-metrics.md` | 0.172 |
 
 末位（信息量最低）：
 
-- `ROADMAP.md` — 0.662，最近邻 `evaluation.md`（0.338）
-- `evaluation.md` — 0.662，最近邻 `ROADMAP.md`（0.338）
+- `lessons.md` — 0.643，最近邻 `single-writer.md`（0.357）
+- `single-writer.md` — 0.643，最近邻 `lessons.md`（0.357）
 - `real-model-baseline-2026-11-16.md` — 0.333，最近邻 `real-model-light-fix-2026-11-16.md`（0.667）
 - `real-model-light-fix-2026-11-16.md` — 0.316，最近邻 `real-model-smoke-2026-11-16.md`（0.684）
 - `real-model-smoke-2026-11-16.md` — 0.316，最近邻 `real-model-light-fix-2026-11-16.md`（0.684）
@@ -148,4 +148,4 @@
 - **本文件自身不参与**审计，否则每次运行都会把自己报成 100% 重复。
 - **提交动作会改变语料**：语料取的是 git 索引，`git add` 一份新文档就会让统计数 +1。新增文档后要**先 add、再 `--write`**，否则本地算的是旧份数，CI 算的是新份数——这个陷阱已经踩过两次（一次是未跟踪的草稿被算进来，一次是刚 add 的新文档没重新生成）。
 
-_语料指纹：`e9fd0c8c47a08a30`（内容变化时此值必变）_
+_语料指纹：`c6cfee7f4cc860bd`（内容变化时此值必变）_

@@ -24,8 +24,9 @@
 单写者 sidecar 的对照见 [single-writer.md](single-writer.md)：它把写者收敛为一个进程，1 worker 下干净，但 **4 worker 仍有 11 次超时/30 分钟**，所以不能把尾延迟全部归因于 SQLite 写竞争。
 进一步用 `off` + `--no-keepalive` 做对照：4 worker 10 分钟 13,449 请求 **0 错误、最大 271ms**，
 把 httpx keep-alive 复用这个混杂因素排除；但 `batch` + `--no-keepalive` 30 分钟仍有 5 次超时，
-慢请求分段显示 pipeline 2.2ms、其余 30s 在 `store.save`；sidecar + 双端禁复用仍有 2 次/20 分钟，
-说明持久化等待还有独立长尾，不能只归因于 SQLite 写锁。
+慢请求分段显示 pipeline 2.2ms、其余 30s 在 `store.save`；再拆 `RunWriter` 内部后，
+20 分钟 4 个错误没有任何 >1s 的 `_write` 日志——等待在写者线程启动前，而不是 commit 内部；
+sidecar + 双端禁复用仍有 2 次/20 分钟。
 
 ## 当前结论
 
