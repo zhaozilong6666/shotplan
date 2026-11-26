@@ -17,6 +17,7 @@
 | L008 | 2026-11-26 | `off` 模式把 25,962 个成功请求算成“丢写” | 已修 |
 | L009 | 2026-11-26 | 把 httpx keep-alive 复用造成的超时当成服务端尾延迟 | 已修 |
 | L010 | 2026-11-26 | 30s 请求里 pipeline 只有 2ms，之前缺少分段才反复猜根因 | 已记录 |
+| L012 | 2026-11-26 | 分段算平后，30s 不在任何应用段内，持久化被推翻 | 已记录 |
 | L011 | 2026-11-26 | 以为 30s 卡在 commit，writer 内部却没有任何 >1s 日志 | 已记录 |
 
 ## L001 · 强杀长跑留下临时库
@@ -91,12 +92,12 @@
 - **验证**：`off` + `--no-keepalive` 13,449/13,449，0 错误；`batch` + `--no-keepalive` 仍有 4 次超时，说明持久化路径还有独立问题。
 - **防复发**：任何“服务端慢”的结论，先看服务端 `X-Server-Duration-Ms`/慢日志；没有服务端慢记录就不要归因于应用。
 
-## L010 · 30s 请求里 pipeline 只有 2ms
+## L010 · 分段前把 30s 的剩余时间都算成 store.save
 
 - **症状**：4 worker + batch 的慢请求服务端总耗时 30,352ms，但同一个请求的 `pipeline_ms` 只有 2.2ms。
-- **根因**：没有在响应里带分段耗时，之前只能从总时长猜是 SQLite、uvicorn 还是客户端；实际时间在 `store.save`。
+- **根因**：没有在响应里带分段耗时，之前只能从总时长猜是 SQLite、uvicorn 还是客户端；当时把剩余时间归给 `store.save`；后续分段证明这个归因也不成立。
 - **修复**：`/api/plan` 返回 `X-Pipeline-Duration-Ms`，慢日志同时记录总耗时和 pipeline 耗时。
-- **验证**：2026-11-26 的 30 分钟复现里，两个慢请求分别为 30,352ms / pipeline 2.2ms、30,268ms / pipeline 0.5ms。
+- **验证**：30 分钟复现里两个慢请求分别为 30,352ms / pipeline 2.2ms、30,268ms / pipeline 0.5ms；后来补全 body/queue/persist/post 分段，剩余时间不在 `store.save`。
 - **防复发**：延迟问题先加分段，再谈归因；总耗时不能定位到具体阶段。
 
 ## L011 · 没有 `_write` 慢日志不等于 commit 没问题
@@ -106,6 +107,14 @@
 - **修复**：记录 `queue_wait_ms_max` / `write_ms_max` / `slow_events`，并在 `SHOTPLAN_WRITER_LOG` 写慢批次；下一步加入队 watchdog。
 - **验证**：20 分钟 4 worker 的错误全部没有 writer 慢日志；同一批请求行仍全部落库。
 - **防复发**：没有某一段的慢日志，只能证明“不在这段”，不能证明“就是下一段”；继续加观测点，不用猜测填空。
+
+## L012 · 分段算平后，30s 不在任何应用段内
+
+- **症状**：一个 30,256ms 的慢请求，body 0.8ms、queue 3.8ms、pipeline 1.4ms、sink 2.5ms、persist 20.3ms、post 0.3ms，合计约 29ms，剩余 30.2s 没有归属。
+- **根因**：之前只测了 pipeline 和 persist，把“总时长减去已知段”直接归给下一个猜测（先是 SQLite，再是 writer 队列）；没有把端点前/ASGI 中间件也纳入分段。
+- **修复**：响应头增加 `X-Body-Duration-Ms`、`X-Queue-Duration-Ms`、`X-Persist-Duration-Ms`、`X-Post-Duration-Ms`；慢日志同时记录全部段。
+- **验证**：`docs/single-writer.md` 的分段总账；持久化、SQLite、writer 队列均被排除。
+- **防复发**：总时长必须能被各段加平；加不平就继续加观测点，不能把差额归给下一个假设。
 
 ## 新增一条的模板
 

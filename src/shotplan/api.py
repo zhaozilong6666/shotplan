@@ -62,6 +62,39 @@ from .storage import (
 )
 
 
+def _heartbeat(stop: threading.Event) -> None:
+    """Log gaps in this process's own wall clock.
+
+    A blocked request alone cannot distinguish "waiting on a lock" from "the
+    whole process was descheduled". This thread records the gap after it
+    resumes, together with process CPU time: a 30s gap with ~0 CPU growth is a
+    suspension, not a spin.
+    """
+    last = time.monotonic()
+    while not stop.wait(0.5):
+        now = time.monotonic()
+        gap_ms = (now - last) * 1000
+        last = now
+        if gap_ms < 2000:
+            continue
+        try:
+            with open(f"{_HEARTBEAT_LOG}.{os.getpid()}", "a", encoding="utf-8") as fh:
+                fh.write(
+                    json.dumps(
+                        {
+                            "gap_ms": round(gap_ms, 1),
+                            "cpu_s": round(time.process_time(), 3),
+                            "threads": threading.active_count(),
+                            "pid": os.getpid(),
+                        },
+                        ensure_ascii=False,
+                    )
+                    + "\n"
+                )
+        except OSError:
+            pass
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Resolve configuration once and drain the write-behind queue on shutdown.
@@ -90,9 +123,19 @@ async def lifespan(app: FastAPI):
                 )
         except StorageError as exc:
             _ACCESS_LOG.warning("retention failed: %s", exc)
+    heartbeat_stop = threading.Event()
+    heartbeat: threading.Thread | None = None
+    if _HEARTBEAT_LOG:
+        heartbeat = threading.Thread(
+            target=_heartbeat, args=(heartbeat_stop,), name="shotplan-heartbeat", daemon=True
+        )
+        heartbeat.start()
     try:
         yield
     finally:
+        heartbeat_stop.set()
+        if heartbeat is not None:
+            heartbeat.join(timeout=1.0)
         app.state.settings = None
         close_all_writers(timeout=10.0)
 
@@ -107,6 +150,7 @@ WEB_DIR = Path(__file__).resolve().parent / "web"
 _ACCESS_LOG = logging.getLogger("shotplan.api")
 _REQUEST_ID = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
 _SLOW_LOG = os.environ.get("SHOTPLAN_SLOW_LOG", "")
+_HEARTBEAT_LOG = os.environ.get("SHOTPLAN_HEARTBEAT_LOG", "")
 
 # No CORS middleware on purpose. The bundled UI is served from this same
 # origin, so a cross-origin policy would only widen the attack surface: a
@@ -249,6 +293,7 @@ async def request_context(request: Request, call_next):
     request_id = supplied if _REQUEST_ID.fullmatch(supplied) else uuid.uuid4().hex[:16]
     request.state.request_id = request_id
     started = time.perf_counter()
+    request.state.started = started
     try:
         response = await call_next(request)
     except Exception:
@@ -275,6 +320,21 @@ async def request_context(request: Request, call_next):
                             "pipeline_ms": response.headers.get(
                                 "X-Pipeline-Duration-Ms", ""
                             ),
+                            "persist_ms": response.headers.get(
+                                "X-Persist-Duration-Ms", ""
+                            ),
+                            "queue_ms": response.headers.get(
+                                "X-Queue-Duration-Ms", ""
+                            ),
+                            "sink_setup_ms": response.headers.get(
+                                "X-Sink-Setup-Ms", ""
+                            ),
+                            "post_ms": response.headers.get(
+                                "X-Post-Duration-Ms", ""
+                            ),
+                            "body_ms": response.headers.get(
+                                "X-Body-Duration-Ms", ""
+                            ),
                             "pid": os.getpid(),
                         },
                         ensure_ascii=False,
@@ -289,6 +349,21 @@ async def request_context(request: Request, call_next):
         response.status_code, elapsed_ms,
     )
     return response
+
+
+class _TimedSink:
+    """Measure the persistence leg separately from the planning pipeline."""
+
+    def __init__(self, sink: RunSink) -> None:
+        self.sink = sink
+        self.last_ms = 0.0
+
+    def save(self, result) -> str:  # type: ignore[no-untyped-def]
+        started = time.perf_counter()
+        try:
+            return self.sink.save(result)
+        finally:
+            self.last_ms = (time.perf_counter() - started) * 1000
 
 
 @lru_cache(maxsize=4)
@@ -465,8 +540,10 @@ def rules() -> dict[str, Any]:
 
 @app.post("/api/plan", dependencies=[Depends(require_api_key)])
 async def create_plan(request: Request, cfg: SettingsDep) -> JSONResponse:
+    endpoint_started = time.perf_counter()
     try:
         raw = await request.body()
+        body_ms = (time.perf_counter() - endpoint_started) * 1000
         if len(raw) > cfg.max_body_bytes:
             raise HTTPException(
                 status_code=413,
@@ -487,25 +564,46 @@ async def create_plan(request: Request, cfg: SettingsDep) -> JSONResponse:
             if mode in ("good", "naive")
             else build_provider(cfg)
         )
+        sink_started = time.perf_counter()
         sink = _sink(cfg)
+        timed_sink = _TimedSink(sink) if sink is not None else None
+        sink_setup_ms = (time.perf_counter() - sink_started) * 1000
         # The pipeline is synchronous CPU work (and, with a real provider, blocking
         # network I/O). Calling it directly from an async endpoint would block the
         # event loop and serialise every request. Hand it to the threadpool.
-        result = await run_in_threadpool(
-            lambda: run_plan(
+        thread_started = 0.0
+
+        def _work():
+            nonlocal thread_started
+            thread_started = time.perf_counter()
+            return run_plan(
                 brief,
                 provider=provider,
-                store=sink,
+                store=timed_sink,
                 settings=cfg,
                 max_repairs=cfg.max_repairs,
                 request_id=request.state.request_id,
             )
-        )
+
+        result = await run_in_threadpool(_work)
+        queue_ms = (thread_started - endpoint_started) * 1000
         pipeline_ms = result.trace.wall_duration_ms or result.trace.total_duration_ms
-        return JSONResponse(
+        persist_ms = timed_sink.last_ms if timed_sink is not None else 0.0
+        post_started = time.perf_counter()
+        response = JSONResponse(
             result.to_dict(),
-            headers={"X-Pipeline-Duration-Ms": f"{pipeline_ms:.1f}"},
+            headers={
+                "X-Pipeline-Duration-Ms": f"{pipeline_ms:.1f}",
+                "X-Persist-Duration-Ms": f"{persist_ms:.1f}",
+                "X-Queue-Duration-Ms": f"{queue_ms:.1f}",
+                "X-Sink-Setup-Ms": f"{sink_setup_ms:.1f}",
+                "X-Body-Duration-Ms": f"{body_ms:.1f}",
+            },
         )
+        response.headers["X-Post-Duration-Ms"] = (
+            f"{(time.perf_counter() - post_started) * 1000:.1f}"
+        )
+        return response
     except ShotplanError as exc:
         raise HTTPException(status_code=_status_for(exc), detail=str(exc)) from exc
     except (ValueError, TypeError) as exc:

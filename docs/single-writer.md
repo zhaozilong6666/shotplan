@@ -56,7 +56,12 @@ uvicorn worker 4 ─┘                              └─ 单个 RunWriter →
 20 分钟 23,024 请求、1 个 30s 错误，**没有一条队列年龄 >2s 的日志，也没有 writer 慢批次**。
 因此 30s 发生在 writer 看到这一行之前：更可能是 API 进程在 pipeline 结束到 `store.save`
 之间被调度暂停，或响应路径卡住；不是 SQLite commit，也不是 writer 队列。
-下一步需要 API 进程心跳/暂停检测，而不是继续改 SQLite。
+
+最后的请求分段把账算平了：一个 30,256ms 的慢请求里，
+body 0.8ms、queue 3.8ms、pipeline 1.4ms、sink 2.5ms、persist 20.3ms、post 0.3ms，
+**合计约 29ms**。剩下的约 30.2s 不在任何应用段内，发生在端点进入前/ASGI 中间件层。
+所以“持久化等待”也被推翻：SQLite、writer、commit 都不是这 30s 的来源；
+下一步应查 uvicorn/ASGI 中间件与事件循环，而不是数据库。
 
 ## 结论
 
