@@ -56,6 +56,41 @@ def keep_awake():
     return lambda: kernel32.SetThreadExecutionState(continuous)
 
 
+def start_writer(db_path: Path) -> tuple[subprocess.Popen, str]:
+    """Start the single-writer sidecar and wait for /health."""
+    port = free_port()
+    env = os.environ.copy()
+    env["SHOTPLAN_DB_PATH"] = str(db_path)
+    env["SHOTPLAN_PROVIDER"] = "mock"
+    env["PYTHONPATH"] = str(ROOT / "src") + os.pathsep + env.get("PYTHONPATH", "")
+    command = [
+        sys.executable, "-m", "uvicorn", "shotplan.writer_service:app",
+        "--host", "127.0.0.1", "--port", str(port),
+        "--workers", "1", "--log-level", "warning", "--no-access-log",
+    ]
+    kwargs: dict[str, Any] = {
+        "env": env, "stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL,
+    }
+    if os.name == "nt":
+        kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+    else:
+        kwargs["start_new_session"] = True
+    proc = subprocess.Popen(command, **kwargs)  # noqa: S603 - fixed, local command
+    base_url = f"http://127.0.0.1:{port}"
+    deadline = time.monotonic() + 30
+    while time.monotonic() < deadline:
+        if proc.poll() is not None:
+            raise RuntimeError(f"writer exited early with code {proc.returncode}")
+        try:
+            with httpx.Client(timeout=2.0, trust_env=False) as probe:
+                if probe.get(base_url + "/health").status_code == 200:
+                    return proc, base_url
+        except Exception:  # noqa: BLE001 - readiness polling
+            time.sleep(0.3)
+    _stop(proc)
+    raise RuntimeError("writer did not become ready in 30s")
+
+
 def cleanup_stale_temp_dirs() -> None:
     """Remove soak DBs left behind by a hard-killed run.
 
@@ -80,12 +115,19 @@ def cleanup_stale_temp_dirs() -> None:
         shutil.rmtree(path, ignore_errors=True)
 
 
-def start_server(workers: int, db_path: Path, mode: str) -> tuple[subprocess.Popen, str]:
+def start_server(
+    workers: int,
+    db_path: Path,
+    mode: str,
+    extra_env: dict[str, str] | None = None,
+) -> tuple[subprocess.Popen, str]:
     port = free_port()
     env = os.environ.copy()
     env["SHOTPLAN_DB_PATH"] = str(db_path)
     env["SHOTPLAN_PROVIDER"] = "mock"
     env["SHOTPLAN_PERSIST_MODE"] = mode
+    if extra_env:
+        env.update(extra_env)
     env["PYTHONPATH"] = str(ROOT / "src") + os.pathsep + env.get("PYTHONPATH", "")
     command = [
         sys.executable, "-m", "uvicorn", "shotplan.api:app",
@@ -122,6 +164,7 @@ def run(
     interval: float,
     kill_at: float = 0.0,
     concurrency: int = 1,
+    writer: bool = False,
     status_path: Path | None = None,
     live_path: Path | None = None,
 ) -> dict[str, Any]:
@@ -134,6 +177,7 @@ def run(
             interval,
             kill_at,
             concurrency,
+            writer,
             status_path,
             live_path,
         )
@@ -148,6 +192,7 @@ def _run(
     interval: float,
     kill_at: float = 0.0,
     concurrency: int = 1,
+    writer: bool = False,
     status_path: Path | None = None,
     live_path: Path | None = None,
 ) -> dict[str, Any]:
@@ -155,7 +200,15 @@ def _run(
     with tempfile_dir() as tmp:
         db_path = Path(tmp) / "soak.db"
         (db_path.parent / "soak.pid").write_text(str(os.getpid()), encoding="utf-8")
-        proc, base_url = start_server(workers, db_path, mode)
+        writer_proc: subprocess.Popen | None = None
+        if writer:
+            writer_proc, writer_url = start_writer(db_path)
+            proc, base_url = start_server(
+                workers, db_path, mode, {"SHOTPLAN_WRITER_URL": writer_url}
+            )
+        else:
+            writer_url = ""
+            proc, base_url = start_server(workers, db_path, mode)
         client = httpx.Client(base_url=base_url, timeout=30.0, trust_env=False)
         started = time.monotonic()
         deadline = started + minutes * 60
@@ -243,7 +296,8 @@ def _run(
                 client.close()
             except Exception:  # noqa: BLE001 - old client is gone
                 pass
-            proc, base_url = start_server(workers, db_path, mode)
+            extra = {"SHOTPLAN_WRITER_URL": writer_url} if writer_url else None
+            proc, base_url = start_server(workers, db_path, mode, extra)
             client = httpx.Client(base_url=base_url, timeout=30.0, trust_env=False)
             health_failures = 0
 
@@ -320,6 +374,8 @@ def _run(
             except Exception:  # noqa: BLE001 - shutdown path
                 pass
             _stop(proc)
+            if writer_proc is not None:
+                _stop(writer_proc)
         elapsed = time.monotonic() - started
         rows = RunStore(db_path).summary()["total_runs"]
         p99 = percentile(latencies, 99) if latencies else 0.0
@@ -331,6 +387,7 @@ def _run(
             "mode": mode,
             "interval_s": interval,
             "concurrency": concurrency,
+            "writer": bool(writer),
             "requests": index,
             "ok": ok,
             "errors": len(errors),
@@ -385,6 +442,7 @@ def report(result: dict[str, Any]) -> str:
         f"| 成功 | {result['ok']} |",
         f"| 错误 | {result['errors']} |",
         f"| 并发 | {result.get('concurrency', 1)} |",
+        f"| 单写者 sidecar | {'是' if result.get('writer') else '否'} |",
         f"| 重启 | {result['restarts']} |",
         f"| 人为杀进程 | {result.get('chaos_kills', 0)} |",
         f"| 落库 | {result['rows']} |",
@@ -431,6 +489,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--mode", choices=["off", "sync", "async", "batch"], default="batch")
     parser.add_argument("--interval", type=float, default=1.5)
     parser.add_argument("--concurrency", type=int, default=1)
+    parser.add_argument("--writer", action="store_true", help="run with the single-writer sidecar")
     parser.add_argument(
         "--kill-at-minutes", type=float, default=0.0,
         help="hard-kill the service once at this minute to test unattended restart",
@@ -457,6 +516,7 @@ def main(argv: list[str] | None = None) -> int:
         args.interval,
         args.kill_at_minutes,
         args.concurrency,
+        args.writer,
         args.status,
         args.live,
     )

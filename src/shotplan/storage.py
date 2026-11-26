@@ -178,6 +178,16 @@ class RunStore:
         duplicate a run.
         """
         rows = [self._row(result) for result in results]
+        return self.save_rows(rows)
+
+    def save_rows(self, rows: Sequence[tuple[Any, ...]]) -> int:
+        """Insert already-serialised rows in one transaction.
+
+        Used by the single-writer service: the API process builds the same row
+        it would have written locally, then ships it over loopback. Keeping the
+        row shape here (not in the service) means a schema change cannot make
+        the two paths disagree.
+        """
         if not rows:
             return 0
         # SQLite has exactly one writer, so a process-level lock is not a
@@ -200,6 +210,11 @@ class RunStore:
                 except sqlite3.Error as exc:
                     raise StorageError(f"cannot save run: {exc}") from exc
         raise StorageError("cannot save run: retries exhausted")
+
+    @staticmethod
+    def row_for(result: PlanResult) -> tuple[Any, ...]:
+        """Public row projection for the remote single-writer path."""
+        return RunStore._row(result)
 
     @staticmethod
     def _row(result: PlanResult) -> tuple[Any, ...]:
@@ -416,7 +431,8 @@ class WriterStats:
 class _Pending:
     """A queued run plus an optional completion event for `batch` mode."""
 
-    result: PlanResult
+    result: PlanResult | None = None
+    row: tuple[Any, ...] | None = None
     done: threading.Event | None = None
     error: BaseException | None = None
 
@@ -478,7 +494,15 @@ class RunWriter:
         queued row is committed (or the write fails), so the durability promise
         still holds while concurrent requests share one commit.
         """
-        pending = _Pending(result, threading.Event() if wait else None)
+        pending = _Pending(result=result, done=threading.Event() if wait else None)
+        return self._submit_pending(pending)
+
+    def submit_row(self, row: tuple[Any, ...], wait: bool = True) -> bool:
+        """Enqueue an already-serialised row (single-writer service path)."""
+        pending = _Pending(row=row, done=threading.Event() if wait else None)
+        return self._submit_pending(pending)
+
+    def _submit_pending(self, pending: _Pending) -> bool:
         with self._lock:
             closed = self._closed
         if closed:
@@ -492,8 +516,7 @@ class RunWriter:
             return self._write_inline(pending)
         with self._lock:
             self.stats.submitted += 1
-        if wait:
-            assert pending.done is not None
+        if pending.done is not None:
             if not pending.done.wait(timeout=self.wait_timeout):
                 raise StorageError(
                     f"timed out after {self.wait_timeout:g}s waiting for run write; "
@@ -506,7 +529,11 @@ class RunWriter:
     def _write_inline(self, pending: _Pending) -> bool:
         """Queue is closed/full: write now, and still satisfy a waiting caller."""
         try:
-            self.store.save(pending.result)
+            if pending.row is not None:
+                self.store.save_rows([pending.row])
+            else:
+                assert pending.result is not None
+                self.store.save(pending.result)
         except StorageError as exc:
             with self._lock:
                 self.stats.submitted += 1
@@ -587,9 +614,19 @@ class RunWriter:
         # transient lock or a momentarily unavailable disk, and retrying is
         # cheaper than losing rows. A persistent failure must not kill the
         # thread — the API stays up and the count is exposed via /api/config.
+        results = [p.result for p in batch if p.result is not None]
+        rows = [p.row for p in batch if p.row is not None]
         for attempt in range(2):
             try:
-                self.store.save_many([pending.result for pending in batch])
+                if rows and not results:
+                    self.store.save_rows(rows)
+                elif results and not rows:
+                    self.store.save_many(results)
+                else:
+                    self.store.save_rows(
+                        [RunStore.row_for(r) if r is not None else row
+                         for r, row in [(p.result, p.row) for p in batch]]
+                    )
             except StorageError as exc:
                 if attempt:
                     with self._lock:

@@ -6,6 +6,11 @@
 
 ### Added
 
+- **单写者 sidecar 验证（2026-11-26）**：新增可选 `writer_service`、`RemoteRunSink`、
+  `RunStore.save_rows` / `RunWriter.submit_row`；30 分钟 4 worker 对照仍有 **11 次
+  `ReadTimeout`、最大 30s**，1 worker 对照 0 错误、最大 512ms。结论是否定的：写竞争
+  不是唯一原因，sidecar 不设为默认（[docs/single-writer.md](docs/single-writer.md)）。
+
 - **5 小时 4 分长跑（2026-11-25）**：1 worker、batch、并发 6、0.5s；
   **304.03 分钟、195454/195454 成功、0 错误、0 重启、0 丢写**；10.71 req/s，
   P50/P95/P99.9 48.66/89.89/169.23ms，最大 490.08ms，0 个 >1s 慢请求

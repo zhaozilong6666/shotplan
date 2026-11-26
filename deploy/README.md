@@ -38,6 +38,15 @@ unit 的默认是 **`batch` + 1 worker**，这是长跑验证过的稳定组合�
 长尾不随平均延迟出现：4 worker 的 P99 与 1 worker 接近（约 120–130ms），差异在 P99.9 之后。
 
 
+### 单写者 sidecar（实验性）
+
+`deploy/shotplan-writer.service` 提供一个可选的单写者进程，API 通过
+`SHOTPLAN_WRITER_URL=http://127.0.0.1:8001` 把运行历史交给它。
+
+**不要把它当成 4 worker 的修复**：1 worker 下干净，但 4 worker 仍有 30s 级
+`ReadTimeout`（30 分钟 11 次）。结论与对照见 [docs/single-writer.md](../docs/single-writer.md)。
+当前默认仍是 `batch + 1 worker`。
+
 ## Prometheus
 
 | 文件 | 作用 |

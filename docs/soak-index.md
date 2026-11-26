@@ -21,6 +21,8 @@
 
 **边界**：mock provider、单机 loopback、10–20 req/s；不是容量上限，也没有覆盖真实模型延迟与公网。
 
+单写者 sidecar 的对照见 [single-writer.md](single-writer.md)：它把写者收敛为一个进程，1 worker 下干净，但 **4 worker 仍有 11 次超时/30 分钟**，所以不能把尾延迟全部归因于 SQLite 写竞争。
+
 ## 当前结论
 
 - [soak.md](soak.md) —— `make soak` 的默认入口（30 分钟、**1 worker**、`batch`），每次覆盖，代表**当前默认配置**。

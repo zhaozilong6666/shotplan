@@ -100,6 +100,10 @@ class Settings:
     # loss window on a hard kill. `batch` keeps the durable promise but shares
     # one commit across concurrent requests (see docs/batch-write.md).
     persist_mode: str = "sync"
+    # Optional single-writer sidecar. When set, all finished runs are POSTed to
+    # this one process instead of being written by each API worker; it is the
+    # measured fix for multi-process SQLite write contention.
+    writer_url: str = ""
     # Wall-clock ceiling for one plan request, repairs included. 0 disables it.
     # Must exceed the provider's P99, not its P95, and that P99 depends on load,
     # not only on the model. Measured on deepseek-v4.1-flash, same two cases:
@@ -167,6 +171,7 @@ class Settings:
             eval_min_score=_env_float("SHOTPLAN_EVAL_MIN_SCORE", 0.80),
             log_level=_env("SHOTPLAN_LOG_LEVEL", "INFO").upper(),
             persist_mode=raw_mode,
+            writer_url=_env("SHOTPLAN_WRITER_URL", "").rstrip("/"),
             pipeline_budget_s=max(0.0, _env_float("SHOTPLAN_PIPELINE_BUDGET_S", 180.0)),
             api_key=_env("SHOTPLAN_API_KEY", ""),
             rate_limit_per_minute=max(0, _env_int("SHOTPLAN_RATE_LIMIT_PER_MINUTE", 0)),
@@ -198,6 +203,7 @@ class Settings:
             "eval_min_score": self.eval_min_score,
             "persist_runs": self.persist_runs,
             "persist_mode": self.persist_mode,
+            "writer_url": self.writer_url,
             "pipeline_budget_s": self.pipeline_budget_s,
             "deploy_api_key_set": bool(self.api_key),
             "rate_limit_per_minute": self.rate_limit_per_minute,

@@ -1,0 +1,26 @@
+[Unit]
+Description=shotplan single-writer sidecar (optional, experimental)
+Documentation=https://github.com/zhaozilong6666/shotplan
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=shotplan
+Group=shotplan
+WorkingDirectory=/opt/shotplan
+EnvironmentFile=/etc/shotplan.env
+Environment=SHOTPLAN_DB_PATH=/var/lib/shotplan/shotplan.db
+StateDirectory=shotplan
+ExecStart=/opt/shotplan/.venv/bin/python -m uvicorn shotplan.writer_service:app --host 127.0.0.1 --port 8001 --workers 1
+Restart=always
+RestartSec=5
+TimeoutStopSec=20
+KillMode=mixed
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

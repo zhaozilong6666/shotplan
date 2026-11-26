@@ -15,6 +15,7 @@ import threading
 import time
 import uuid
 from contextlib import asynccontextmanager
+from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -50,6 +51,7 @@ from .knowledge.loader import knowledge_version
 from .knowledge.tools import get_tools
 from .negotiation import headroom, negotiate
 from .pipeline import run_plan
+from .remote import RemoteRunSink
 from .storage import (
     RunSink,
     RunStore,
@@ -263,8 +265,15 @@ async def request_context(request: Request, call_next):
     return response
 
 
+@lru_cache(maxsize=4)
+def _remote_sink(url: str) -> RemoteRunSink:
+    return RemoteRunSink(url)
+
+
 def _sink(cfg: Settings) -> RunSink | None:
-    """Where a finished run goes: nowhere, disk now, or the write-behind queue."""
+    """Where a finished run goes: nowhere, disk now, the queue, or one writer."""
+    if cfg.writer_url:
+        return _remote_sink(cfg.writer_url)
     if cfg.persist_mode == "off":
         return None
     store = _store(cfg)
@@ -283,7 +292,9 @@ def health(cfg: SettingsDep) -> dict[str, Any]:
 @app.get("/api/config")
 def config(cfg: SettingsDep) -> dict[str, Any]:
     payload = cfg.masked()
-    if cfg.persist_mode in ("async", "batch"):
+    if cfg.writer_url:
+        payload["writer"] = {"mode": "remote", "url": cfg.writer_url}
+    elif cfg.persist_mode in ("async", "batch"):
         # Make the queue observable: pending rows are the honest answer to
         # "did my write land?", and sync_fallbacks means it is saturated.
         payload["writer"] = get_writer(_store(cfg)).stats.to_dict()
