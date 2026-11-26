@@ -10,6 +10,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 import logging
+import os
 import re
 import threading
 import time
@@ -105,6 +106,7 @@ app = FastAPI(
 WEB_DIR = Path(__file__).resolve().parent / "web"
 _ACCESS_LOG = logging.getLogger("shotplan.api")
 _REQUEST_ID = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
+_SLOW_LOG = os.environ.get("SHOTPLAN_SLOW_LOG", "")
 
 # No CORS middleware on purpose. The bundled UI is served from this same
 # origin, so a cross-origin policy would only widen the attack surface: a
@@ -257,6 +259,27 @@ async def request_context(request: Request, call_next):
         raise
     elapsed_ms = (time.perf_counter() - started) * 1000
     response.headers["X-Request-ID"] = request_id
+    response.headers["X-Server-Duration-Ms"] = f"{elapsed_ms:.1f}"
+    if _SLOW_LOG and elapsed_ms >= 1000:
+        # Diagnostics only: distinguishes "slow inside the app/threadpool" from
+        # "slow before the ASGI app saw it" (accept queue, socket scheduling).
+        try:
+            with open(f"{_SLOW_LOG}.{os.getpid()}", "a", encoding="utf-8") as fh:
+                fh.write(
+                    json.dumps(
+                        {
+                            "request_id": request_id,
+                            "path": request.url.path,
+                            "status": response.status_code,
+                            "duration_ms": round(elapsed_ms, 1),
+                            "pid": os.getpid(),
+                        },
+                        ensure_ascii=False,
+                    )
+                    + "\n"
+                )
+        except OSError:
+            pass
     _ACCESS_LOG.info(
         "request_id=%s method=%s path=%s status=%s duration_ms=%.1f",
         request_id, request.method, request.url.path,

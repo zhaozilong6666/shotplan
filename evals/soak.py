@@ -165,6 +165,7 @@ def run(
     kill_at: float = 0.0,
     concurrency: int = 1,
     writer: bool = False,
+    no_keepalive: bool = False,
     status_path: Path | None = None,
     live_path: Path | None = None,
 ) -> dict[str, Any]:
@@ -178,6 +179,7 @@ def run(
             kill_at,
             concurrency,
             writer,
+            no_keepalive,
             status_path,
             live_path,
         )
@@ -193,6 +195,7 @@ def _run(
     kill_at: float = 0.0,
     concurrency: int = 1,
     writer: bool = False,
+    no_keepalive: bool = False,
     status_path: Path | None = None,
     live_path: Path | None = None,
 ) -> dict[str, Any]:
@@ -209,7 +212,10 @@ def _run(
         else:
             writer_url = ""
             proc, base_url = start_server(workers, db_path, mode)
-        client = httpx.Client(base_url=base_url, timeout=30.0, trust_env=False)
+        limits = httpx.Limits(max_keepalive_connections=0) if no_keepalive else None
+        client = httpx.Client(
+            base_url=base_url, timeout=30.0, trust_env=False, limits=limits
+        )
         started = time.monotonic()
         deadline = started + minutes * 60
         index = 0
@@ -298,7 +304,9 @@ def _run(
                 pass
             extra = {"SHOTPLAN_WRITER_URL": writer_url} if writer_url else None
             proc, base_url = start_server(workers, db_path, mode, extra)
-            client = httpx.Client(base_url=base_url, timeout=30.0, trust_env=False)
+            client = httpx.Client(
+                base_url=base_url, timeout=30.0, trust_env=False, limits=limits
+            )
             health_failures = 0
 
         def traffic_round(round_end: float) -> None:
@@ -388,6 +396,7 @@ def _run(
             "interval_s": interval,
             "concurrency": concurrency,
             "writer": bool(writer),
+            "no_keepalive": bool(no_keepalive),
             "requests": index,
             "ok": ok,
             "errors": len(errors),
@@ -493,6 +502,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--concurrency", type=int, default=1)
     parser.add_argument("--writer", action="store_true", help="run with the single-writer sidecar")
     parser.add_argument(
+        "--no-keepalive", action="store_true",
+        help="disable httpx connection reuse to test client-side stale sockets",
+    )
+    parser.add_argument(
         "--kill-at-minutes", type=float, default=0.0,
         help="hard-kill the service once at this minute to test unattended restart",
     )
@@ -519,6 +532,7 @@ def main(argv: list[str] | None = None) -> int:
         args.kill_at_minutes,
         args.concurrency,
         args.writer,
+        args.no_keepalive,
         args.status,
         args.live,
     )

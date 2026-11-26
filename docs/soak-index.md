@@ -22,7 +22,9 @@
 **边界**：mock provider、单机 loopback、10–20 req/s；不是容量上限，也没有覆盖真实模型延迟与公网。
 
 单写者 sidecar 的对照见 [single-writer.md](single-writer.md)：它把写者收敛为一个进程，1 worker 下干净，但 **4 worker 仍有 11 次超时/30 分钟**，所以不能把尾延迟全部归因于 SQLite 写竞争。
-进一步用 `off`（完全不落库）排除持久化：4 worker 20 分钟仍有 4 次 30s 超时，说明根因在 API 多进程/调度侧，不在 SQLite。
+进一步用 `off` + `--no-keepalive` 做对照：4 worker 10 分钟 13,449 请求 **0 错误、最大 271ms**，
+把 httpx keep-alive 复用这个混杂因素排除；但 `batch` + `--no-keepalive` 仍有 4 次超时，
+说明持久化等待还有独立长尾，不能只归因于 SQLite 写锁。
 
 ## 当前结论
 

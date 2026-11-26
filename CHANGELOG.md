@@ -6,6 +6,11 @@
 
 ### Added
 
+- **连接复用对照（2026-11-26）**：`soak --no-keepalive` 显示 4 worker + `off` 在
+  **13,449 请求中 0 错误、最大 271ms**；此前的 `off` 4 次超时是 httpx keep-alive
+  复用造成的客户端假尾延迟（L009）。`batch` + 禁用复用仍有 4 次超时/10.5 分钟，
+  持久化等待是独立问题。
+
 - **持久化排除实验（2026-11-26）**：4 worker + `off`（完全不落库）20 分钟仍有 **4 次
   `ReadTimeout`、最大 30s**，5 个 >1s 请求；说明尾延迟不依赖 SQLite/sidecar，
   持久化整体可排除（[docs/soak-off-4w-20m.md](docs/soak-off-4w-20m.md)）。修复 `off` 模式

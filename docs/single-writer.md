@@ -35,18 +35,25 @@ uvicorn worker 4 ─┘                              └─ 单个 RunWriter →
 | **1 worker + sidecar** | 10m | 11,957 | **0** | **512ms** | 434ms | 干净 |
 | **4 worker + sidecar** | 30m | 32,650 | **11** | **30s** | 441ms | **仍有长尾** |
 | **4 worker，`off`（完全不落库）** | 20m | 25,966 | **4** | **30s** | 38.6ms | **同样有长尾** |
+| **4 worker，`off` + 禁用连接复用** | 10m | 13,449 | **0** | **271ms** | 199ms | **干净** |
+| **4 worker，`batch` + 禁用连接复用** | 10.5m | 10,679 | **4** | **30s** | 321ms | **仍有长尾** |
 
 4 worker + sidecar 的 11 个错误全是 `ReadTimeout`，行基本都已落库（32,648 行 / 32,650 请求），
 不是丢写；15 个请求 >1s，14 个 >5s，最大 30.0s。和 4 worker 本地写的形态一致。
 
-更关键的是 `off` 对照：4 worker **完全不落库**仍在 20 分钟内出现 4 次 30s 超时、5 个 >1s 请求。
-所以尾延迟不依赖 SQLite、也不依赖 sidecar，**持久化整体可以被排除**。
+`off` 对照先把范围缩到持久化：带 keep-alive 时 20 分钟出现 4 次 30s 超时；但**禁用连接复用后，
+同样 4 worker、`off`、10 分钟 13,449 请求 0 错误、最大 271ms**。这说明 keep-alive 复用本身是
+一个混杂因素：4 worker 的 socket 复用会把客户端超时伪装成服务端尾延迟。
+
+但 `batch` + 禁用连接复用仍有 4 次超时/10.5 分钟，所以**持久化路径仍然有真实长尾**；
+只是不能把它全部归因于 SQLite 写锁——sidecar 也复现了，说明等待发生在 API 的写路径/队列，
+而不是单条 SQL。
 
 ## 结论
 
 - sidecar **确实**把 SQLite 写者收敛为一个进程，1 worker 下干净、可复现；
-- 但它**没有消除** 4 worker 的尾延迟；`off` 对照（0 次落库）仍有 4 次超时，说明
-  “多进程写 SQLite”不是原因，持久化可以被排除；
+- 但它**没有消除** 4 worker 的尾延迟；`off` + 禁用 keep-alive 是干净的，说明 API/uvicorn 本身
+  能扛 4 worker；`batch` + 禁用 keep-alive 仍有 4 次超时，说明长尾在持久化等待，而不在 SQL 本身；
 - 尾延迟与 **API worker 数**相关，下一步应查 uvicorn 多进程 accept/调度、API 侧 httpx 连接池、
   Windows 调度与线程池，而不是继续改 SQLite；
 - 当前默认仍是 **1 worker + batch**；sidecar 仅作为可选实验，不设为默认。
