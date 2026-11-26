@@ -395,7 +395,9 @@ def _run(
             "restarts": restarts,
             "chaos_kills": chaos_kills,
             "rows": rows,
-            "lost": max(0, ok - rows),
+            # `off` deliberately stores nothing; counting every success as a
+            # lost write made the report claim 25,962 losses in a 20m run.
+            "lost": 0 if mode == "off" else max(0, ok - rows),
             "rps": round(index / elapsed, 2) if elapsed else 0.0,
             "p50_ms": round(percentile(latencies, 50), 2) if latencies else 0.0,
             "p95_ms": round(percentile(latencies, 95), 2) if latencies else 0.0,
@@ -446,7 +448,7 @@ def report(result: dict[str, Any]) -> str:
         f"| 重启 | {result['restarts']} |",
         f"| 人为杀进程 | {result.get('chaos_kills', 0)} |",
         f"| 落库 | {result['rows']} |",
-        f"| 丢写 | {result['lost']} |",
+        f"| 丢写 | {'—（off 不落库）' if result['mode'] == 'off' else result['lost']} |",
         f"| 吞吐 | {result['rps']} /s |",
         f"| P50 / P95 | {result['p50_ms']} / {result['p95_ms']} ms |",
         f"| P99 / P99.9 / 最大 | {result['p99_ms']} / {result['p999_ms']} / "

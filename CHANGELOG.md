@@ -6,6 +6,11 @@
 
 ### Added
 
+- **持久化排除实验（2026-11-26）**：4 worker + `off`（完全不落库）20 分钟仍有 **4 次
+  `ReadTimeout`、最大 30s**，5 个 >1s 请求；说明尾延迟不依赖 SQLite/sidecar，
+  持久化整体可排除（[docs/soak-off-4w-20m.md](docs/soak-off-4w-20m.md)）。修复 `off` 模式
+  把成功请求误算为丢写的指标错误（L008）。
+
 - **单写者 sidecar 验证（2026-11-26）**：新增可选 `writer_service`、`RemoteRunSink`、
   `RunStore.save_rows` / `RunWriter.submit_row`；30 分钟 4 worker 对照仍有 **11 次
   `ReadTimeout`、最大 30s**，1 worker 对照 0 错误、最大 512ms。结论是否定的：写竞争

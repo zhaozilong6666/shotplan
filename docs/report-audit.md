@@ -8,8 +8,8 @@
 
 | 指标 | 值 |
 | --- | --- |
-| 扫描报告 | 100 份（541 KB） |
-| 脚本生成 | 58 份，来自 36 个生成器 |
+| 扫描报告 | 101 份（544 KB） |
+| 脚本生成 | 59 份，来自 36 个生成器 |
 | 人写报告 | 42 份 |
 | 人写报告冗余对（≥ 0.55） | 3 对 |
 | 同名前缀家族（≥ 3 份） | 5 个 |
@@ -19,7 +19,7 @@
 
 ## 1. 同源实例：报告为什么会堆积
 
-`evals.soak` 一个脚本产出 **13 份**，占全部脚本生成报告的 22%。
+`evals.soak` 一个脚本产出 **14 份**，占全部脚本生成报告的 24%。
 
 - `soak-45m.md`
 - `soak-5h.md`
@@ -30,12 +30,13 @@
 - `soak-high-60-2w.md`
 - `soak-high-60.md`
 - `soak-index.md`
+- `soak-off-4w-20m.md`
 - `soak-restart-30.md`
 - `soak-sync-30.md`
 - `soak-writer-30.md`
 - `soak.md`
 
-`evals.real_model_lab` 一个脚本产出 **9 份**，占全部脚本生成报告的 16%。
+`evals.real_model_lab` 一个脚本产出 **9 份**，占全部脚本生成报告的 15%。
 
 - `real-model-full-2026-11-16.md`
 - `real-model-repeat3.md`
@@ -67,7 +68,7 @@
 | --- | --- | ---: | --- |
 | `real-model-light-fix-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.683 | 部分重叠：只核对数字是否互相矛盾 |
 | `real-model-baseline-2026-11-16.md` | `real-model-light-fix-2026-11-16.md` | 0.666 | 部分重叠：只核对数字是否互相矛盾 |
-| `real-model-baseline-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.589 | 部分重叠：只核对数字是否互相矛盾 |
+| `real-model-baseline-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.590 | 部分重叠：只核对数字是否互相矛盾 |
 
 **不要直接删**：这些文件记录的是「当时为什么那么判断」。保留边际信息量最高的一份作为当前结论，其余在首行加一行`> 已被 <新文件> 取代（<日期>）；本文保留为历史记录`。
 
@@ -75,7 +76,7 @@
 
 | 前缀 | 份数 | 文件 |
 | --- | ---: | --- |
-| soak | 15 | `soak-45m.md`、`soak-5h.md`、`soak-ab.md`、`soak-batch-120.md`、`soak-batch-60.md`、`soak-high-120-1w.md`、`soak-high-120.md`、`soak-high-60-2w.md`、`soak-high-60.md`、`soak-index.md`、`soak-partial-4h24.md`、`soak-restart-30.md`、`soak-sync-30.md`、`soak-writer-30.md`、`soak.md` |
+| soak | 16 | `soak-45m.md`、`soak-5h.md`、`soak-ab.md`、`soak-batch-120.md`、`soak-batch-60.md`、`soak-high-120-1w.md`、`soak-high-120.md`、`soak-high-60-2w.md`、`soak-high-60.md`、`soak-index.md`、`soak-off-4w-20m.md`、`soak-partial-4h24.md`、`soak-restart-30.md`、`soak-sync-30.md`、`soak-writer-30.md`、`soak.md` |
 | real | 8 | `real-model-baseline-2026-11-16.md`、`real-model-comparison.md`、`real-model-full-2026-11-16.md`、`real-model-light-fix-2026-11-16.md`、`real-model-repeat3.md`、`real-model-replication.md`、`real-model-smoke-2026-11-16.md`、`real-model.md` |
 | redteam | 4 | `redteam-analysis.md`、`redteam-soft-v3.md`、`redteam-soft.md`、`redteam.md` |
 | router | 3 | `router-holdout-off.md`、`router-holdout-on.md`、`router-validation.md` |
@@ -89,21 +90,21 @@
 
 | 报告 | 边际信息量 | 最近邻 | 相似度 |
 | --- | ---: | --- | ---: |
-| `multi-turn-attribution.md` | 0.899 | `ROADMAP.md` | 0.101 |
+| `multi-turn-attribution.md` | 0.898 | `ROADMAP.md` | 0.102 |
 | `ingest.md` | 0.893 | `knowledge-contract.md` | 0.107 |
-| `soak-partial-4h24.md` | 0.883 | `write-lock-retest.md` | 0.117 |
+| `soak-partial-4h24.md` | 0.884 | `lessons.md` | 0.116 |
 | `generality.md` | 0.878 | `problem-and-metrics.md` | 0.122 |
 | `repair-experiment.md` | 0.872 | `failure-taxonomy.md` | 0.128 |
 | `cost-latency-simulation.md` | 0.868 | `real-model-light-fix-2026-11-16.md` | 0.132 |
 | `intelligence-roadmap.md` | 0.866 | `architecture.md` | 0.134 |
-| `city-coverage.md` | 0.863 | `evaluation.md` | 0.137 |
+| `city-coverage.md` | 0.862 | `evaluation.md` | 0.138 |
 | `knowledge-contract.md` | 0.856 | `problem-and-metrics.md` | 0.144 |
 | `budget-vs-concurrency.md` | 0.835 | `real-model-baseline-2026-11-16.md` | 0.165 |
 
 末位（信息量最低）：
 
-- `ROADMAP.md` — 0.663，最近邻 `evaluation.md`（0.337）
-- `evaluation.md` — 0.663，最近邻 `ROADMAP.md`（0.337）
+- `ROADMAP.md` — 0.662，最近邻 `evaluation.md`（0.338）
+- `evaluation.md` — 0.662，最近邻 `ROADMAP.md`（0.338）
 - `real-model-baseline-2026-11-16.md` — 0.334，最近邻 `real-model-light-fix-2026-11-16.md`（0.666）
 - `real-model-light-fix-2026-11-16.md` — 0.317，最近邻 `real-model-smoke-2026-11-16.md`（0.683）
 - `real-model-smoke-2026-11-16.md` — 0.317，最近邻 `real-model-light-fix-2026-11-16.md`（0.683）
@@ -145,4 +146,4 @@
 - **本文件自身不参与**审计，否则每次运行都会把自己报成 100% 重复。
 - **提交动作会改变语料**：语料取的是 git 索引，`git add` 一份新文档就会让统计数 +1。新增文档后要**先 add、再 `--write`**，否则本地算的是旧份数，CI 算的是新份数——这个陷阱已经踩过两次（一次是未跟踪的草稿被算进来，一次是刚 add 的新文档没重新生成）。
 
-_语料指纹：`9f4dd2942f37e974`（内容变化时此值必变）_
+_语料指纹：`7c48ca3c8151122d`（内容变化时此值必变）_
