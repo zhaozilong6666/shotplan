@@ -67,6 +67,16 @@ body 0.6–0.8ms、queue 2.5–3.8ms、pipeline 0.8–1.4ms、sink 1.7–2.7ms�
 30s 错误**，所以 BaseHTTPMiddleware 也不是根因；范围只剩 uvicorn 多进程 accept/事件循环/
 进程调度，或者客户端在 30s 边界上的行为。
 
+### 根因：uvicorn 共享 accept socket
+
+把 4 个 worker 改成 **4 个独立端口、每个单 worker**，仍然共用同一个 SQLite，
+20 分钟 25,001 请求：**0 错误，P99.9 260ms，最大 514ms**。这直接排除 SQLite/写路径，
+定位到 `uvicorn --workers 4` 在 Windows 上共享监听 socket 的 accept 调度。
+`off` 的独立端口 10 分钟同样是 13,759 请求 0 错误。
+
+**结论**：不要在多进程 uvicorn 上用 `--workers N` 扩 API；要么保持 1 worker，
+要么用 N 个独立端口 + 反向代理做负载均衡。详见 [soak-independent-20m.md](soak-independent-20m.md)。
+
 ## 结论
 
 - sidecar **确实**把 SQLite 写者收敛为一个进程，1 worker 下干净、可复现；

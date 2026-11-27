@@ -6,6 +6,10 @@
 
 ### Added
 
+- **定位 30s 尾延迟根因（2026-11-27）**：4 个独立端口（每个单 worker）+ 共用同一 SQLite，
+  20 分钟 25,001 请求 **0 错误、最大 514ms**；`uvicorn --workers 4` 的共享 accept socket
+  才是根因，不是 SQLite/writer/middleware（L015，[docs/single-writer.md](docs/single-writer.md)）。
+
 - **纯 ASGI 中间件对照（2026-11-27）**：`SHOTPLAN_PURE_MIDDLEWARE=1` 移除 BaseHTTPMiddleware 后，
   4 worker + batch 20 分钟 24,037 请求仍有 1 次 30s 超时；中间件也不是根因，范围只剩
   uvicorn 多进程/进程调度（L014）。

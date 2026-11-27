@@ -48,6 +48,7 @@
 | [soak-off-4w-20m.md](soak-off-4w-20m.md) | `off`、4 worker、并发 6、20 分钟 | 25966 请求、4 个错误、最大 30s | 排除持久化：不落库仍有尾延迟 |
 | [soak-batch-nokeepalive-30.md](soak-batch-nokeepalive-30.md) | `batch`、4 worker、禁 keep-alive、30 分钟 | 33223 请求、5 个错误、最大 30s | 持久化路径仍复现长尾 |
 | [soak-writer-nk-20m.md](soak-writer-nk-20m.md) | 4 worker + sidecar、双端禁复用、20 分钟 | 22622 请求、2 个错误、最大 30s | 单写者未消除长尾 |
+| [soak-independent-20m.md](soak-independent-20m.md) | 4 独立端口、单 worker、共用 SQLite、20 分钟 | **25001 请求、0 错误、最大 514ms** | 根因：共享 accept socket |
 | [soak-batch-60.md](soak-batch-60.md) | `batch`、4 worker、1.0s、60 分钟 | 3402/3402、0 错误 | 时间拉长到 1 小时是否劣化 |
 | [soak-batch-120.md](soak-batch-120.md) | `batch`、4 worker、1.0s、120 分钟 | 6784/6784、0 错误 | 时间拉长到 2 小时是否劣化 |
 | [soak-restart-30.md](soak-restart-30.md) | `batch`、4 worker、第 10 分钟硬杀 | 1730/1730、1 次重启 | 进程死后自动重启是否丢写 |

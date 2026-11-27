@@ -8,14 +8,14 @@
 
 | 指标 | 值 |
 | --- | --- |
-| 扫描报告 | 103 份（559 KB） |
+| 扫描报告 | 104 份（561 KB） |
 | 脚本生成 | 61 份，来自 36 个生成器 |
-| 人写报告 | 42 份 |
+| 人写报告 | 43 份 |
 | 人写报告冗余对（≥ 0.55） | 3 对 |
 | 同名前缀家族（≥ 3 份） | 5 个 |
 | 失效引用 | 0 处 |
 | 孤儿报告（无入链） | 9 份 |
-| 人写报告平均边际信息量 | 0.742 |
+| 人写报告平均边际信息量 | 0.740 |
 
 ## 1. 同源实例：报告为什么会堆积
 
@@ -68,7 +68,7 @@
 
 | 报告 A | 报告 B | 相似度 | 建议 |
 | --- | --- | ---: | --- |
-| `real-model-light-fix-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.684 | 部分重叠：只核对数字是否互相矛盾 |
+| `real-model-light-fix-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.685 | 部分重叠：只核对数字是否互相矛盾 |
 | `real-model-baseline-2026-11-16.md` | `real-model-light-fix-2026-11-16.md` | 0.668 | 部分重叠：只核对数字是否互相矛盾 |
 | `real-model-baseline-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.591 | 部分重叠：只核对数字是否互相矛盾 |
 
@@ -78,7 +78,7 @@
 
 | 前缀 | 份数 | 文件 |
 | --- | ---: | --- |
-| soak | 18 | `soak-45m.md`、`soak-5h.md`、`soak-ab.md`、`soak-batch-120.md`、`soak-batch-60.md`、`soak-batch-nokeepalive-30.md`、`soak-high-120-1w.md`、`soak-high-120.md`、`soak-high-60-2w.md`、`soak-high-60.md`、`soak-index.md`、`soak-off-4w-20m.md`、`soak-partial-4h24.md`、`soak-restart-30.md`、`soak-sync-30.md`、`soak-writer-30.md`、`soak-writer-nk-20m.md`、`soak.md` |
+| soak | 19 | `soak-45m.md`、`soak-5h.md`、`soak-ab.md`、`soak-batch-120.md`、`soak-batch-60.md`、`soak-batch-nokeepalive-30.md`、`soak-high-120-1w.md`、`soak-high-120.md`、`soak-high-60-2w.md`、`soak-high-60.md`、`soak-independent-20m.md`、`soak-index.md`、`soak-off-4w-20m.md`、`soak-partial-4h24.md`、`soak-restart-30.md`、`soak-sync-30.md`、`soak-writer-30.md`、`soak-writer-nk-20m.md`、`soak.md` |
 | real | 8 | `real-model-baseline-2026-11-16.md`、`real-model-comparison.md`、`real-model-full-2026-11-16.md`、`real-model-light-fix-2026-11-16.md`、`real-model-repeat3.md`、`real-model-replication.md`、`real-model-smoke-2026-11-16.md`、`real-model.md` |
 | redteam | 4 | `redteam-analysis.md`、`redteam-soft-v3.md`、`redteam-soft.md`、`redteam.md` |
 | router | 3 | `router-holdout-off.md`、`router-holdout-on.md`、`router-validation.md` |
@@ -88,28 +88,28 @@
 
 ## 4. 边际信息量排序：人写报告里谁值得先读
 
-`1 - 最近邻相似度`，只在 42 份人写报告内比较（< 120 token 的 0 份只查引用）。接近 1 表示这份讲的东西别处没有；接近 0 表示它是别人的复述。
+`1 - 最近邻相似度`，只在 42 份人写报告内比较（< 120 token 的 1 份只查引用）。接近 1 表示这份讲的东西别处没有；接近 0 表示它是别人的复述。
 
 | 报告 | 边际信息量 | 最近邻 | 相似度 |
 | --- | ---: | --- | ---: |
 | `multi-turn-attribution.md` | 0.898 | `ROADMAP.md` | 0.102 |
 | `ingest.md` | 0.893 | `knowledge-contract.md` | 0.107 |
 | `generality.md` | 0.877 | `problem-and-metrics.md` | 0.123 |
-| `repair-experiment.md` | 0.872 | `failure-taxonomy.md` | 0.128 |
-| `cost-latency-simulation.md` | 0.868 | `real-model-light-fix-2026-11-16.md` | 0.132 |
+| `repair-experiment.md` | 0.871 | `failure-taxonomy.md` | 0.129 |
+| `cost-latency-simulation.md` | 0.867 | `real-model-light-fix-2026-11-16.md` | 0.133 |
 | `intelligence-roadmap.md` | 0.866 | `architecture.md` | 0.134 |
-| `city-coverage.md` | 0.862 | `evaluation.md` | 0.138 |
+| `city-coverage.md` | 0.861 | `evaluation.md` | 0.139 |
 | `knowledge-contract.md` | 0.855 | `problem-and-metrics.md` | 0.145 |
-| `soak-partial-4h24.md` | 0.845 | `lessons.md` | 0.155 |
+| `soak-partial-4h24.md` | 0.844 | `lessons.md` | 0.156 |
 | `budget-vs-concurrency.md` | 0.834 | `real-model-baseline-2026-11-16.md` | 0.166 |
 
 末位（信息量最低）：
 
-- `lessons.md` — 0.608，最近邻 `single-writer.md`（0.392）
-- `single-writer.md` — 0.608，最近邻 `lessons.md`（0.392）
+- `lessons.md` — 0.567，最近邻 `single-writer.md`（0.433）
+- `single-writer.md` — 0.567，最近邻 `lessons.md`（0.433）
 - `real-model-baseline-2026-11-16.md` — 0.332，最近邻 `real-model-light-fix-2026-11-16.md`（0.668）
-- `real-model-light-fix-2026-11-16.md` — 0.316，最近邻 `real-model-smoke-2026-11-16.md`（0.684）
-- `real-model-smoke-2026-11-16.md` — 0.316，最近邻 `real-model-light-fix-2026-11-16.md`（0.684）
+- `real-model-light-fix-2026-11-16.md` — 0.315，最近邻 `real-model-smoke-2026-11-16.md`（0.685）
+- `real-model-smoke-2026-11-16.md` — 0.315，最近邻 `real-model-light-fix-2026-11-16.md`（0.685）
 
 ## 5. 失效引用：读者点开就是 404
 
@@ -148,4 +148,4 @@
 - **本文件自身不参与**审计，否则每次运行都会把自己报成 100% 重复。
 - **提交动作会改变语料**：语料取的是 git 索引，`git add` 一份新文档就会让统计数 +1。新增文档后要**先 add、再 `--write`**，否则本地算的是旧份数，CI 算的是新份数——这个陷阱已经踩过两次（一次是未跟踪的草稿被算进来，一次是刚 add 的新文档没重新生成）。
 
-_语料指纹：`fa410f0b6204cfa7`（内容变化时此值必变）_
+_语料指纹：`e42b497bf4676142`（内容变化时此值必变）_

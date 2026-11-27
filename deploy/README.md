@@ -33,6 +33,10 @@ unit 的默认是 **`batch` + 1 worker**，这是长跑验证过的稳定组合�
 | --- | --- | --- |
 | `batch`（unit 默认） | **1 worker** | 2 worker 起就出现 30s 级尾延迟（2w/60m 11 次超时；4w/2h 20 次），1 worker 2h/14.3 万请求 0 超时、0 丢写（[E29](../docs/soak-ab.md)、[120 分钟单 worker](../docs/soak-high-120-1w.md)） |
 | `sync` | 4 worker | 真实 HTTP 压测里 4 worker 是单 worker 的 2.99×（[docs/http-load.md](../docs/http-load.md)）；但每个请求一次 commit，吞吐低于 batch |
+
+> 注意：`uvicorn --workers N` 在 Windows 上共享监听 socket，长跑会出现 30s 级 accept 卡顿
+> （4 个独立端口 + 同一 SQLite 的 20 分钟对照为 0 错误，见 [docs/single-writer.md](../docs/single-writer.md)）。
+> 需要多进程扩展时，用 N 个独立端口 + 反向代理，不要直接加 `--workers`。
 | `async` | 短压测里多 worker 更快，但没有长跑对照 | 不要把 200 请求的吞吐当成耐久性证据 |
 
 长尾不随平均延迟出现：4 worker 的 P99 与 1 worker 接近（约 120–130ms），差异在 P99.9 之后。

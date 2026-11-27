@@ -20,6 +20,7 @@
 | L012 | 2026-11-26 | 分段算平后，30s 不在任何应用段内，持久化被推翻 | 已记录 |
 | L013 | 2026-11-27 | 30s 在 `rate_limit` 的 `call_next` 里，端点各段只有 45ms | 已记录 |
 | L014 | 2026-11-27 | 换纯 ASGI 中间件仍有 30s，BaseHTTPMiddleware 也不是根因 | 已记录 |
+| L015 | 2026-11-27 | 根因是 uvicorn 共享 accept socket；独立端口 25,001 请求 0 错误 | 已定位 |
 | L011 | 2026-11-26 | 以为 30s 卡在 commit，writer 内部却没有任何 >1s 日志 | 已记录 |
 
 ## L001 · 强杀长跑留下临时库
@@ -133,6 +134,14 @@
 - **修复**：保留纯 ASGI 开关作为诊断工具，不改变默认中间件。
 - **验证**：纯 ASGI 20 分钟 24,036/24,037 成功、最大 30,017ms；与 BaseHTTP 版本形态一致。
 - **防复发**：一次只替换一个层，替换后仍复现就继续往下，不把“新组件干净”当成旧组件是根因。
+
+## L015 · 30s 根因是 uvicorn 共享 accept socket
+
+- **症状**：4 worker + batch 有 1–5 次 30s 超时；4 个独立端口、每个单 worker、共用同一个 SQLite，20 分钟 25,001 请求 **0 错误**、最大 514ms。
+- **根因**：`uvicorn --workers 4` 在 Windows 上共享监听 socket，accept/调度偶发 30s 卡顿；不是 SQLite、writer、BaseHTTPMiddleware、pipeline 或客户端 keep-alive。
+- **修复**：不把 `--workers N` 当扩展手段；默认保持 1 worker，扩展时用 N 个独立端口 + 反向代理。
+- **验证**：`docs/soak-independent-20m.md`；`off` 独立端口 10 分钟 13,759/0，`batch` 20 分钟 25,001/0。
+- **防复发**：多进程/共享 socket 的问题，必须用“独立端口”对照；只换应用层组件无法排除它。
 
 ## 新增一条的模板
 
