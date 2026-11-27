@@ -6,6 +6,9 @@
 
 ### Added
 
+- **部署文档校准（2026-11-27）**：修正 `make soak` 仍写 4 worker 的过期说明，并把掉出表格的
+  `async` 行移回；新增 L018。
+
 - **多端口扩展配方（2026-11-27）**：新增 `deploy/shotplan@.service`、`deploy/nginx.conf`、
   `scripts/edge_proxy.py`；4 个单 worker 后端 + 边缘代理 30 分钟 **34,113 请求、0 错误、
   最大 663ms**（[docs/soak-proxy-30m.md](docs/soak-proxy-30m.md)）。nginx 本身仍需 Linux 验证。
