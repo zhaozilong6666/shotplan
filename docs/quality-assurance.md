@@ -7,7 +7,7 @@
 
 | 承诺 | 证据 | 执行位置 |
 | --- | --- | --- |
-| 662 个单测通过，覆盖率 ≥85% | `pytest --cov-fail-under=85`，当前 **91.50%** | CI × Python 3.10–3.13；Windows py3.12 另跑 unit + HTTP smoke |
+| 667 个单测通过，覆盖率 ≥85% | `pytest --cov-fail-under=85`，当前 **91.55%** | CI × Python 3.10–3.13；Windows py3.12 另跑 unit + HTTP smoke |
 | 40 道质量门禁 | `make gates`，唯一清单在 Makefile | CI py3.12，25 分钟超时 |
 | 类型与风格 | `ruff check src tests evals scripts` + `mypy` | CI 每个 Python 版本 |
 | 80/80 主集 + 320/320 盲测 | `evals.run_eval` / `case_miner --check` | `make gates` |

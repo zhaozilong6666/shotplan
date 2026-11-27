@@ -6,6 +6,10 @@
 
 ### Added
 
+- **质量契约测试（2026-11-27）**：新增 5 条契约，覆盖 `/api/plan` 的 6 个分段响应头、
+  remote writer 配置、writer 批量落库、非 200 映射、`save_rows` 公共接口；
+  单测 662 → **667**，覆盖率 **91.55%**。
+
 - **Windows CI smoke（2026-11-27）**：新增 Windows py3.12 job，跑 ruff/mypy/unit/HTTP smoke，
   补上 Linux-only CI 看不到的路径与进程行为；多 worker 30s 长跑仍由本地 E30 证据覆盖。
 
