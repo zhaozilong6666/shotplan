@@ -105,8 +105,8 @@
 
 末位（信息量最低）：
 
-- `lessons.md` — 0.567，最近邻 `single-writer.md`（0.433）
-- `single-writer.md` — 0.567，最近邻 `lessons.md`（0.433）
+- `lessons.md` — 0.569，最近邻 `single-writer.md`（0.431）
+- `single-writer.md` — 0.569，最近邻 `lessons.md`（0.431）
 - `real-model-baseline-2026-11-16.md` — 0.332，最近邻 `real-model-light-fix-2026-11-16.md`（0.668）
 - `real-model-light-fix-2026-11-16.md` — 0.315，最近邻 `real-model-smoke-2026-11-16.md`（0.685）
 - `real-model-smoke-2026-11-16.md` — 0.315，最近邻 `real-model-light-fix-2026-11-16.md`（0.685）
@@ -148,4 +148,4 @@
 - **本文件自身不参与**审计，否则每次运行都会把自己报成 100% 重复。
 - **提交动作会改变语料**：语料取的是 git 索引，`git add` 一份新文档就会让统计数 +1。新增文档后要**先 add、再 `--write`**，否则本地算的是旧份数，CI 算的是新份数——这个陷阱已经踩过两次（一次是未跟踪的草稿被算进来，一次是刚 add 的新文档没重新生成）。
 
-_语料指纹：`e42b497bf4676142`（内容变化时此值必变）_
+_语料指纹：`89c2442f60db6ccd`（内容变化时此值必变）_
