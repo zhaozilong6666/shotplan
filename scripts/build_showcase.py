@@ -426,7 +426,7 @@ def main() -> int:
     # Refresh it with: python -m evals.benchmark --out evals/benchmark.json
     bench = _load(ROOT / "evals" / "benchmark.json")
     # Committed summary, not evals/out: this block must render in CI too.
-    real_model = _load(ROOT / "evals" / "real-model-summary.json")
+    real_model = _load(DOCS / "real-model-summary.json")
     failures_path = ROOT / "evals" / "failures" / "cases.jsonl"
     if not failures_path.exists():
         raise SystemExit(f"missing {failures_path}; run evals.collect_failures first")

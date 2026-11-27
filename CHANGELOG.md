@@ -6,6 +6,9 @@
 
 ### Added
 
+- **门禁修复（2026-11-27）**：真实模型汇总改名 `docs/real-model-summary.json`，避免被
+  `evals/real-model*.json` 快照扫描器误认；40/40 门禁恢复全绿（L019）。
+
 - **真实模型全量 80 例（2026-11-27）**：wujie-api `deepseek-v4.1-flash-1017`，低 reasoning、
   max_tokens 2000、并发 4：**67/69 硬通过（97.1%）**、均分 **0.9158**、首轮可用 63/69、
   1 次上游超时、总成本 **¥5.89**、P50/P95 74.3/146.4s（[报告](docs/real-model-full-2026-11-27.md)，E34）。

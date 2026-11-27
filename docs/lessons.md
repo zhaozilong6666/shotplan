@@ -24,6 +24,7 @@
 | L016 | 2026-11-27 | pytest 全绿但 ruff/mypy 失败，CI 会被拒 | 已修 |
 | L017 | 2026-11-27 | README/作品集仍写 653 测试、93.15% 覆盖率，实际 662/91.50% | 已修 |
 | L018 | 2026-11-27 | 部署文档说 `make soak` 默认 4 worker，实际已是 1 worker；async 行掉到表格外 | 已修 |
+| L019 | 2026-11-27 | 汇总文件命名 `evals/real-model-summary.json`，被快照门禁当成第 9 份快照 | 已修 |
 | L011 | 2026-11-26 | 以为 30s 卡在 commit，writer 内部却没有任何 >1s 日志 | 已记录 |
 
 ## L001 · 强杀长跑留下临时库
@@ -169,6 +170,14 @@
 - **修复**：改为“1 worker”；把 `async` 行移回表格；新增“多端口 + 反向代理”验证段。
 - **验证**：`make soak` 的默认参数与文档一致；渲染检查无孤立表格行。
 - **防复发**：默认值变更要同时改 Makefile、argparse 默认、部署文档、README 和索引，五处缺一不可。
+
+## L019 · 汇总文件被快照扫描器误认
+
+- **症状**：`make gates` 第 18 道 `repair_attribution --check` 失败，报 “drift: run --write”；原因是新增的 `evals/real-model-summary.json` 被当成第 9 份真实模型快照，但只有汇总、没有 `per_case`。
+- **根因**：扫描器按 `evals/real-model*.json` 匹配；汇总文件命名落进了快照命名空间。
+- **修复**：移到 `docs/real-model-summary.json`，展示页生成器改读新路径；`repair_attribution` 恢复 8 份快照。
+- **验证**：`repair_attribution --check` 通过；40/40 门禁全绿。
+- **防复发**：新增数据文件前先看目录扫描规则；汇总和逐例快照分开放，文件名不要蹭前缀。
 
 ## 新增一条的模板
 
