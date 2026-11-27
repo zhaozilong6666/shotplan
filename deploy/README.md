@@ -19,7 +19,7 @@ sudo systemctl enable --now shotplan
 systemctl status shotplan
 ```
 
-长跑验证：`make soak`（默认 30 分钟、4 worker、batch 持久化），报告写到
+长跑验证：`make soak`（默认 30 分钟、**1 worker**、batch 持久化），报告写到
 `docs/soak.md`；它每 30 秒探活、连续失败 3 次或进程退出会自动重启，并在结束时
 核对「成功请求数 = 落库行数」。全部长跑报告的配置与结论见
 [docs/soak-index.md](../docs/soak-index.md)。
@@ -33,14 +33,30 @@ unit 的默认是 **`batch` + 1 worker**，这是长跑验证过的稳定组合�
 | --- | --- | --- |
 | `batch`（unit 默认） | **1 worker** | 2 worker 起就出现 30s 级尾延迟（2w/60m 11 次超时；4w/2h 20 次），1 worker 2h/14.3 万请求 0 超时、0 丢写（[E29](../docs/soak-ab.md)、[120 分钟单 worker](../docs/soak-high-120-1w.md)） |
 | `sync` | 4 worker | 真实 HTTP 压测里 4 worker 是单 worker 的 2.99×（[docs/http-load.md](../docs/http-load.md)）；但每个请求一次 commit，吞吐低于 batch |
+| `async` | 短压测里多 worker 更快，但没有长跑对照 | 不要把 200 请求的吞吐当成耐久性证据 |
 
 > 注意：`uvicorn --workers N` 在 Windows 上共享监听 socket，长跑会出现 30s 级 accept 卡顿
 > （4 个独立端口 + 同一 SQLite 的 20 分钟对照为 0 错误，见 [docs/single-writer.md](../docs/single-writer.md)）。
 > 需要多进程扩展时，用 N 个独立端口 + 反向代理，不要直接加 `--workers`。
-| `async` | 短压测里多 worker 更快，但没有长跑对照 | 不要把 200 请求的吞吐当成耐久性证据 |
 
 长尾不随平均延迟出现：4 worker 的 P99 与 1 worker 接近（约 120–130ms），差异在 P99.9 之后。
 
+
+### 多端口 + 反向代理（已做本地代理验证）
+
+不要用 `uvicorn --workers N` 扩 API。用 `deploy/shotplan@.service` 起 N 个单 worker 实例：
+
+```bash
+sudo systemctl enable --now shotplan@8101 shotplan@8102 shotplan@8103 shotplan@8104
+sudo cp deploy/nginx.conf /etc/nginx/conf.d/shotplan.conf
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+`deploy/nginx.conf` 是生产配方（upstream 8101–8104、`least_conn`、POST 不重试）；
+本机没有 nginx，所以用 `scripts/edge_proxy.py` 做了同构的 asyncio 边缘代理验证：
+4 个单 worker 后端 + 边缘代理，30 分钟 **34,113 请求、0 错误、最大 663ms、P99.9 332ms**
+（[docs/soak-proxy-30m.md](../docs/soak-proxy-30m.md)）。nginx 配置本身仍需在 Linux 上
+`nginx -t` 和一次真实请求验证，不能把本地代理结果冒充 nginx 已验证。
 
 ### 单写者 sidecar（实验性）
 

@@ -6,6 +6,10 @@
 
 ### Added
 
+- **多端口扩展配方（2026-11-27）**：新增 `deploy/shotplan@.service`、`deploy/nginx.conf`、
+  `scripts/edge_proxy.py`；4 个单 worker 后端 + 边缘代理 30 分钟 **34,113 请求、0 错误、
+  最大 663ms**（[docs/soak-proxy-30m.md](docs/soak-proxy-30m.md)）。nginx 本身仍需 Linux 验证。
+
 - **质量契约测试（2026-11-27）**：新增 5 条契约，覆盖 `/api/plan` 的 6 个分段响应头、
   remote writer 配置、writer 批量落库、非 200 映射、`save_rows` 公共接口；
   单测 662 → **667**，覆盖率 **91.55%**。

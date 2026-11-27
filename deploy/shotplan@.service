@@ -1,0 +1,30 @@
+[Unit]
+Description=shotplan API on port %i (one worker per port)
+Documentation=https://github.com/zhaozilong6666/shotplan
+After=network-online.target shotplan-writer.service
+Wants=network-online.target
+# Do not use `uvicorn --workers N` on Windows: shared accept sockets produced
+# 30s stalls. Run one process per port and put nginx in front (L015/E30).
+
+[Service]
+Type=simple
+User=shotplan
+Group=shotplan
+WorkingDirectory=/opt/shotplan
+EnvironmentFile=/etc/shotplan.env
+Environment=SHOTPLAN_DB_PATH=/var/lib/shotplan/shotplan.db
+Environment=SHOTPLAN_PERSIST_MODE=batch
+Environment=SHOTPLAN_PROVIDER=mock
+StateDirectory=shotplan
+ExecStart=/opt/shotplan/.venv/bin/python -m uvicorn shotplan.api:app --host 127.0.0.1 --port %i --workers 1
+Restart=always
+RestartSec=5
+TimeoutStopSec=20
+KillMode=mixed
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
