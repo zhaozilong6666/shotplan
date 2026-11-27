@@ -5,7 +5,6 @@ from fastapi.testclient import TestClient
 
 from shotplan import writer_service
 from shotplan.agents import MockProvider
-from shotplan.config import Settings
 from shotplan.domain.models import PlanRequest
 from shotplan.pipeline import run_plan
 from shotplan.remote import RemoteRunSink

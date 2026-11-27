@@ -8,14 +8,14 @@
 
 | 指标 | 值 |
 | --- | --- |
-| 扫描报告 | 104 份（561 KB） |
+| 扫描报告 | 105 份（565 KB） |
 | 脚本生成 | 61 份，来自 36 个生成器 |
-| 人写报告 | 43 份 |
+| 人写报告 | 44 份 |
 | 人写报告冗余对（≥ 0.55） | 3 对 |
 | 同名前缀家族（≥ 3 份） | 5 个 |
 | 失效引用 | 0 处 |
 | 孤儿报告（无入链） | 9 份 |
-| 人写报告平均边际信息量 | 0.740 |
+| 人写报告平均边际信息量 | 0.744 |
 
 ## 1. 同源实例：报告为什么会堆积
 
@@ -68,8 +68,8 @@
 
 | 报告 A | 报告 B | 相似度 | 建议 |
 | --- | --- | ---: | --- |
-| `real-model-light-fix-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.685 | 部分重叠：只核对数字是否互相矛盾 |
-| `real-model-baseline-2026-11-16.md` | `real-model-light-fix-2026-11-16.md` | 0.668 | 部分重叠：只核对数字是否互相矛盾 |
+| `real-model-light-fix-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.686 | 部分重叠：只核对数字是否互相矛盾 |
+| `real-model-baseline-2026-11-16.md` | `real-model-light-fix-2026-11-16.md` | 0.669 | 部分重叠：只核对数字是否互相矛盾 |
 | `real-model-baseline-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.591 | 部分重叠：只核对数字是否互相矛盾 |
 
 **不要直接删**：这些文件记录的是「当时为什么那么判断」。保留边际信息量最高的一份作为当前结论，其余在首行加一行`> 已被 <新文件> 取代（<日期>）；本文保留为历史记录`。
@@ -88,7 +88,7 @@
 
 ## 4. 边际信息量排序：人写报告里谁值得先读
 
-`1 - 最近邻相似度`，只在 42 份人写报告内比较（< 120 token 的 1 份只查引用）。接近 1 表示这份讲的东西别处没有；接近 0 表示它是别人的复述。
+`1 - 最近邻相似度`，只在 43 份人写报告内比较（< 120 token 的 1 份只查引用）。接近 1 表示这份讲的东西别处没有；接近 0 表示它是别人的复述。
 
 | 报告 | 边际信息量 | 最近邻 | 相似度 |
 | --- | ---: | --- | ---: |
@@ -96,20 +96,20 @@
 | `ingest.md` | 0.893 | `knowledge-contract.md` | 0.107 |
 | `generality.md` | 0.877 | `problem-and-metrics.md` | 0.123 |
 | `repair-experiment.md` | 0.871 | `failure-taxonomy.md` | 0.129 |
-| `cost-latency-simulation.md` | 0.867 | `real-model-light-fix-2026-11-16.md` | 0.133 |
+| `cost-latency-simulation.md` | 0.868 | `real-model-light-fix-2026-11-16.md` | 0.132 |
 | `intelligence-roadmap.md` | 0.866 | `architecture.md` | 0.134 |
-| `city-coverage.md` | 0.861 | `evaluation.md` | 0.139 |
+| `city-coverage.md` | 0.862 | `evaluation.md` | 0.138 |
 | `knowledge-contract.md` | 0.855 | `problem-and-metrics.md` | 0.145 |
-| `soak-partial-4h24.md` | 0.844 | `lessons.md` | 0.156 |
-| `budget-vs-concurrency.md` | 0.834 | `real-model-baseline-2026-11-16.md` | 0.166 |
+| `soak-partial-4h24.md` | 0.852 | `lessons.md` | 0.148 |
+| `quality-assurance.md` | 0.847 | `runbook.md` | 0.153 |
 
 末位（信息量最低）：
 
-- `lessons.md` — 0.569，最近邻 `single-writer.md`（0.431）
-- `single-writer.md` — 0.569，最近邻 `lessons.md`（0.431）
-- `real-model-baseline-2026-11-16.md` — 0.332，最近邻 `real-model-light-fix-2026-11-16.md`（0.668）
-- `real-model-light-fix-2026-11-16.md` — 0.315，最近邻 `real-model-smoke-2026-11-16.md`（0.685）
-- `real-model-smoke-2026-11-16.md` — 0.315，最近邻 `real-model-light-fix-2026-11-16.md`（0.685）
+- `lessons.md` — 0.591，最近邻 `single-writer.md`（0.409）
+- `single-writer.md` — 0.591，最近邻 `lessons.md`（0.409）
+- `real-model-baseline-2026-11-16.md` — 0.331，最近邻 `real-model-light-fix-2026-11-16.md`（0.669）
+- `real-model-light-fix-2026-11-16.md` — 0.314，最近邻 `real-model-smoke-2026-11-16.md`（0.686）
+- `real-model-smoke-2026-11-16.md` — 0.314，最近邻 `real-model-light-fix-2026-11-16.md`（0.686）
 
 ## 5. 失效引用：读者点开就是 404
 
@@ -148,4 +148,4 @@
 - **本文件自身不参与**审计，否则每次运行都会把自己报成 100% 重复。
 - **提交动作会改变语料**：语料取的是 git 索引，`git add` 一份新文档就会让统计数 +1。新增文档后要**先 add、再 `--write`**，否则本地算的是旧份数，CI 算的是新份数——这个陷阱已经踩过两次（一次是未跟踪的草稿被算进来，一次是刚 add 的新文档没重新生成）。
 
-_语料指纹：`89c2442f60db6ccd`（内容变化时此值必变）_
+_语料指纹：`f4ab444d99fe73e7`（内容变化时此值必变）_

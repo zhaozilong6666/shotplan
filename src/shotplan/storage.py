@@ -689,10 +689,14 @@ class RunWriter:
                 elif results and not rows:
                     self.store.save_many(results)
                 else:
-                    self.store.save_rows(
-                        [RunStore.row_for(r) if r is not None else row
-                         for r, row in [(p.result, p.row) for p in batch]]
-                    )
+                    merged: list[tuple[Any, ...]] = []
+                    for pending in batch:
+                        if pending.row is not None:
+                            merged.append(pending.row)
+                        else:
+                            assert pending.result is not None
+                            merged.append(RunStore.row_for(pending.result))
+                    self.store.save_rows(merged)
             except StorageError as exc:
                 if attempt:
                     with self._lock:

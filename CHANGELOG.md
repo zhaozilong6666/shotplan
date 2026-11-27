@@ -6,6 +6,10 @@
 
 ### Added
 
+- **质量收口（2026-11-27）**：修复 ruff/mypy 的 7 个问题（此前只有 pytest 绿）；
+  新增 [docs/quality-assurance.md](docs/quality-assurance.md) 明确“有保证/没保证”的边界；
+  README/作品集的 653 个单测、93.15% 覆盖率更新为 662/91.50%（L016/L017）。
+
 - **定位 30s 尾延迟根因（2026-11-27）**：4 个独立端口（每个单 worker）+ 共用同一 SQLite，
   20 分钟 25,001 请求 **0 错误、最大 514ms**；`uvicorn --workers 4` 的共享 accept socket
   才是根因，不是 SQLite/writer/middleware（L015，[docs/single-writer.md](docs/single-writer.md)）。

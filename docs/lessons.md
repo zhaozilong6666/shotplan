@@ -21,6 +21,8 @@
 | L013 | 2026-11-27 | 30s 在 `rate_limit` 的 `call_next` 里，端点各段只有 45ms | 已记录 |
 | L014 | 2026-11-27 | 换纯 ASGI 中间件仍有 30s，BaseHTTPMiddleware 也不是根因 | 已记录 |
 | L015 | 2026-11-27 | 根因是 uvicorn 共享 accept socket；独立端口 25,001 请求 0 错误 | 已定位 |
+| L016 | 2026-11-27 | pytest 全绿但 ruff/mypy 失败，CI 会被拒 | 已修 |
+| L017 | 2026-11-27 | README/作品集仍写 653 测试、93.15% 覆盖率，实际 662/91.50% | 已修 |
 | L011 | 2026-11-26 | 以为 30s 卡在 commit，writer 内部却没有任何 >1s 日志 | 已记录 |
 
 ## L001 · 强杀长跑留下临时库
@@ -142,6 +144,22 @@
 - **修复**：不把 `--workers N` 当扩展手段；默认保持 1 worker，扩展时用 N 个独立端口 + 反向代理。
 - **验证**：`docs/soak-independent-20m.md`；`off` 独立端口 10 分钟 13,759/0，`batch` 20 分钟 25,001/0。
 - **防复发**：多进程/共享 socket 的问题，必须用“独立端口”对照；只换应用层组件无法排除它。
+
+## L016 · pytest 全绿不等于 CI 会绿
+
+- **症状**：662 个单测全过，但 `ruff` 报 1 个未使用导入、`mypy` 报 6 个类型错误；CI 会直接拒绝。
+- **根因**：本地只跑了 pytest，没有跑 `ruff`/`mypy`；新增的 writer_service、TimedSink 和纯 ASGI 中间件留下了类型问题。
+- **修复**：删除未使用导入；writer_service 重命名循环变量；storage 混排行显式构造 `list[tuple]`；去掉无效的 `type: ignore`。
+- **验证**：`ruff check src tests evals scripts` 全过；`mypy` 37 个源文件 0 错误；662 passed / 91.50%。
+- **防复发**：提交前至少跑 `ruff + mypy + pytest`，不能只看 pytest；CI 的 `make check` 就是这三件事。
+
+## L017 · 对外质量数字过期
+
+- **症状**：README 徽章写 93.15%，作品集写 653 个单测/93.15%，实际是 662/91.50%。
+- **根因**：测试数量增长后只更新了聊天里的数字，没有同步 README、英文 README、作品集三处。
+- **修复**：全部改为 662 个单测 / 91.50%；README 增加“质量边界与复核”链接。
+- **验证**：`grep -rn "653\|93.15" README.md README.en.md docs/portfolio` 无残留。
+- **防复发**：测试数量/覆盖率变化时，把“对外数字”当成一个发布步骤，和 CHANGELOG 一起改。
 
 ## 新增一条的模板
 

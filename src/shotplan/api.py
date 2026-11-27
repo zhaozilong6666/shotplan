@@ -369,7 +369,7 @@ class _TimedSink:
         self.sink = sink
         self.last_ms = 0.0
 
-    def save(self, result) -> str:  # type: ignore[no-untyped-def]
+    def save(self, result) -> str:
         started = time.perf_counter()
         try:
             return self.sink.save(result)
@@ -725,10 +725,10 @@ class _PureTimingMiddleware:
     ``SHOTPLAN_PURE_MIDDLEWARE=1``.
     """
 
-    def __init__(self, app) -> None:  # type: ignore[no-untyped-def]
+    def __init__(self, app) -> None:
         self.app = app
 
-    async def __call__(self, scope, receive, send) -> None:  # type: ignore[no-untyped-def]
+    async def __call__(self, scope, receive, send) -> None:
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return

@@ -68,8 +68,8 @@ def save(payload: SaveRows) -> dict[str, int]:
         rows.append(tuple(row))
     try:
         writer = get_writer(store())
-        for row in rows:
-            writer.submit_row(row, wait=True)
+        for item in rows:
+            writer.submit_row(item, wait=True)
     except StorageError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     return {"saved": len(rows)}
