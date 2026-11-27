@@ -6,6 +6,9 @@
 
 ### Added
 
+- **Windows CI smoke（2026-11-27）**：新增 Windows py3.12 job，跑 ruff/mypy/unit/HTTP smoke，
+  补上 Linux-only CI 看不到的路径与进程行为；多 worker 30s 长跑仍由本地 E30 证据覆盖。
+
 - **质量收口（2026-11-27）**：修复 ruff/mypy 的 7 个问题（此前只有 pytest 绿）；
   新增 [docs/quality-assurance.md](docs/quality-assurance.md) 明确“有保证/没保证”的边界；
   README/作品集的 653 个单测、93.15% 覆盖率更新为 662/91.50%（L016/L017）。

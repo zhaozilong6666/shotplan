@@ -101,7 +101,7 @@
 | `city-coverage.md` | 0.862 | `evaluation.md` | 0.138 |
 | `knowledge-contract.md` | 0.855 | `problem-and-metrics.md` | 0.145 |
 | `soak-partial-4h24.md` | 0.852 | `lessons.md` | 0.148 |
-| `quality-assurance.md` | 0.847 | `runbook.md` | 0.153 |
+| `quality-assurance.md` | 0.848 | `runbook.md` | 0.152 |
 
 末位（信息量最低）：
 
@@ -148,4 +148,4 @@
 - **本文件自身不参与**审计，否则每次运行都会把自己报成 100% 重复。
 - **提交动作会改变语料**：语料取的是 git 索引，`git add` 一份新文档就会让统计数 +1。新增文档后要**先 add、再 `--write`**，否则本地算的是旧份数，CI 算的是新份数——这个陷阱已经踩过两次（一次是未跟踪的草稿被算进来，一次是刚 add 的新文档没重新生成）。
 
-_语料指纹：`f4ab444d99fe73e7`（内容变化时此值必变）_
+_语料指纹：`d83743262aef0155`（内容变化时此值必变）_

@@ -94,3 +94,35 @@ jobs:
             evals/out/latest.json
             evals/out/gates.log
             docs/eval-report.md
+
+  windows-smoke:
+    # The 30s uvicorn accept tail is Windows-specific; Linux-only CI cannot see
+    # path, process or socket behaviour here. This job is deliberately small:
+    # lint/type/unit plus the HTTP smoke, not the statistical gates.
+    name: windows smoke (py3.12)
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: python -m pip install -e ".[api,dev]"
+
+      - name: Lint and type check
+        run: |
+          python -m ruff check src tests evals scripts
+          python -m mypy
+
+      - name: Unit tests
+        run: python -m pytest -q
+
+      - name: HTTP smoke and deploy config
+        run: |
+          python -m evals.http_smoke --check
+          python scripts/check_deploy_config.py --check

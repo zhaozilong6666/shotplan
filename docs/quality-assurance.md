@@ -7,7 +7,7 @@
 
 | 承诺 | 证据 | 执行位置 |
 | --- | --- | --- |
-| 662 个单测通过，覆盖率 ≥85% | `pytest --cov-fail-under=85`，当前 **91.50%** | CI × Python 3.10/3.11/3.12/3.13 |
+| 662 个单测通过，覆盖率 ≥85% | `pytest --cov-fail-under=85`，当前 **91.50%** | CI × Python 3.10–3.13；Windows py3.12 另跑 unit + HTTP smoke |
 | 40 道质量门禁 | `make gates`，唯一清单在 Makefile | CI py3.12，25 分钟超时 |
 | 类型与风格 | `ruff check src tests evals scripts` + `mypy` | CI 每个 Python 版本 |
 | 80/80 主集 + 320/320 盲测 | `evals.run_eval` / `case_miner --check` | `make gates` |
@@ -19,7 +19,7 @@
 
 - **真实模型质量**：只有小样本 smoke，没有每次 CI 的模型回归；模型版本、中转站延迟都可能变。
 - **长跑稳定性**：5 小时/120 分钟报告是本地实测，不在 CI 重跑；它是证据，不是每次提交的保证。
-- **Windows 多进程**：`uvicorn --workers N` 的 30s accept 问题已定位并写进部署建议，但没有 Windows CI 门禁；默认仍是 1 worker。
+- **Windows 多进程**：已加 Windows py3.12 的 lint/type/unit/HTTP smoke job；但 `uvicorn --workers N` 的 30s accept 长跑仍不在 CI 重跑，默认仍是 1 worker。
 - **Linux 部署**：systemd/nginx 配方未在本机执行；CI 只验证单元与门禁，不启动真实反向代理。
 - **前端 E2E**：没有浏览器级端到端测试；UI 由 API 测试和手工 smoke 覆盖。
 - **绝对正确性**：规则/知识库仍有边界，覆盖率不是正确性证明。
