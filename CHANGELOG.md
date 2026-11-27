@@ -6,6 +6,10 @@
 
 ### Added
 
+- **真实模型全量 80 例（2026-11-27）**：wujie-api `deepseek-v4.1-flash-1017`，低 reasoning、
+  max_tokens 2000、并发 4：**67/69 硬通过（97.1%）**、均分 **0.9158**、首轮可用 63/69、
+  1 次上游超时、总成本 **¥5.89**、P50/P95 74.3/146.4s（[报告](docs/real-model-full-2026-11-27.md)，E34）。
+
 - **真实模型 30 例验证（2026-11-27）**：wujie-api `deepseek-v4.1-flash-1017`，低 reasoning、
   max_tokens 2000、并发 3：22 个生成用例 **22/22 硬通过**、均分 **0.9215**、首次输出可用
   22/22、0 异常、总成本 **¥1.60**、P95 137s（[docs/real-model-iterate-2026-11-27.md](docs/real-model-iterate-2026-11-27.md)，E33）。
