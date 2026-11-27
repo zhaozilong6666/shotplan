@@ -170,6 +170,18 @@
   </section>
 
   <section>
+    <h2>真实模型实测</h2>
+    <p class="section-note">离线规则 Agent 是上限参考；这一节是同一个 80 例主集接真实模型后的结果，包含不可行需求的生成前拒绝、上游超时和首轮可用率。</p>
+    <div class="metrics real-model">
+      <div class="metric good"><b>97.1%</b><span>硬约束通过（67/69）</span></div>
+      <div class="metric good"><b>0.9158</b><span>平均得分</span></div>
+      <div class="metric good"><b>91.3%</b><span>首轮即可用</span></div>
+      <div class="metric good"><b>¥5.89</b><span>80 例总成本</span></div>
+    </div>
+    <p class="section-note real-model-note">模型 <code>deepseek-v4.1-flash-1017</code>（wujie-api），temperature 0.2、低 reasoning、max_tokens 2000、单次尝试；80 例中 69 个需要生成，1 个上游超时。P50/P95 74.3s / 146.4s。<a href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/real-model-full-2026-11-27.md">完整报告 →</a></p>
+  </section>
+
+  <section>
     <h2>门禁有效性：变异测试</h2>
     <p class="section-note">80/80 全绿只能说明「当前代码通过了当前检查」。在进程内注入受控故障、跑同一套用例、要求真实门禁拒绝，再回滚逐字段比对——检验的是检查本身。<a href="https://github.com/zhaozilong6666/shotplan/blob/main/docs/mutation-report.md">完整实验报告 →</a></p>
     <div class="metrics mutation">

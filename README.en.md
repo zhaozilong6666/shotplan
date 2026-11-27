@@ -1,6 +1,8 @@
 # shotplan
 
 > Turn a vague "I want a Hanfu photoshoot in Xi'an" into an **executable, checkable, traceable** hour-by-hour plan.
+
+**Latest real-model run (2026-11-27):** 67/69 hard-pass (97.1%) on 80 cases, 63/69 first-pass, mean 0.9158, total cost ¥5.89 ([full report](docs/real-model-full-2026-11-27.md)).
 > An evaluable agent system, not another chat box.
 
 [中文 README](README.md) · ![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![CI](https://github.com/zhaozilong6666/shotplan/actions/workflows/ci.yml/badge.svg) ![coverage](https://img.shields.io/badge/coverage-91.55%25-brightgreen)

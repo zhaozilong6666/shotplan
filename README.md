@@ -3,6 +3,8 @@
 > 把一句模糊的「想去西安拍汉服」，变成一份**能执行、能核对、能追溯**的小时级方案。
 > 这是一个可评测的 Agent 系统，不是又一个聊天框。
 
+**最新真实模型实测（2026-11-27）**：80 例主集，**67/69 硬通过（97.1%）**，首轮可用 63/69，均分 **0.9158**，总成本 **¥5.89**（[完整报告](docs/real-model-full-2026-11-27.md)）。
+
 [English README](README.en.md) · [在线展示](https://zhaozilong6666.github.io/shotplan/) · [质量边界与复核](docs/quality-assurance.md) · ![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![CI](https://github.com/zhaozilong6666/shotplan/actions/workflows/ci.yml/badge.svg) ![coverage](https://img.shields.io/badge/coverage-91.55%25-brightgreen)
 
 ---

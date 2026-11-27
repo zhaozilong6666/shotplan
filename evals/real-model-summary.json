@@ -1,0 +1,16 @@
+{
+  "date": "2026-11-27",
+  "model": "deepseek-v4.1-flash-1017",
+  "provider": "wujie-api",
+  "cases": 80,
+  "generation_cases": 69,
+  "hard_pass": 67,
+  "hard_pass_rate": 0.971,
+  "mean_score": 0.9158,
+  "first_attempt_clean": 63,
+  "errors": 1,
+  "cost_cny": 5.89,
+  "p50_ms": 74253.3,
+  "p95_ms": 146400.0,
+  "report": "docs/real-model-full-2026-11-27.md"
+}

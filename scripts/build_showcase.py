@@ -381,6 +381,28 @@ def failures_block(failures: list[dict]) -> str:
     return '        <ul class="clean">\n' + "\n".join(items) + "\n        </ul>"
 
 
+def real_model_block(real: dict) -> str:
+    pass_rate = real["hard_pass_rate"] * 100
+    clean_rate = real["first_attempt_clean"] / real["generation_cases"] * 100
+    lines = [
+        '<div class="metrics real-model">',
+        f'      <div class="metric good"><b>{pass_rate:.1f}%</b>'
+        f'<span>硬约束通过（{real["hard_pass"]}/{real["generation_cases"]}）</span></div>',
+        f'      <div class="metric good"><b>{real["mean_score"]:.4f}</b><span>平均得分</span></div>',
+        f'      <div class="metric good"><b>{clean_rate:.1f}%</b><span>首轮即可用</span></div>',
+        f'      <div class="metric good"><b>¥{real["cost_cny"]:.2f}</b><span>80 例总成本</span></div>',
+        "    </div>",
+        f'    <p class="section-note real-model-note">模型 <code>{real["model"]}</code>'
+        f'（{real["provider"]}），temperature 0.2、低 reasoning、max_tokens 2000、单次尝试；'
+        f'{real["cases"]} 例中 {real["generation_cases"]} 个需要生成，'
+        f'{real["errors"]} 个上游超时。P50/P95 '
+        f'{real["p50_ms"] / 1000:.1f}s / {real["p95_ms"] / 1000:.1f}s。'
+        f'<a href="https://github.com/zhaozilong6666/shotplan/blob/main/{real["report"]}">'
+        "完整报告 →</a></p>",
+    ]
+    return "\n".join(lines)
+
+
 def replace_block(html: str, pattern: str, replacement: str, name: str) -> str:
     new_html, count = re.subn(pattern, replacement, html, count=1, flags=re.S)
     if count != 1:
@@ -403,6 +425,8 @@ def main() -> int:
     # in CI, so the page reads a committed snapshot instead of evals/out/.
     # Refresh it with: python -m evals.benchmark --out evals/benchmark.json
     bench = _load(ROOT / "evals" / "benchmark.json")
+    # Committed summary, not evals/out: this block must render in CI too.
+    real_model = _load(ROOT / "evals" / "real-model-summary.json")
     failures_path = ROOT / "evals" / "failures" / "cases.jsonl"
     if not failures_path.exists():
         raise SystemExit(f"missing {failures_path}; run evals.collect_failures first")
@@ -474,6 +498,13 @@ def main() -> int:
         r'<p class="section-note challenge-note">.*?</p>',
         challenge_block(challenge) + "\n    " + challenge_note_block(challenge),
         "challenge",
+    )
+    html = replace_block(
+        html,
+        r'<div class="metrics real-model">.*?</div>\s*'
+        r'<p class="section-note real-model-note">.*?</p>',
+        real_model_block(real_model),
+        "real model",
     )
     html = replace_block(
         html,
