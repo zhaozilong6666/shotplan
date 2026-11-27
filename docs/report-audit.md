@@ -8,18 +8,18 @@
 
 | 指标 | 值 |
 | --- | --- |
-| 扫描报告 | 107 份（570 KB） |
-| 脚本生成 | 62 份，来自 36 个生成器 |
+| 扫描报告 | 108 份（574 KB） |
+| 脚本生成 | 63 份，来自 36 个生成器 |
 | 人写报告 | 45 份 |
 | 人写报告冗余对（≥ 0.55） | 3 对 |
 | 同名前缀家族（≥ 3 份） | 5 个 |
 | 失效引用 | 0 处 |
 | 孤儿报告（无入链） | 9 份 |
-| 人写报告平均边际信息量 | 0.744 |
+| 人写报告平均边际信息量 | 0.745 |
 
 ## 1. 同源实例：报告为什么会堆积
 
-`evals.soak` 一个脚本产出 **16 份**，占全部脚本生成报告的 26%。
+`evals.soak` 一个脚本产出 **16 份**，占全部脚本生成报告的 25%。
 
 - `soak-45m.md`
 - `soak-5h.md`
@@ -38,10 +38,11 @@
 - `soak-writer-nk-20m.md`
 - `soak.md`
 
-`evals.real_model_lab` 一个脚本产出 **10 份**，占全部脚本生成报告的 16%。
+`evals.real_model_lab` 一个脚本产出 **11 份**，占全部脚本生成报告的 17%。
 
 - `real-model-2026-11-27.md`
 - `real-model-full-2026-11-16.md`
+- `real-model-iterate-2026-11-27.md`
 - `real-model-repeat3.md`
 - `real-model-replication.md`
 - `real-model.md`
@@ -69,9 +70,9 @@
 
 | 报告 A | 报告 B | 相似度 | 建议 |
 | --- | --- | ---: | --- |
-| `real-model-light-fix-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.680 | 部分重叠：只核对数字是否互相矛盾 |
-| `real-model-baseline-2026-11-16.md` | `real-model-light-fix-2026-11-16.md` | 0.664 | 部分重叠：只核对数字是否互相矛盾 |
-| `real-model-baseline-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.587 | 部分重叠：只核对数字是否互相矛盾 |
+| `real-model-light-fix-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.674 | 部分重叠：只核对数字是否互相矛盾 |
+| `real-model-baseline-2026-11-16.md` | `real-model-light-fix-2026-11-16.md` | 0.660 | 部分重叠：只核对数字是否互相矛盾 |
+| `real-model-baseline-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.582 | 部分重叠：只核对数字是否互相矛盾 |
 
 **不要直接删**：这些文件记录的是「当时为什么那么判断」。保留边际信息量最高的一份作为当前结论，其余在首行加一行`> 已被 <新文件> 取代（<日期>）；本文保留为历史记录`。
 
@@ -80,7 +81,7 @@
 | 前缀 | 份数 | 文件 |
 | --- | ---: | --- |
 | soak | 20 | `soak-45m.md`、`soak-5h.md`、`soak-ab.md`、`soak-batch-120.md`、`soak-batch-60.md`、`soak-batch-nokeepalive-30.md`、`soak-high-120-1w.md`、`soak-high-120.md`、`soak-high-60-2w.md`、`soak-high-60.md`、`soak-independent-20m.md`、`soak-index.md`、`soak-off-4w-20m.md`、`soak-partial-4h24.md`、`soak-proxy-30m.md`、`soak-restart-30.md`、`soak-sync-30.md`、`soak-writer-30.md`、`soak-writer-nk-20m.md`、`soak.md` |
-| real | 9 | `real-model-2026-11-27.md`、`real-model-baseline-2026-11-16.md`、`real-model-comparison.md`、`real-model-full-2026-11-16.md`、`real-model-light-fix-2026-11-16.md`、`real-model-repeat3.md`、`real-model-replication.md`、`real-model-smoke-2026-11-16.md`、`real-model.md` |
+| real | 10 | `real-model-2026-11-27.md`、`real-model-baseline-2026-11-16.md`、`real-model-comparison.md`、`real-model-full-2026-11-16.md`、`real-model-iterate-2026-11-27.md`、`real-model-light-fix-2026-11-16.md`、`real-model-repeat3.md`、`real-model-replication.md`、`real-model-smoke-2026-11-16.md`、`real-model.md` |
 | redteam | 4 | `redteam-analysis.md`、`redteam-soft-v3.md`、`redteam-soft.md`、`redteam.md` |
 | router | 3 | `router-holdout-off.md`、`router-holdout-on.md`、`router-validation.md` |
 | transfer | 3 | `transfer-budget.md`、`transfer-by-city.md`、`transfer-model.md` |
@@ -96,21 +97,21 @@
 | `multi-turn-attribution.md` | 0.898 | `ROADMAP.md` | 0.102 |
 | `ingest.md` | 0.893 | `knowledge-contract.md` | 0.107 |
 | `generality.md` | 0.877 | `problem-and-metrics.md` | 0.123 |
-| `repair-experiment.md` | 0.872 | `failure-taxonomy.md` | 0.128 |
-| `cost-latency-simulation.md` | 0.867 | `real-model-light-fix-2026-11-16.md` | 0.133 |
+| `repair-experiment.md` | 0.873 | `failure-taxonomy.md` | 0.127 |
+| `cost-latency-simulation.md` | 0.868 | `real-model-light-fix-2026-11-16.md` | 0.132 |
 | `intelligence-roadmap.md` | 0.866 | `architecture.md` | 0.134 |
 | `city-coverage.md` | 0.862 | `evaluation.md` | 0.138 |
 | `knowledge-contract.md` | 0.855 | `problem-and-metrics.md` | 0.145 |
-| `soak-partial-4h24.md` | 0.854 | `lessons.md` | 0.146 |
+| `soak-partial-4h24.md` | 0.853 | `lessons.md` | 0.147 |
 | `quality-assurance.md` | 0.847 | `runbook.md` | 0.153 |
 
 末位（信息量最低）：
 
 - `lessons.md` — 0.595，最近邻 `single-writer.md`（0.405）
 - `single-writer.md` — 0.595，最近邻 `lessons.md`（0.405）
-- `real-model-baseline-2026-11-16.md` — 0.336，最近邻 `real-model-light-fix-2026-11-16.md`（0.664）
-- `real-model-light-fix-2026-11-16.md` — 0.320，最近邻 `real-model-smoke-2026-11-16.md`（0.680）
-- `real-model-smoke-2026-11-16.md` — 0.320，最近邻 `real-model-light-fix-2026-11-16.md`（0.680）
+- `real-model-baseline-2026-11-16.md` — 0.340，最近邻 `real-model-light-fix-2026-11-16.md`（0.660）
+- `real-model-light-fix-2026-11-16.md` — 0.326，最近邻 `real-model-smoke-2026-11-16.md`（0.674）
+- `real-model-smoke-2026-11-16.md` — 0.326，最近邻 `real-model-light-fix-2026-11-16.md`（0.674）
 
 ## 5. 失效引用：读者点开就是 404
 
@@ -149,4 +150,4 @@
 - **本文件自身不参与**审计，否则每次运行都会把自己报成 100% 重复。
 - **提交动作会改变语料**：语料取的是 git 索引，`git add` 一份新文档就会让统计数 +1。新增文档后要**先 add、再 `--write`**，否则本地算的是旧份数，CI 算的是新份数——这个陷阱已经踩过两次（一次是未跟踪的草稿被算进来，一次是刚 add 的新文档没重新生成）。
 
-_语料指纹：`2c0880e519d9ac89`（内容变化时此值必变）_
+_语料指纹：`96395a2a1b84e6c9`（内容变化时此值必变）_

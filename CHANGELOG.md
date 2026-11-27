@@ -6,6 +6,10 @@
 
 ### Added
 
+- **真实模型 30 例验证（2026-11-27）**：wujie-api `deepseek-v4.1-flash-1017`，低 reasoning、
+  max_tokens 2000、并发 3：22 个生成用例 **22/22 硬通过**、均分 **0.9215**、首次输出可用
+  22/22、0 异常、总成本 **¥1.60**、P95 137s（[docs/real-model-iterate-2026-11-27.md](docs/real-model-iterate-2026-11-27.md)，E33）。
+
 - **部署文档校准（2026-11-27）**：修正 `make soak` 仍写 4 worker 的过期说明，并把掉出表格的
   `async` 行移回；新增 L018。
 
