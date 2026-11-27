@@ -28,7 +28,8 @@
 20 分钟 4 个错误没有任何 >1s 的 `_write` 日志——等待在写者线程启动前，而不是 commit 内部；
 加入队 watchdog 后，20 分钟 23,024 请求的 1 个 30s 错误也没有队列年龄 >2s 记录；
 最后把请求分段算平：body/queue/pipeline/persist/post 合计约 29ms，剩余 30.2s 在
-端点进入前/ASGI 中间件层，**持久化也被排除**。
+`rate_limit` 的 `await call_next()` 内（pre_endpoint 仅 1.2–1.6ms），**持久化也被排除**；
+范围压到 BaseHTTPMiddleware 的响应流；再用纯 ASGI 中间件对照仍有 1 次/24,037 请求，说明中间件也不是根因，范围只剩 uvicorn 多进程/进程调度。
 
 ## 当前结论
 

@@ -258,6 +258,7 @@ async def rate_limit(request: Request, call_next):
     `/api/compare` runs the pipeline three times, so it consumes three slots --
     charging it one slot would let a caller buy 3x the work for the same budget.
     """
+    rate_started = time.perf_counter()
     cfg = _cached_settings(request)
     cost = _COSTLY_PATHS.get(request.url.path)
     if cfg.rate_limit_per_minute > 0 and cost:
@@ -277,7 +278,11 @@ async def rate_limit(request: Request, call_next):
                 )
             bucket.extend([now] * cost)
             _RATE_BUCKETS[client] = bucket
-    return await call_next(request)
+    response = await call_next(request)
+    response.headers["X-RateLimit-Ms"] = (
+        f"{(time.perf_counter() - rate_started) * 1000:.1f}"
+    )
+    return response
 
 
 @app.middleware("http")
@@ -334,6 +339,12 @@ async def request_context(request: Request, call_next):
                             ),
                             "body_ms": response.headers.get(
                                 "X-Body-Duration-Ms", ""
+                            ),
+                            "pre_endpoint_ms": response.headers.get(
+                                "X-Pre-Endpoint-Ms", ""
+                            ),
+                            "rate_limit_ms": response.headers.get(
+                                "X-RateLimit-Ms", ""
                             ),
                             "pid": os.getpid(),
                         },
@@ -541,6 +552,9 @@ def rules() -> dict[str, Any]:
 @app.post("/api/plan", dependencies=[Depends(require_api_key)])
 async def create_plan(request: Request, cfg: SettingsDep) -> JSONResponse:
     endpoint_started = time.perf_counter()
+    pre_endpoint_ms = (
+        endpoint_started - getattr(request.state, "started", endpoint_started)
+    ) * 1000
     try:
         raw = await request.body()
         body_ms = (time.perf_counter() - endpoint_started) * 1000
@@ -598,6 +612,7 @@ async def create_plan(request: Request, cfg: SettingsDep) -> JSONResponse:
                 "X-Queue-Duration-Ms": f"{queue_ms:.1f}",
                 "X-Sink-Setup-Ms": f"{sink_setup_ms:.1f}",
                 "X-Body-Duration-Ms": f"{body_ms:.1f}",
+                "X-Pre-Endpoint-Ms": f"{pre_endpoint_ms:.1f}",
             },
         )
         response.headers["X-Post-Duration-Ms"] = (
@@ -700,3 +715,41 @@ def asset(asset_name: str) -> FileResponse:
     if not target.exists():
         raise HTTPException(status_code=404, detail="not found")
     return FileResponse(target)
+
+
+class _PureTimingMiddleware:
+    """Minimal ASGI middleware used only to test BaseHTTPMiddleware overhead.
+
+    It sets the same request id/start state the endpoint needs and adds the
+    timing headers, but has no response-body wrapper. Enable with
+    ``SHOTPLAN_PURE_MIDDLEWARE=1``.
+    """
+
+    def __init__(self, app) -> None:  # type: ignore[no-untyped-def]
+        self.app = app
+
+    async def __call__(self, scope, receive, send) -> None:  # type: ignore[no-untyped-def]
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        request = Request(scope)
+        supplied = request.headers.get("x-request-id", "")
+        request_id = (
+            supplied if _REQUEST_ID.fullmatch(supplied) else uuid.uuid4().hex[:16]
+        )
+        scope.setdefault("state", {})["request_id"] = request_id
+        scope["state"]["started"] = time.perf_counter()
+
+        async def _send(message):
+            if message["type"] == "http.response.start":
+                headers = list(message.get("headers", []))
+                headers.append((b"x-request-id", request_id.encode("ascii")))
+                message["headers"] = headers
+            await send(message)
+
+        await self.app(scope, receive, _send)
+
+
+if os.environ.get("SHOTPLAN_PURE_MIDDLEWARE") == "1":
+    app.user_middleware.clear()
+    app.add_middleware(_PureTimingMiddleware)

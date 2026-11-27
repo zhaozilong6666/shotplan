@@ -18,6 +18,8 @@
 | L009 | 2026-11-26 | 把 httpx keep-alive 复用造成的超时当成服务端尾延迟 | 已修 |
 | L010 | 2026-11-26 | 30s 请求里 pipeline 只有 2ms，之前缺少分段才反复猜根因 | 已记录 |
 | L012 | 2026-11-26 | 分段算平后，30s 不在任何应用段内，持久化被推翻 | 已记录 |
+| L013 | 2026-11-27 | 30s 在 `rate_limit` 的 `call_next` 里，端点各段只有 45ms | 已记录 |
+| L014 | 2026-11-27 | 换纯 ASGI 中间件仍有 30s，BaseHTTPMiddleware 也不是根因 | 已记录 |
 | L011 | 2026-11-26 | 以为 30s 卡在 commit，writer 内部却没有任何 >1s 日志 | 已记录 |
 
 ## L001 · 强杀长跑留下临时库
@@ -115,6 +117,22 @@
 - **修复**：响应头增加 `X-Body-Duration-Ms`、`X-Queue-Duration-Ms`、`X-Persist-Duration-Ms`、`X-Post-Duration-Ms`；慢日志同时记录全部段。
 - **验证**：`docs/single-writer.md` 的分段总账；持久化、SQLite、writer 队列均被排除。
 - **防复发**：总时长必须能被各段加平；加不平就继续加观测点，不能把差额归给下一个假设。
+
+## L013 · 30s 在 BaseHTTPMiddleware 的 `call_next` 里
+
+- **症状**：慢请求 `duration_ms` 30,265ms，`pre_endpoint_ms` 1.6ms，端点 body/queue/pipeline/sink/persist/post 合计约 45ms，但 `rate_limit_ms` 30,264ms。
+- **根因**：时间在 `rate_limit` 的 `await call_next()` 返回路径/响应流，不在端点函数、路由或依赖；`BaseHTTPMiddleware` 把响应体包装成流，实际发送/恢复发生在中间件层。
+- **修复**：目前只加观测，不改默认；下一步用纯 ASGI 中间件或临时移除 `BaseHTTPMiddleware` 做对照。
+- **验证**：2026-11-27 的 20 分钟 4 worker 运行，两个慢请求都呈现同一形态。
+- **防复发**：分段要覆盖“端点外”的中间件；所有段加平之前，不要宣布根因。
+
+## L014 · 纯 ASGI 中间件仍有 30s
+
+- **症状**：`SHOTPLAN_PURE_MIDDLEWARE=1` 移除两个 BaseHTTPMiddleware 后，4 worker + batch 仍出现 1 次 30s 超时/24,037 请求。
+- **根因**：不是 BaseHTTPMiddleware 的 `call_next`/响应流；范围继续缩小到 uvicorn 多进程 accept、事件循环或进程调度（也可能是客户端在 30s 边界的行为）。
+- **修复**：保留纯 ASGI 开关作为诊断工具，不改变默认中间件。
+- **验证**：纯 ASGI 20 分钟 24,036/24,037 成功、最大 30,017ms；与 BaseHTTP 版本形态一致。
+- **防复发**：一次只替换一个层，替换后仍复现就继续往下，不把“新组件干净”当成旧组件是根因。
 
 ## 新增一条的模板
 

@@ -8,14 +8,14 @@
 
 | 指标 | 值 |
 | --- | --- |
-| 扫描报告 | 103 份（557 KB） |
+| 扫描报告 | 103 份（559 KB） |
 | 脚本生成 | 61 份，来自 36 个生成器 |
 | 人写报告 | 42 份 |
 | 人写报告冗余对（≥ 0.55） | 3 对 |
 | 同名前缀家族（≥ 3 份） | 5 个 |
 | 失效引用 | 0 处 |
 | 孤儿报告（无入链） | 9 份 |
-| 人写报告平均边际信息量 | 0.743 |
+| 人写报告平均边际信息量 | 0.742 |
 
 ## 1. 同源实例：报告为什么会堆积
 
@@ -69,7 +69,7 @@
 | 报告 A | 报告 B | 相似度 | 建议 |
 | --- | --- | ---: | --- |
 | `real-model-light-fix-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.684 | 部分重叠：只核对数字是否互相矛盾 |
-| `real-model-baseline-2026-11-16.md` | `real-model-light-fix-2026-11-16.md` | 0.667 | 部分重叠：只核对数字是否互相矛盾 |
+| `real-model-baseline-2026-11-16.md` | `real-model-light-fix-2026-11-16.md` | 0.668 | 部分重叠：只核对数字是否互相矛盾 |
 | `real-model-baseline-2026-11-16.md` | `real-model-smoke-2026-11-16.md` | 0.591 | 部分重叠：只核对数字是否互相矛盾 |
 
 **不要直接删**：这些文件记录的是「当时为什么那么判断」。保留边际信息量最高的一份作为当前结论，其余在首行加一行`> 已被 <新文件> 取代（<日期>）；本文保留为历史记录`。
@@ -95,19 +95,19 @@
 | `multi-turn-attribution.md` | 0.898 | `ROADMAP.md` | 0.102 |
 | `ingest.md` | 0.893 | `knowledge-contract.md` | 0.107 |
 | `generality.md` | 0.877 | `problem-and-metrics.md` | 0.123 |
-| `repair-experiment.md` | 0.871 | `failure-taxonomy.md` | 0.129 |
+| `repair-experiment.md` | 0.872 | `failure-taxonomy.md` | 0.128 |
 | `cost-latency-simulation.md` | 0.868 | `real-model-light-fix-2026-11-16.md` | 0.132 |
 | `intelligence-roadmap.md` | 0.866 | `architecture.md` | 0.134 |
 | `city-coverage.md` | 0.862 | `evaluation.md` | 0.138 |
 | `knowledge-contract.md` | 0.855 | `problem-and-metrics.md` | 0.145 |
-| `soak-partial-4h24.md` | 0.838 | `lessons.md` | 0.162 |
+| `soak-partial-4h24.md` | 0.845 | `lessons.md` | 0.155 |
 | `budget-vs-concurrency.md` | 0.834 | `real-model-baseline-2026-11-16.md` | 0.166 |
 
 末位（信息量最低）：
 
-- `lessons.md` — 0.628，最近邻 `single-writer.md`（0.372）
-- `single-writer.md` — 0.628，最近邻 `lessons.md`（0.372）
-- `real-model-baseline-2026-11-16.md` — 0.333，最近邻 `real-model-light-fix-2026-11-16.md`（0.667）
+- `lessons.md` — 0.608，最近邻 `single-writer.md`（0.392）
+- `single-writer.md` — 0.608，最近邻 `lessons.md`（0.392）
+- `real-model-baseline-2026-11-16.md` — 0.332，最近邻 `real-model-light-fix-2026-11-16.md`（0.668）
 - `real-model-light-fix-2026-11-16.md` — 0.316，最近邻 `real-model-smoke-2026-11-16.md`（0.684）
 - `real-model-smoke-2026-11-16.md` — 0.316，最近邻 `real-model-light-fix-2026-11-16.md`（0.684）
 
@@ -148,4 +148,4 @@
 - **本文件自身不参与**审计，否则每次运行都会把自己报成 100% 重复。
 - **提交动作会改变语料**：语料取的是 git 索引，`git add` 一份新文档就会让统计数 +1。新增文档后要**先 add、再 `--write`**，否则本地算的是旧份数，CI 算的是新份数——这个陷阱已经踩过两次（一次是未跟踪的草稿被算进来，一次是刚 add 的新文档没重新生成）。
 
-_语料指纹：`ac50b3c59beb9bf3`（内容变化时此值必变）_
+_语料指纹：`fa410f0b6204cfa7`（内容变化时此值必变）_

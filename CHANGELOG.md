@@ -6,6 +6,14 @@
 
 ### Added
 
+- **纯 ASGI 中间件对照（2026-11-27）**：`SHOTPLAN_PURE_MIDDLEWARE=1` 移除 BaseHTTPMiddleware 后，
+  4 worker + batch 20 分钟 24,037 请求仍有 1 次 30s 超时；中间件也不是根因，范围只剩
+  uvicorn 多进程/进程调度（L014）。
+
+- **中间件分段（2026-11-27）**：`X-Pre-Endpoint-Ms` / `X-RateLimit-Ms` 显示慢请求的
+  端点前仅 1.2–1.6ms、端点各段约 45ms，而 `rate_limit` 的 `call_next` 为 30.2s；
+  范围压到 BaseHTTPMiddleware 的响应流，持久化/SQLite 正式排除（L013）。
+
 - **请求分段算平（2026-11-26）**：慢日志增加 body/queue/persist/post 段；30,256ms 的
   慢请求各段合计约 29ms，剩余 30.2s 在端点进入前/ASGI 中间件层，**持久化、SQLite、
   writer 队列全部被排除**（L012，[docs/single-writer.md](docs/single-writer.md)）。
