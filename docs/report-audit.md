@@ -13,7 +13,7 @@
 | 人写报告 | 45 份 |
 | 人写报告冗余对（≥ 0.55） | 3 对 |
 | 同名前缀家族（≥ 3 份） | 5 个 |
-| 失效引用 | 3 处 |
+| 失效引用 | 0 处 |
 | 孤儿报告（无入链） | 9 份 |
 | 人写报告平均边际信息量 | 0.746 |
 
@@ -97,8 +97,8 @@
 | --- | ---: | --- | ---: |
 | `multi-turn-attribution.md` | 0.898 | `ROADMAP.md` | 0.102 |
 | `ingest.md` | 0.893 | `knowledge-contract.md` | 0.107 |
-| `generality.md` | 0.878 | `problem-and-metrics.md` | 0.122 |
-| `repair-experiment.md` | 0.874 | `evaluation.md` | 0.126 |
+| `generality.md` | 0.877 | `problem-and-metrics.md` | 0.123 |
+| `repair-experiment.md` | 0.874 | `failure-taxonomy.md` | 0.126 |
 | `cost-latency-simulation.md` | 0.869 | `real-model-light-fix-2026-11-16.md` | 0.131 |
 | `intelligence-roadmap.md` | 0.867 | `architecture.md` | 0.133 |
 | `city-coverage.md` | 0.863 | `evaluation.md` | 0.137 |
@@ -108,19 +108,15 @@
 
 末位（信息量最低）：
 
-- `lessons.md` — 0.606，最近邻 `single-writer.md`（0.394）
-- `single-writer.md` — 0.606，最近邻 `lessons.md`（0.394）
+- `lessons.md` — 0.607，最近邻 `single-writer.md`（0.393）
+- `single-writer.md` — 0.607，最近邻 `lessons.md`（0.393）
 - `real-model-baseline-2026-11-16.md` — 0.345，最近邻 `real-model-light-fix-2026-11-16.md`（0.655）
 - `real-model-light-fix-2026-11-16.md` — 0.332，最近邻 `real-model-smoke-2026-11-16.md`（0.668）
 - `real-model-smoke-2026-11-16.md` — 0.332，最近邻 `real-model-light-fix-2026-11-16.md`（0.668）
 
 ## 5. 失效引用：读者点开就是 404
 
-- `kb-health.md` → `evals/real-model-summary.json`
-- `lessons.md` → `evals/real-model-summary.json`
-- `next.md` → `evals/real-model-summary.json`
-
-门禁 `check_doc_claims` 只校验数字声称，不校验路径；这一节是唯一会指出「文档指向不存在的文件」的地方。
+无。
 
 ## 6. 孤儿报告：没人链接，等于没人读
 
@@ -155,4 +151,4 @@
 - **本文件自身不参与**审计，否则每次运行都会把自己报成 100% 重复。
 - **提交动作会改变语料**：语料取的是 git 索引，`git add` 一份新文档就会让统计数 +1。新增文档后要**先 add、再 `--write`**，否则本地算的是旧份数，CI 算的是新份数——这个陷阱已经踩过两次（一次是未跟踪的草稿被算进来，一次是刚 add 的新文档没重新生成）。
 
-_语料指纹：`0109131fdaf22841`（内容变化时此值必变）_
+_语料指纹：`d61ebc09f6bac3dd`（内容变化时此值必变）_

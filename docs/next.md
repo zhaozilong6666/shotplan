@@ -7,7 +7,7 @@
 
 ## P0 · 已经坏了
 
-- [ ] `docs/lessons.md` 的 `evals/real-model-summary.json`：路径不存在
+没有。
 
 ## P1 · 依据被自己推翻
 
