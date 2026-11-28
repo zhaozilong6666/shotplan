@@ -87,6 +87,7 @@ flowchart TB
 - `source_refs` 必须解析到知识库中的地点或风格；伪造引用是硬失败。
 - 每次运行都记录知识库与规则指纹（`kb_version` / `rules_version`）以及请求级配置快照（修复次数、墙钟预算、模型、持久化模式）；改数据或改规则后，历史分数仍可解释。
 - 知识库每个地点/风格条目都带 `source` 与 `last_verified_at`；加载器校验非空与 ISO 日期，测试在「超过一年未复核」时失败。`knowledge_version` 仍是整份数据的内容指纹。
+- 部署形态：默认单进程（`sync` 或 `batch`）；需要并发时用 **N 个独立单 worker 进程 + 边缘代理**，不使用 `uvicorn --workers N`——Windows 上共享 accept socket 会产生 30s 级长尾（E30/E31，ADR 0019）。单写者 sidecar 仅作为已否定默认的实验保留，不进入推荐路径。
 - 配置在 API 启动时解析一次（`app.state.settings`）并注入；请求 ID 中间件为每个响应回传 `X-Request-ID`，访问日志只记 method / path / status / duration，不记请求体与 key。CORS 默认关闭，自带界面与 API 同源。
 - 公开部署的保护是可选层：设置 `SHOTPLAN_API_KEY` 后，`/api/plan`、`/api/runs*`、`/api/summary`、`/api/stats` 都需要 `X-API-Key`；`/api/health`、`/api/config`、`/api/rules` 保持公开（只含版本、脱敏配置与规则说明，不含运行数据）。内置 Web 面板不发送该头，因此受保护部署应改用独立前端或把 key 留在反向代理层；限流是进程内尽力而为，多 worker 下不共享计数。
 - 评分用 `math.fsum` + 固定 6 位精度，跨 Python 3.10–3.13 逐位一致（ADR 0006）。

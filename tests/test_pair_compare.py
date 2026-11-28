@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 
@@ -60,6 +61,8 @@ def test_cli_exit_code_reflects_evidence(tmp_path):
         [sys.executable, "-m", "evals.pair_compare", "--a", str(a_path), "--b", str(b_path)],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        env={**os.environ, "PYTHONIOENCODING": "utf-8"},
         timeout=120,
     )
     assert proc.returncode == 0
@@ -76,6 +79,8 @@ def test_cli_rejects_mismatched_case_sets(tmp_path):
         [sys.executable, "-m", "evals.pair_compare", "--a", str(a_path), "--b", str(b_path)],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        env={**os.environ, "PYTHONIOENCODING": "utf-8"},
         timeout=120,
     )
     assert proc.returncode == 2

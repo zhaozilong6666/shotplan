@@ -108,7 +108,22 @@ def build_report(
     return "\n".join(lines)
 
 
+def _utf8_console() -> None:
+    """Windows pipes default to cp1252; the report is Chinese.
+
+    Without this a redirected stdout raises UnicodeEncodeError before the exit
+    code can be read, which is what the Windows CI job caught.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(encoding="utf-8", errors="replace")
+            except (OSError, ValueError):
+                pass
+
+
 def main(argv: list[str] | None = None) -> int:
+    _utf8_console()
     parser = argparse.ArgumentParser(description="paired comparison of two eval snapshots")
     parser.add_argument("--a", type=Path, required=True)
     parser.add_argument("--b", type=Path, required=True)

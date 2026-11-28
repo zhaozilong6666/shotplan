@@ -197,7 +197,7 @@ shotplan/
 │   └── cli.py         # 命令行入口
 ├── evals/             # 80 用例 + 320 盲测 brief、变异/挖掘/HTTP/对照实验、基准、基线
 ├── tests/             # 单元测试（数量用 pytest --collect-only 查，不在文档里写死）
-└── docs/              # 架构、指标、18 份 ADR、运维；个人材料在 docs/portfolio/
+└── docs/              # 架构、指标、19 份 ADR、运维；个人材料在 docs/portfolio/
 ```
 
 核心引擎只用 Python 标准库；FastAPI / pytest / ruff 都是可选层。这个分层让「没有 key 也能完整跑通」成为设计，而不是妥协。

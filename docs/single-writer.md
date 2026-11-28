@@ -1,5 +1,6 @@
 # 单写者 sidecar：实现、验证与否定结果
 
+> 2026-11-28 定案：本方案**不设为默认**，代码保留为可选实验；默认部署见 [ADR 0019](adr/0019-uvicorn-workers-shared-accept.md)。
 > 假设：多 worker 的 30s 尾延迟来自多个进程同时写 SQLite。做法是把所有写入集中到一个
 > sidecar 进程，API 仍保留 4 个 worker。**结果是否定的**：sidecar 在 1 worker 下干净，
 > 但 4 worker 仍有 11 次 `ReadTimeout`、最大 30s。因此写竞争不是唯一原因，不能把它当默认。
