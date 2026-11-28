@@ -131,20 +131,32 @@ def read_amounts(text: str) -> Amounts:
             field, explicit_unit = "hours", True
         elif unit == "budget":
             field, explicit_unit = "budget", True
-        elif any(word in before for word in TIME_WORDS):
-            field, explicit_unit = "hours", False
-        elif any(word in before for word in BUDGET_WORDS):
-            field, explicit_unit = "budget", False
-        elif any(word in before for word in LOWER_WORDS):
-            # "便宜 300" -- a bare number after a lowering word is money off.
-            field, explicit_unit = "budget", False
         else:
-            continue
+            # No unit: the nearest field word wins. Reading the whole 12-char
+            # window let "时间...，预算..." assign the budget number to hours.
+            time_pos = max((before.rfind(word) for word in TIME_WORDS), default=-1)
+            budget_pos = max((before.rfind(word) for word in BUDGET_WORDS), default=-1)
+            if time_pos > budget_pos:
+                field, explicit_unit = "hours", False
+            elif budget_pos >= 0:
+                field, explicit_unit = "budget", False
+            elif any(word in before for word in LOWER_WORDS):
+                # "便宜 300" -- a bare number after a lowering word is money off.
+                field, explicit_unit = "budget", False
+            else:
+                continue
 
-        goes_to_target = any(marker in before for marker in TO_MARKERS)
-        absolute = explicit_unit or goes_to_target
+        near = text[max(0, quantity.start - 4) : quantity.start]
+        goes_to_target = any(marker in near for marker in TO_MARKERS)
+        near_lowering = any(word in near for word in LOWER_WORDS)
+        near_raising = any(word in near for word in RAISE_WORDS)
         lowering = any(word in before for word in LOWER_WORDS)
         raising = any(word in before for word in RAISE_WORDS)
+        if explicit_unit:
+            # "4 个小时" is a total, but "多留一小时" / "少一小时" are deltas.
+            absolute = goes_to_target or not (near_raising or near_lowering)
+        else:
+            absolute = goes_to_target or not (lowering or raising)
 
         if field == "budget":
             money = int(round(quantity.value))
@@ -269,9 +281,18 @@ def _style_mentions(
             if not name:
                 continue
             for match in re.finditer(re.escape(name), text):
-                prefix = text[max(0, match.start() - 4) : match.start()]
-                negated = any(word in prefix for word in NEGATIONS)
+                # Negation immediately before the style ("不要唐制") or right
+                # after it ("唐制不要了"). A 4-char window misread
+                # "唐制不要了，换魏晋风" as negating 魏晋 too.
+                prefix = text[max(0, match.start() - 3) : match.start()]
+                postfix = text[match.end() : match.end() + 4]
+                negated = any(word in prefix for word in NEGATIONS) or any(
+                    postfix.startswith(word) for word in NEGATIONS
+                )
                 replaces = any(cue in prefix for cue in SWAP_CUES)
+                # "改魏晋" is a swap, but "改天拍宋制" is not ("改天" = another day).
+                if not replaces and prefix.rstrip().endswith("改"):
+                    replaces = True
                 mentions.append((match.start(), style_id, negated, replaces))
     mentions.sort(key=lambda item: item[0])
     return mentions

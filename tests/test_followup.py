@@ -184,3 +184,36 @@ def test_the_deadline_preference_replaces_an_older_one():
         p for p in second.request.preferences if p.endswith("前结束")
     ]
     assert deadlines == ["18:00前结束"]
+
+
+# --- P1 regressions: amount scope and style-negation scope --------------------
+
+
+def test_an_increment_with_an_explicit_unit_is_a_delta_not_a_total():
+    result = apply_followup(_previous(hours=6), "再多留一小时")
+    assert result.request.hours == 7
+    assert "6 → 7" in result.changes[0]
+
+
+def test_a_compound_sentence_keeps_each_amount_on_its_own_field():
+    result = apply_followup(
+        _previous(hours=6, budget_cny=1500),
+        "时间缩到五小时，预算降到一千二",
+    )
+    assert result.request.hours == 5
+    assert result.request.budget_cny == 1200
+
+
+def test_negation_after_a_style_does_not_spill_into_the_next_style():
+    result = apply_followup(_previous(styles=["tang"]), "唐制不要了，换魏晋")
+    assert result.recognized is True
+    assert result.request.styles == ["weijin"]
+
+
+def test_compound_increment_does_not_inherit_target_from_previous_amount():
+    result = apply_followup(
+        _previous(hours=6, budget_cny=1500),
+        "预算加到两千，时间多一小时",
+    )
+    assert result.request.budget_cny == 2000
+    assert result.request.hours == 7
