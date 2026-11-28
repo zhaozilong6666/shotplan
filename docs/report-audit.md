@@ -8,14 +8,14 @@
 
 | 指标 | 值 |
 | --- | --- |
-| 扫描报告 | 110 份（586 KB） |
+| 扫描报告 | 111 份（588 KB） |
 | 脚本生成 | 64 份，来自 36 个生成器 |
-| 人写报告 | 46 份 |
+| 人写报告 | 47 份 |
 | 人写报告冗余对（≥ 0.55） | 3 对 |
 | 同名前缀家族（≥ 3 份） | 5 个 |
 | 失效引用 | 0 处 |
 | 孤儿报告（无入链） | 9 份 |
-| 人写报告平均边际信息量 | 0.749 |
+| 人写报告平均边际信息量 | 0.751 |
 
 ## 1. 同源实例：报告为什么会堆积
 
@@ -91,20 +91,20 @@
 
 ## 4. 边际信息量排序：人写报告里谁值得先读
 
-`1 - 最近邻相似度`，只在 44 份人写报告内比较（< 120 token 的 2 份只查引用）。接近 1 表示这份讲的东西别处没有；接近 0 表示它是别人的复述。
+`1 - 最近邻相似度`，只在 45 份人写报告内比较（< 120 token 的 2 份只查引用）。接近 1 表示这份讲的东西别处没有；接近 0 表示它是别人的复述。
 
 | 报告 | 边际信息量 | 最近邻 | 相似度 |
 | --- | ---: | --- | ---: |
 | `multi-turn-attribution.md` | 0.902 | `evaluation.md` | 0.098 |
 | `ingest.md` | 0.893 | `knowledge-contract.md` | 0.107 |
 | `repair-experiment.md` | 0.874 | `evaluation.md` | 0.126 |
-| `cost-latency-simulation.md` | 0.869 | `real-model-light-fix-2026-11-16.md` | 0.131 |
+| `cost-latency-simulation.md` | 0.870 | `real-model-light-fix-2026-11-16.md` | 0.130 |
 | `intelligence-roadmap.md` | 0.868 | `architecture.md` | 0.132 |
 | `p1-multi-turn-acceptance.md` | 0.867 | `ROADMAP.md` | 0.133 |
 | `city-coverage.md` | 0.863 | `evaluation.md` | 0.137 |
+| `baseline-compare.md` | 0.856 | `measurement.md` | 0.144 |
 | `generality.md` | 0.856 | `ROADMAP.md` | 0.144 |
 | `knowledge-contract.md` | 0.856 | `problem-and-metrics.md` | 0.144 |
-| `soak-partial-4h24.md` | 0.854 | `single-writer.md` | 0.146 |
 
 末位（信息量最低）：
 
@@ -151,4 +151,4 @@
 - **本文件自身不参与**审计，否则每次运行都会把自己报成 100% 重复。
 - **提交动作会改变语料**：语料取的是 git 索引，`git add` 一份新文档就会让统计数 +1。新增文档后要**先 add、再 `--write`**，否则本地算的是旧份数，CI 算的是新份数——这个陷阱已经踩过两次（一次是未跟踪的草稿被算进来，一次是刚 add 的新文档没重新生成）。
 
-_语料指纹：`e4570bccac173e63`（内容变化时此值必变）_
+_语料指纹：`7e24d8dab90ca0a5`（内容变化时此值必变）_

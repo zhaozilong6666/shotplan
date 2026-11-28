@@ -6,6 +6,10 @@
 
 ### Added
 
+- **v7 配对非劣比较（2026-11-28）**：`pair_compare --regression-margin-pp` 按 case 配对 + bootstrap，
+  `make compare-v7 B=...` 可门禁“相对 v7 下降超过 3pp”；新增口径文档与 2 条测试。
+  单次快照只做非劣判断，不宣称小差异。
+
 - **架构收口（2026-11-28）**：统一默认值口径（代码/CLI `sync`；systemd unit `batch + 1 worker`），
   删除 unit 中与 ADR 0019 冲突的 `workers=4` 建议；新增 `tests/test_deploy_defaults.py`；
   P1 多轮预注册验收口径 `docs/p1-multi-turn-acceptance.md`；P2/P3 停止规则与 v7 单次快照

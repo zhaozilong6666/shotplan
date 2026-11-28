@@ -79,10 +79,29 @@ def paired_diff(
     }
 
 
+def noninferior(
+    pass_diff: dict[str, float], margin_pp: float
+) -> tuple[bool, float]:
+    """Can we rule out a drop larger than `margin_pp` percentage points?
+
+    This is a one-sided non-inferiority check on the paired bootstrap CI:
+    pass only when the lower bound is above -margin. A wide CI that includes
+    a large drop fails, even if the point estimate looks flat.
+    """
+    margin = margin_pp / 100.0
+    return pass_diff["ci_low"] > -margin, margin
+
+
 def build_report(
-    a_name: str, b_name: str, pass_diff: dict[str, float], score_diff: dict[str, float]
+    a_name: str,
+    b_name: str,
+    pass_diff: dict[str, float],
+    score_diff: dict[str, float],
+    regression_margin_pp: float | None = None,
 ) -> str:
     def verdict(stats: dict[str, float]) -> str:
+        if stats["mean_diff"] == 0 and stats["ci_low"] == 0 and stats["ci_high"] == 0:
+            return "无差异（配对完全一致）"
         if stats["ci_low"] > 0:
             return "B 更好（区间不跨 0）"
         if stats["ci_high"] < 0:
@@ -105,6 +124,15 @@ def build_report(
         "",
         "区间跨 0 时不要写「B 略好」：那只是这次抽样里 B 恰好高一点。",
     ]
+    if regression_margin_pp is not None:
+        ok, _ = noninferior(pass_diff, regression_margin_pp)
+        lines += [
+            "",
+            f"非劣判定（允许下降 {regression_margin_pp:g}pp）："
+            f"**{'通过' if ok else '未通过'}**。",
+            "非劣只说明「没有证据表明下降超过该幅度」；区间越宽，结论越弱。"
+            "要证明更小的差异，用 `--repeat` 或扩样本，不要缩 margin 硬凑。",
+        ]
     return "\n".join(lines)
 
 
@@ -128,6 +156,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--a", type=Path, required=True)
     parser.add_argument("--b", type=Path, required=True)
     parser.add_argument("--out", type=Path, default=None, help="write markdown instead of stdout")
+    parser.add_argument(
+        "--regression-margin-pp",
+        type=float,
+        default=None,
+        help="non-inferiority margin in percentage points (e.g. 3); exit 0 only if the lower CI is above -margin",
+    )
     args = parser.parse_args(argv)
 
     if not args.a.exists() or not args.b.exists():
@@ -148,13 +182,20 @@ def main(argv: list[str] | None = None) -> int:
     pass_diff = paired_diff(a_rows, b_rows, "pass")
     score_diff = paired_diff(a_rows, b_rows, "score")
     report = build_report(
-        a_doc.get("model", str(args.a)), b_doc.get("model", str(args.b)), pass_diff, score_diff
+        a_doc.get("model", str(args.a)),
+        b_doc.get("model", str(args.b)),
+        pass_diff,
+        score_diff,
+        args.regression_margin_pp,
     )
     if args.out:
         args.out.write_text(report, encoding="utf-8")
         print(f"wrote {args.out}", file=sys.stderr)
     else:
         print(report)
+    if args.regression_margin_pp is not None:
+        ok, _ = noninferior(pass_diff, args.regression_margin_pp)
+        return 0 if ok else 1
     significant = pass_diff["ci_low"] > 0 or pass_diff["ci_high"] < 0
     return 0 if significant else 1
 

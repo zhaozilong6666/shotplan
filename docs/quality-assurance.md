@@ -7,7 +7,7 @@
 
 | 承诺 | 证据 | 执行位置 |
 | --- | --- | --- |
-| 670 个单测通过，覆盖率 ≥85% | `pytest --cov-fail-under=85`，当前 **91.47%** | CI × Python 3.10–3.13；Windows py3.12 另跑 unit + HTTP smoke |
+| 673 个单测通过，覆盖率 ≥85% | `pytest --cov-fail-under=85`，当前 **91.47%** | CI × Python 3.10–3.13；Windows py3.12 另跑 unit + HTTP smoke |
 | 40 道质量门禁 | `make gates`，唯一清单在 Makefile | CI py3.12，25 分钟超时 |
 | 类型与风格 | `ruff check src tests evals scripts` + `mypy` | CI 每个 Python 版本 |
 | 80/80 主集 + 320/320 盲测 | `evals.run_eval` / `case_miner --check` | `make gates` |
@@ -17,7 +17,8 @@
 
 ## 没有自动保证
 
-- **真实模型质量**：已有 2026-11-27 完整 80 例实测（67/69 硬通过、均分 0.9158、¥5.89），但不在每次 CI 重跑；模型版本、中转站延迟都可能变。
+- **真实模型质量**：已有 2026-11-27 完整 80 例实测（67/69 硬通过、均分 0.9158、¥5.89），但不在每次 CI 重跑；
+  v7 是单次快照，回归用 `make compare-v7` 的逐例配对非劣检验（[口径](baseline-compare.md)），不能拿总通过率相减。
 - **长跑稳定性**：5 小时/120 分钟报告是本地实测，不在 CI 重跑；它是证据，不是每次提交的保证。
 - **Windows 多进程**：已加 Windows py3.12 的 lint/type/unit/HTTP smoke job；但 `uvicorn --workers N` 的 30s accept 长跑仍不在 CI 重跑，默认仍是 1 worker。
 - **Linux 部署**：已用 `scripts/edge_proxy.py` 本地验证 4 后端 + 边缘代理（30 分钟 34,113 请求 0 错误）；nginx/systemd 配方仍未在 Linux 执行，CI 不启动真实反向代理。

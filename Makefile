@@ -1,6 +1,7 @@
-.PHONY: help install test lint typecheck check soak soakab eval mutation mine report fuzz bench load httpload workerlab persistlab pipelinedoc scale examples gates kb citygap sweep transfer probes sample thresholds analysis showcase serve plan smoke clean
+.PHONY: help install test lint typecheck check soak soakab eval mutation mine report fuzz bench load httpload workerlab persistlab pipelinedoc compare-v7 scale examples gates kb citygap sweep transfer probes sample thresholds analysis showcase serve plan smoke clean
 
 PYTHON ?= python
+B ?= evals/out/latest.json
 
 help:
 	@echo "shotplan commands"
@@ -19,9 +20,10 @@ help:
 	@echo "  httpload  真实 uvicorn 服务 + 多 worker 的 HTTP 压测"
 	@echo "  workerlab 持久化开/关对照实验，验证多 worker 瓶颈归因"
 	@echo "  persistlab 写入 off/sync/async 三组对照，验证异步化收益与不丢写"
-	@echo "  soak      无人值守长跑：默认 30 分钟、4 worker、batch 持久化"
+	@echo "  soak      无人值守长跑：默认 30 分钟、1 worker、batch 持久化"
 	@echo "  soakab    1 vs 4 worker 交替长跑，比较长尾（默认 2 轮 × 10 分钟）"
-	@echo "  pipelinedoc 从代码里的状态表重新生成流水线契约文档"
+	@echo "  compare-v7 与 v7 真实模型基线做配对非劣比较（B=...）
+  pipelinedoc 从代码里的状态表重新生成流水线契约文档"
 	@echo "  productlab 产品层测量（一句话理解 / 三策略 / 协商）"
 	@echo "  scale     线程 vs 进程扩展性对比"
 	@echo "  examples  重新生成 docs/examples.md 真实输出示例"
@@ -95,6 +97,10 @@ soak:
 # re-running: python -m evals.soak_ab --rerender
 soakab:
 	$(PYTHON) -m evals.soak_ab --minutes 10 --write
+
+compare-v7:
+	$(PYTHON) -m evals.pair_compare --a evals/baselines/v7-real-2026-11-27.json \
+		--b $(B) --regression-margin-pp 3
 
 pipelinedoc:
 	$(PYTHON) scripts/build_pipeline_doc.py --write
