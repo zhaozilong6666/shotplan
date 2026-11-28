@@ -5,7 +5,7 @@
 
 **最新真实模型实测（2026-11-27）**：80 例主集，**67/69 硬通过（97.1%）**，首轮可用 63/69，均分 **0.9158**，总成本 **¥5.89**（[完整报告](docs/real-model-full-2026-11-27.md)）。
 
-[English README](README.en.md) · [在线展示](https://zhaozilong6666.github.io/shotplan/) · [质量边界与复核](docs/quality-assurance.md) · ![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![CI](https://github.com/zhaozilong6666/shotplan/actions/workflows/ci.yml/badge.svg) ![coverage](https://img.shields.io/badge/coverage-91.55%25-brightgreen)
+[English README](README.en.md) · [在线展示](https://zhaozilong6666.github.io/shotplan/) · [质量边界与复核](docs/quality-assurance.md) · ![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![CI](https://github.com/zhaozilong6666/shotplan/actions/workflows/ci.yml/badge.svg) ![coverage](https://img.shields.io/badge/coverage-91.47%25-brightgreen)
 
 ---
 

@@ -20,13 +20,15 @@
 
 ## 决策
 
-1. **API 默认 1 worker**。`batch` 持久化只在 1 worker 下作为默认推荐。
+1. **API 默认 1 worker**。systemd unit 使用 `batch + 1 worker`；代码/CLI 默认仍是
+   `sync`。两种默认都在响应返回前 commit，区别只是 batch 合并并发请求的提交。
 2. 需要并发时，用 **N 个单 worker 进程 + 边缘代理**（`deploy/shotplan@.service`、
    `deploy/nginx.conf` 或 `scripts/edge_proxy.py`），不使用 `uvicorn --workers N`。
 3. **sidecar 不设为默认**。它确实把写者收敛为一个进程，1 worker 下干净；但它没有消除
    4 worker 的尾延迟，还多一个需要部署和监控的进程。代码保留为可选实验，不再扩写。
-4. **冻结持久化模式**：`off/sync/async/batch` 之外不再新增模式；默认仍是 `sync`，
-   对外承诺「每个被接受的请求都已落库」。
+4. **冻结持久化模式**：`off/sync/async/batch` 之外不再新增模式。代码/CLI 默认
+   `sync`，systemd unit 显式用 `batch`；两者都对外承诺「每个被接受的请求都已落库」。
+   不允许把 `batch` 与 `--workers N` 组合。
 
 ## 后果
 

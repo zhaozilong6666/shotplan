@@ -6,6 +6,11 @@
 
 ### Added
 
+- **架构收口（2026-11-28）**：统一默认值口径（代码/CLI `sync`；systemd unit `batch + 1 worker`），
+  删除 unit 中与 ADR 0019 冲突的 `workers=4` 建议；新增 `tests/test_deploy_defaults.py`；
+  P1 多轮预注册验收口径 `docs/p1-multi-turn-acceptance.md`；P2/P3 停止规则与 v7 单次快照
+  的配对比较约束写入 ROADMAP（L020）。
+
 - **门禁修复（2026-11-27）**：真实模型汇总改名 `docs/real-model-summary.json`，避免被
   `evals/real-model*.json` 快照扫描器误认；40/40 门禁恢复全绿（L019）。
 

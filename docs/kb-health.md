@@ -9,9 +9,9 @@
 
 | 项 | 值 |
 | --- | ---: |
-| 参与统计的文档 | 68 |
+| 参与统计的文档 | 69 |
 | 引用失效 | **0**（另有 4 处登记豁免） |
-| 证据类型：实证 / 可复核 / 纯叙述 | 23 / 32 / 13 |
+| 证据类型：实证 / 可复核 / 纯叙述 | 23 / 32 / 14 |
 | 引用实验编号的文档 | 14 |
 | 引用测量脚本或快照的文档 | 18 |
 | 实验台账 | 34 条，其中未结 0 条 |
@@ -37,7 +37,7 @@
 | --- | --- | ---: |
 | 实证 | 引用了已结案的实验，结论可回溯到产物 | 23 |
 | 可复核 | 引用了存在的代码或文件 | 32 |
-| 纯叙述 | 没有机械可核验的锚点 | 13 |
+| 纯叙述 | 没有机械可核验的锚点 | 14 |
 
 纯叙述文档（不等于错，但不能自动复核）：
 
@@ -48,6 +48,7 @@
 - `docs/adr/0014-request-constraints-are-hard-rules.md`
 - `docs/adr/0015-reproducible-run-trace.md`
 - `docs/measurement.md`
+- `docs/p1-multi-turn-acceptance.md`
 - `docs/problem-and-metrics.md`
 - `docs/real-model-smoke-2026-11-16.md`
 - `docs/redteam-analysis.md`

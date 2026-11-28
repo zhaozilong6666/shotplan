@@ -25,6 +25,7 @@
 | L017 | 2026-11-27 | README/作品集仍写 653 测试、93.15% 覆盖率，实际 662/91.50% | 已修 |
 | L018 | 2026-11-27 | 部署文档说 `make soak` 默认 4 worker，实际已是 1 worker；async 行掉到表格外 | 已修 |
 | L019 | 2026-11-27 | 汇总文件命名蹭了 `real-model` 前缀，被快照门禁当成第 9 份快照 | 已修 |
+| L020 | 2026-11-28 | 默认持久化三处不一致，unit 还建议 sync 时开 4 worker | 已修 |
 | L011 | 2026-11-26 | 以为 30s 卡在 commit，writer 内部却没有任何 >1s 日志 | 已记录 |
 
 ## L001 · 强杀长跑留下临时库
@@ -178,6 +179,14 @@
 - **修复**：移到 `docs/real-model-summary.json`，展示页生成器改读新路径；`repair_attribution` 恢复 8 份快照。
 - **验证**：`repair_attribution --check` 通过；40/40 门禁全绿。
 - **防复发**：新增数据文件前先看目录扫描规则；汇总和逐例快照分开放，文件名不要蹭前缀。
+
+## L020 · 默认值三处不一致，unit 注释还建议 `--workers 4`
+
+- **症状**：代码默认 `sync`、systemd unit 默认 `batch`、ROADMAP 写“默认 sync”、ADR 0019 同时说“batch 可作为默认推荐”和“默认仍是 sync”；unit 注释还写“sync 时把 `SHOTPLAN_WORKERS=4`”，与刚刚定位的 30s 共享 accept 根因相反。
+- **根因**：默认值在代码、unit、部署文档、路线图、ADR 五处分别维护，没有契约测试；ADR 0019 收口时只改了大方向，没有回头删旧注释。
+- **修复**：明确“代码/CLI 默认 sync；systemd unit 默认 batch + 1 worker”；删掉 workers=4 注释；加 `tests/test_deploy_defaults.py` 钉住；ROADMAP 与 ADR 同步。
+- **验证**：默认值测试 3 条通过；40/40 门禁全绿。
+- **防复发**：默认值变更必须同时改代码、unit、部署文档、ROADMAP/ADR，并留一条契约测试；只改一处就是下一次漂移。
 
 ## 新增一条的模板
 

@@ -12,8 +12,11 @@ WorkingDirectory=/opt/shotplan
 # Verified default: batch + 1 worker. Batch waits for a shared commit, and one
 # process avoids the multi-process SQLite write contention measured in E29
 # (2 workers already produced 30s tails; 1 worker ran 2h with none).
-# For SHOTPLAN_PERSIST_MODE=sync, override SHOTPLAN_WORKERS=4 in /etc/shotplan.env.
+# Keep one worker. To scale, run one process per port behind a proxy; never
+# raise this to 4 with uvicorn --workers (shared accept socket -> 30s tails,
+# ADR 0019 / E30).
 Environment=SHOTPLAN_WORKERS=1
+# The unit uses batch for throughput; the code/CLI default remains sync.
 Environment=SHOTPLAN_PERSIST_MODE=batch
 EnvironmentFile=/etc/shotplan.env
 Environment=SHOTPLAN_DB_PATH=/var/lib/shotplan/shotplan.db

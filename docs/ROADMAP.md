@@ -11,9 +11,9 @@
 
 | 线 | 要回答的问题 | 验收标准 |
 | --- | --- | --- |
-| **P1 多轮 v2** | 真实用户不会一次把需求说清楚；现有 12 条规则只证明「见过的说法」 | 30 条**未参与调试**的留出集，收敛率 ≥85%，guard 用例 0 误读，单次对话成本 ≤¥0.5 |
-| **P2 第二领域** | 「15/16 条逻辑可迁移」目前只是口径 | 抽出 `DomainPack`，会议室 8 房间 / 20 例，核心代码复用 ≥60%，ADR 0020 |
-| **P3 回归与叙事** | 真实模型只有单次快照，没有可比较的基线 | v7 真实模型基线可一键重跑；简历/一页纸定稿；v1.0 |
+| **P1 多轮 v2** | 真实用户不会一次把需求说清楚；现有 12 条规则只证明「见过的说法」 | 30 段封存对话，收敛率 ≥26/30、guard 6/6、每段成本 ≤¥0.5；30 段只宣称方向性门槛，不在其上宣称 ≥85%（[验收口径](p1-multi-turn-acceptance.md)） |
+| **P2 第二领域** | 「15/16 条逻辑可迁移」目前只是口径 | 抽出 `DomainPack`：核心 `pipeline/validator/feasibility` 只留注入点；会议室 8 房间 / 20 例，至少 1 条旅拍不存在的硬约束；20 例硬通过 ≥18；复用按未修改的核心模块数计，不按行数；ADR 0020 |
+| **P3 发布与叙事（非产品线）** | 真实模型只有单次快照，没有可比较的基线 | v7 快照可一键重跑；回归用同批逐例配对 + 区间，不拿单次跑当基线；简历/一页纸定稿；v1.0 范围写清 |
 
 ### P0 · 收口（先做完，再开新功能）
 
@@ -23,10 +23,16 @@
 - [x] **冻结运维面**：不新增持久化模式、soak 变体或代理配方；sidecar 仅作为实验保留，不再扩写
 - [x] **真实模型 v7 基线**：把 2026-11-27 的 80 例结果登记为基线，后续 prompt/模型改动必须与它配对比较
 
+### 停止/回退规则
+
+- **P1**：两轮开发集后仍 <22/30，或 guard 出现 ≥2 次误读，或每段成本 >¥0.8，停止加规则，保留确定性追问；不把失败藏进“继续调”。
+- **P2**：DomainPack 需要改超过 40% 的核心模块，或 20 例中 <14 例硬通过，判定抽象失败，回退到单领域，不硬凑复用率。
+- **P3**：v7 只有单次快照；任何“回归/提升”必须用同批逐例配对 + 区间。没有配对就不写结论。
+
 ### 明确不做
 
 - 不用 `uvicorn --workers N` 扩 API：Windows 上共享 accept socket 已验证会产生 30s 长尾（[E30](experiments.md)）
-- 不再为「更稳」增加持久化模式：默认 `sync`；`batch` 只在 1 worker 或多端口代理下使用
+- 不再为「更稳」增加持久化模式：**代码/CLI 默认 `sync`；systemd unit 默认 `batch + 1 worker`**；`batch` 不得与 `--workers N` 组合
 - 没有产品问题支撑的新 soak、新代理、新报告；测量工具不为测量本身服务
 
 > 以下五个阶段保留当时的验收口径与数字；当前状态以 README、[quality-assurance.md](quality-assurance.md) 与本页顶部为准。
@@ -34,8 +40,8 @@
 ## 阶段 1 · 把「可执行」定义清楚 ✅
 
 - [x] 领域模型与规范化输入
-- [x] 人工整理的知识库（8 个地点 / 5 种风格）+ 精确检索工具
-- [x] 15 条硬/软约束及其单一定义源
+- [x] 人工整理的知识库（当时 8 个地点 / 5 种风格；当前规模见 HANDOFF）+ 精确检索工具
+- [x] 当时 15 条硬/软约束及其单一定义源（当前 16 条）
 - [x] 不依赖模型的校验器（另加生成前的可行性判定，见 ADR 0007）
 - [x] 离线 provider（含故意犯错的对照模式）
 - [x] CLI：`plan` / `rules` / `config` / `history` / `eval` / `serve`
@@ -49,7 +55,7 @@
 - [x] SQLite 运行历史与聚合摘要
 - [x] 可选 FastAPI 层与原生单页界面（五种视图）
 - [x] 版本化 prompt、真实模型 provider（urllib + 重试 + 降级）
-- [x] 301 个单元测试，逐条覆盖规则、可行性与边界
+- [x] 当时 301 个单元测试，逐条覆盖规则、可行性与边界（当前见 HANDOFF）
 
 验收：`python -m pytest` 全绿；`python -m shotplan.cli serve` 后界面能切换 good/naive 并看到问题清单。
 
@@ -64,13 +70,13 @@
 - [x] 并发负载测试：并发 1/4/8 下 0 错误、0 丢写，并记录饱和点（见 [loadtest.md](loadtest.md)）
 - [x] 线程 vs 进程扩展性：线程约 1.04×、进程约 1.72×，证明瓶颈在 GIL（见 [scaling.md](scaling.md)）
 - [x] 真实输出示例：四份由代码生成、可 `--check` 比对的结果（见 [examples.md](examples.md)）
-- [x] **门禁有效性**：8 处受控变异注入 + 回滚比对，旧门禁只拦住 4/8，补齐对照组规则覆盖后 8/8（见 [mutation-report.md](mutation-report.md)、[ADR 0009](adr/0009-gate-sensitivity.md)）
+- [x] **门禁有效性**：当时 8 处受控变异注入 + 回滚比对，旧门禁只拦住 4/8，补齐对照组规则覆盖后 8/8（当前 9/9）（见 [mutation-report.md](mutation-report.md)、[ADR 0009](adr/0009-gate-sensitivity.md)）
 - [x] **盲测挑战集**：从 527 条失败记录聚类出 360 个候选、纳入 320 个未见 brief，城市 × 风格覆盖 19/40 → 40/40；独立存放不污染 v1–v6 基线（见 [case-mining.md](case-mining.md)、[ADR 0010](adr/0010-holdout-challenge-set.md)）
 - [x] **真实 HTTP 服务压测**：启动 1/2/4 个 uvicorn worker 走 loopback 发真实请求，1000 次请求 0 错误 0 丢写；发现多 worker 抢共享 SQLite 写锁反而变慢（见 [http-load.md](http-load.md)）
 - [x] **持久化对照实验**：`SHOTPLAN_PERSIST_RUNS` 开关在同一份产品代码上做开/关对照，验证 v0.8.0 的写锁归因；判定允许输出「不确定」，结论随数据动态生成（见 [worker-bottleneck.md](worker-bottleneck.md)、[ADR 0011](adr/0011-controlled-experiment-over-inference.md)）
 - [x] **写入异步化**：`off/sync/async` 三组同批对照，异步相对同步 1 worker 2.96×、4 worker 1.95×，拿回约 47% 写库开销，三组 0 丢写；默认仍为 `sync`，硬杀丢失窗口用 `os._exit` 实测（见 [persistence.md](persistence.md)、[ADR 0012](adr/0012-write-behind-persistence.md)）
 - [x] **流水线契约与墙钟预算**：6 个节点写成状态表，图与逐节点 I/O 由代码生成、CI 比对漂移；超预算时降级返回最优草稿（见 [pipeline-contract.md](pipeline-contract.md)、[ADR 0013](adr/0013-explicit-stage-table-and-budget.md)）
-- [x] GitHub Actions：测试 + lint + **31 道质量门禁**（单元测试跑 3.10–3.13 矩阵，重门禁在 3.12 执行一次）
+- [x] GitHub Actions：测试 + lint + **当时 31 道质量门禁**（当前 40 道）（单元测试跑 3.10–3.13 矩阵，重门禁在 3.12 执行一次）
 
 验收：`python -m evals.run_eval --write-report` 退出码 0；实测 80/80 通过、均分 0.9796、对照组 0.2974；`python -m evals.mutation_lab --check` 退出码 0 且 0 处变异存活；`python -m evals.case_miner --check` 退出码 0 且 320 个盲测 brief 全部与主集不重复；`python -m evals.http_load --check` 退出码 0 且真实 HTTP 请求 0 错误、0 丢写；`python -m evals.worker_lab --check` 退出码 0 且持久化开关语义正确（开 = 全落库、关 = 0 落库）；`python -m evals.persist_lab --check` 退出码 0 且三组各自满足落库契约；`python scripts/build_pipeline_doc.py --check` 退出码 0 且契约文档与代码一致。
 

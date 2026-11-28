@@ -99,6 +99,8 @@ class Settings:
     # is measurably faster; it is opt-in because it trades a bounded, measured
     # loss window on a hard kill. `batch` keeps the durable promise but shares
     # one commit across concurrent requests (see docs/batch-write.md).
+    # Code/CLI default is sync (commit before returning). The systemd unit
+    # deliberately sets batch + 1 worker for throughput; see ADR 0019.
     persist_mode: str = "sync"
     # Optional single-writer sidecar. When set, all finished runs are POSTed to
     # this one process instead of being written by each API worker; it is the

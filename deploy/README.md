@@ -26,13 +26,14 @@ systemctl status shotplan
 
 ### worker 数怎么选
 
-unit 的默认是 **`batch` + 1 worker**，这是长跑验证过的稳定组合；worker 数仍由
-`SHOTPLAN_WORKERS` 控制，可在 `/etc/shotplan.env` 覆盖：
+unit 的默认是 **`batch` + 1 worker**，这是长跑验证过的稳定组合；**代码/CLI 的默认仍是
+`sync`**（每个请求 commit 后才返回）。`SHOTPLAN_WORKERS` 固定在 1，不要用 `--workers N`
+扩 API；需要并发时走“独立端口 + 反向代理”。
 
 | 持久化模式 | 建议 | 依据 |
 | --- | --- | --- |
 | `batch`（unit 默认） | **1 worker** | 2 worker 起就出现 30s 级尾延迟（2w/60m 11 次超时；4w/2h 20 次），1 worker 2h/14.3 万请求 0 超时、0 丢写（[E29](../docs/soak-ab.md)、[120 分钟单 worker](../docs/soak-high-120-1w.md)） |
-| `sync` | 4 worker | 真实 HTTP 压测里 4 worker 是单 worker 的 2.99×（[docs/http-load.md](../docs/http-load.md)）；但每个请求一次 commit，吞吐低于 batch |
+| `sync` | 单 worker；并发用独立端口 | 4 个 `--workers 1` 进程 + 代理已验证 30 分钟 0 错误（[E31](../docs/soak-proxy-30m.md)）；不要用 `--workers N` |
 | `async` | 短压测里多 worker 更快，但没有长跑对照 | 不要把 200 请求的吞吐当成耐久性证据 |
 
 > 注意：`uvicorn --workers N` 在 Windows 上共享监听 socket，长跑会出现 30s 级 accept 卡顿
@@ -65,7 +66,7 @@ sudo nginx -t && sudo systemctl reload nginx
 
 **不要把它当成 4 worker 的修复**：1 worker 下干净，但 4 worker 仍有 30s 级
 `ReadTimeout`（30 分钟 11 次）。结论与对照见 [docs/single-writer.md](../docs/single-writer.md)。
-当前默认仍是 `batch + 1 worker`。
+生产 unit 默认 `batch + 1 worker`；代码/CLI 默认 `sync`。两者都保证“返回前已 commit”。
 
 ## Prometheus
 
